@@ -11,8 +11,10 @@ import Control.Monad (unless, when)
 import qualified Data.ByteString as BS
 import Data.FileEmbed
 import Data.List (unwords)
+import Data.List (filter, reverse)
 import GHC.Float
 import GHC.Real ((/), round)
+import GLFWHelpers
 import Graphics.Gloss
 import Graphics.Gloss.Data.Color
 import Graphics.Gloss.Data.Picture
@@ -26,27 +28,37 @@ windowWidth, windowHeight :: Float
 windowWidth = 640
 windowHeight = 480
 
-type Clicks = [(Double, Double)]
+data GameState = GameState
+  { gsBoard :: [(Double, Double)],
+    gsPlacementMode :: Bool
+  }
+
+initialGameState :: GameState
+initialGameState = GameState [] False
 
 main :: IO ()
 main = do
-  clicksMVar :: MVar Clicks <- newMVar []
-  mouseDownMVar :: MVar Bool <- newMVar False
+  inputsMVar <- newMVar emptyCapturedInput
   glossState <- initState
-  withWindow (float2Int windowWidth) (float2Int windowHeight) "Game-Demo" clicksMVar mouseDownMVar $ \win -> do
-    loop glossState win [] clicksMVar mouseDownMVar
+  withWindow (float2Int windowWidth) (float2Int windowHeight) "Game-Demo" inputsMVar $ \win -> do
+    loop glossState win initialGameState inputsMVar
     exitSuccess
   where
-    loop glossState window gameState clicksMVar mouseDownMVar = do
+    loop glossState window gameState inputsMVar = do
       threadDelay 50000
       pollEvents
-      clicks <- modifyMVar clicksMVar $ \cs -> pure ([], cs)
-      mouseDown <- readMVar mouseDownMVar
-
-      --setCursorInputMode window CursorInputMode'Hidden
+      capturedInputs <- modifyMVar inputsMVar $ \cs -> pure (emptyCapturedInput, cs)
+      putStrLn $ show capturedInputs
       (x, y) <- GLFW.getCursorPos window
-      let newGameState = gameState <> clicks <> (if mouseDown then [(x, y)] else [])
-      let newGameState' = newGameState <&> \(x, y) -> (int2Float $ xg2g x, int2Float $ yg2g y)
+      --setCursorInputMode window CursorInputMode'Hidden
+      let newPlacementMode = case fmap meButtonState . headMay $ cieMouse capturedInputs of
+            Just MouseButtonState'Pressed -> True
+            Just MouseButtonState'Released -> False
+            Nothing -> gsPlacementMode gameState
+          clicks = unGLFWCursorPosition . meCursorPosition <$> (reverse $ filter ((MouseButtonState'Pressed ==) . meButtonState) $ cieMouse capturedInputs)
+          newBoard = gsBoard gameState <> clicks <> (if newPlacementMode then [(x, y)] else [])
+          newGameState = gameState {gsBoard = newBoard, gsPlacementMode = newPlacementMode}
+      let board = gsBoard newGameState <&> \(x, y) -> (int2Float $ xg2g x, int2Float $ yg2g y)
       pic <- pictureFromFile $ $(makeRelativeToProject "assets/main_character.png" >>= strToExp)
       let blueSquare = Color blue $ Polygon [(0, 0), (0, 50), (50, 50), (50, 0)]
       let picture =
@@ -54,7 +66,7 @@ main = do
               [ translate 0 100 $ Scale 0.2 0.2 $ Color white $ Text $ show (xg2g x, yg2g y)
               --, Color blue $ Polygon [(0,0),(0,50),(50,50),(50,0)]
               ]
-              <> (Pictures $ (uncurry translate <$> newGameState') <&> ($ pic))
+              <> (Pictures $ (uncurry translate <$> board) <&> ($ pic))
       withModelview (float2Int windowWidth, float2Int windowHeight)
         $ withClearBuffer black
         $ do
@@ -63,7 +75,7 @@ main = do
 
       swapBuffers window
       k <- keyIsPressed window Key'Q
-      unless k $ loop glossState window newGameState clicksMVar mouseDownMVar
+      unless k $ loop glossState window newGameState inputsMVar
 
     -- move with cursor -- translate (int2Float $ gridify x') (int2Float $ gridify y')
 
@@ -90,8 +102,8 @@ pictureFromFile path = do
   bmp <- either (fail . show) pure $ parseBMP bmpBytes
   pure $ translate ((int2Float $ dynamicMap imageWidth dynImage) / 2) ((int2Float $ dynamicMap imageHeight dynImage) / 2) $ bitmapOfBMP bmp
 
-withWindow :: Int -> Int -> [Char] -> MVar Clicks -> MVar Bool -> (GLFW.Window -> IO ()) -> IO ()
-withWindow width height title clicksMVar mouseDownMVar f = do
+withWindow :: Int -> Int -> [Char] -> MVar CapturedInput -> (GLFW.Window -> IO ()) -> IO ()
+withWindow width height title inputsMVar f = do
   GLFW.setErrorCallback $ Just simpleErrorCallback
   r <- GLFW.init
   Just mon <- getPrimaryMonitor
@@ -101,13 +113,7 @@ withWindow width height title clicksMVar mouseDownMVar f = do
     case m of
       (Just win) -> do
         GLFW.makeContextCurrent m
-        setMouseButtonCallback win $ Just $ \_ _ mbs _ -> case mbs of
-          MouseButtonState'Released -> do
-            (x, y) <- GLFW.getCursorPos win
-            modifyMVar_ clicksMVar $ pure . ((x, y) :)
-            modifyMVar_ mouseDownMVar $ \_ -> pure False
-          _ -> do
-            modifyMVar_ mouseDownMVar $ \_ -> pure True
+        startCaptureEvents win inputsMVar
         f win
         GLFW.setErrorCallback $ Just simpleErrorCallback
         GLFW.destroyWindow win

@@ -18,16 +18,15 @@ description:         Please see the README on GitHub at <https://github.com/gith
 dependencies:
 # the usual suspects
 - base
+- bmp
 - bytestring
+- file-embed
+- safe
 - text
 - unix
 
 # formatting
 - ormolu
-
-# more odd ones
-- file-embed
-- bmp
 
 # opengl and friends
 - JuicyPixels

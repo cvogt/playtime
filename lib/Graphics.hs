@@ -35,3 +35,15 @@ xg2g x = (round x - 320)
 
 yg2g :: Double -> Int
 yg2g y = (round y - 240) * (-1)
+
+-- move with cursor -- translate (int2Float $ gridify x') (int2Float $ gridify y')
+
+-- grid =
+--   fixPolyPos $ Color white $ Pictures $
+--     (([1 .. (windowWidth / gridsize)]) <&> \((* gridsize) -> x) -> Line [(x, 0), (x, windowHeight)])
+--       <> (([1 .. (windowHeight / gridsize)]) <&> \((* gridsize) -> y) -> Line [(0, y), (windowWidth, y)])
+-- fixPolyPos = translate (- (windowWidth / 2)) (- (windowHeight / 2))
+-- gridsize :: Float
+-- gridsize = 20
+-- gridify :: Int -> Int
+-- gridify = (* (float2Int gridsize)) . round . (/ gridsize) . int2Float

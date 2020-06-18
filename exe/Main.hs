@@ -8,6 +8,7 @@ module Main where
 import Codec.BMP (parseBMP)
 import Codec.Picture (dynamicMap, encodeDynamicBitmap, imageHeight, imageWidth, readImage)
 import Control.Monad (unless, when)
+import Control.Monad.Extra (unfoldM_)
 import qualified Data.ByteString as BS
 import Data.FileEmbed
 import Data.List (filter, reverse)
@@ -33,12 +34,10 @@ main :: IO ()
 main = do
   inputsMVar <- newMVar emptyCapturedInput
   glossState <- initState
-  withWindow (float2Int windowWidth) (float2Int windowHeight) "Game-Demo" inputsMVar $ \win -> do
+
+  withWindow (float2Int windowWidth) (float2Int windowHeight) "Game-Demo" inputsMVar $ \window -> do
     --setCursorInputMode win CursorInputMode'Hidden
-    loop glossState win initialGameState inputsMVar
-    exitSuccess
-  where
-    loop glossState window oldGameState inputsMVar = do
+    flip unfoldM_ initialGameState $ \oldGameState -> do
       threadDelay 50000
       pollEvents
       capturedInputs <- modifyMVar inputsMVar $ \cs -> pure (emptyCapturedInput, cs)
@@ -53,19 +52,7 @@ main = do
 
       swapBuffers window
       k <- keyIsPressed window Key'Q
-      unless k $ loop glossState window newGameState inputsMVar
-
-    -- move with cursor -- translate (int2Float $ gridify x') (int2Float $ gridify y')
-
-    grid =
-      fixPolyPos $ Color white $ Pictures $
-        (([1 .. (windowWidth / gridsize)]) <&> \((* gridsize) -> x) -> Line [(x, 0), (x, windowHeight)])
-          <> (([1 .. (windowHeight / gridsize)]) <&> \((* gridsize) -> y) -> Line [(0, y), (windowWidth, y)])
-    fixPolyPos = translate (- (windowWidth / 2)) (- (windowHeight / 2))
-    gridsize :: Float
-    gridsize = 20
-    gridify :: Int -> Int
-    gridify = (* (float2Int gridsize)) . round . (/ gridsize) . int2Float
+      pure $ if k then Nothing else Just newGameState
 
 keyIsPressed :: Window -> Key -> IO Bool
 keyIsPressed win key = isPress `fmap` GLFW.getKey win key

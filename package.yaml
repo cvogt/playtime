@@ -21,6 +21,7 @@ dependencies:
 - bmp
 - bytestring
 - file-embed
+- monad-extras
 - safe
 - text
 - unix

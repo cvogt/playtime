@@ -28,6 +28,7 @@ dependencies:
 - pathfinding
 - file-embed
 - unix
+- ormolu
 
 default-extensions:
 - TemplateHaskell

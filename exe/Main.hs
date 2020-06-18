@@ -34,37 +34,22 @@ main = do
   inputsMVar <- newMVar emptyCapturedInput
   glossState <- initState
   withWindow (float2Int windowWidth) (float2Int windowHeight) "Game-Demo" inputsMVar $ \win -> do
+    --setCursorInputMode win CursorInputMode'Hidden
     loop glossState win initialGameState inputsMVar
     exitSuccess
   where
-    loop glossState window gameState inputsMVar = do
+    loop glossState window oldGameState inputsMVar = do
       threadDelay 50000
       pollEvents
       capturedInputs <- modifyMVar inputsMVar $ \cs -> pure (emptyCapturedInput, cs)
-      putStrLn $ show capturedInputs
       (x, y) <- GLFW.getCursorPos window
-      --setCursorInputMode window CursorInputMode'Hidden
-      let newPlacementMode = case fmap meButtonState . headMay $ cieMouse capturedInputs of
-            Just MouseButtonState'Pressed -> True
-            Just MouseButtonState'Released -> False
-            Nothing -> gsPlacementMode gameState
-          clicks = unGLFWCursorPosition . meCursorPosition <$> (reverse $ filter ((MouseButtonState'Pressed ==) . meButtonState) $ cieMouse capturedInputs)
-          newBoard = gsBoard gameState <> clicks <> (if newPlacementMode then [(x, y)] else [])
-          newGameState = gameState {gsBoard = newBoard, gsPlacementMode = newPlacementMode}
-      let board = gsBoard newGameState <&> \(x, y) -> (int2Float $ xg2g x, int2Float $ yg2g y)
-      pic <- pictureFromFile $ $(makeRelativeToProject "assets/main_character.png" >>= strToExp)
-      let blueSquare = Color blue $ Polygon [(0, 0), (0, 50), (50, 50), (50, 0)]
-      let picture =
-            Pictures
-              [ translate 0 100 $ Scale 0.2 0.2 $ Color white $ Text $ show (xg2g x, yg2g y)
-              --, Color blue $ Polygon [(0,0),(0,50),(50,50),(50,0)]
-              ]
-              <> (Pictures $ (uncurry translate <$> board) <&> ($ pic))
+      let newGameState = handleEvents (x, y) oldGameState capturedInputs
+
+      picture <- vizualizeGame (x, y) newGameState
       withModelview (float2Int windowWidth, float2Int windowHeight)
         $ withClearBuffer black
         $ do
           renderPicture glossState 1.0 picture
-          renderPicture glossState 1.0 $ Scale 0.2 0.2 $ Color white $ Text $ "openGL: " <> show (round x :: Int, round y :: Int)
 
       swapBuffers window
       k <- keyIsPressed window Key'Q
@@ -81,12 +66,6 @@ main = do
     gridsize = 20
     gridify :: Int -> Int
     gridify = (* (float2Int gridsize)) . round . (/ gridsize) . int2Float
-
-xg2g :: Double -> Int
-xg2g x = (round x - 320)
-
-yg2g :: Double -> Int
-yg2g y = (round y - 240) * (-1)
 
 keyIsPressed :: Window -> Key -> IO Bool
 keyIsPressed win key = isPress `fmap` GLFW.getKey win key

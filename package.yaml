@@ -6,10 +6,6 @@ author:              "Author name here"
 maintainer:          "example@example.com"
 copyright:           "2020 Author name here"
 
-extra-source-files:
-- README.md
-- ChangeLog.md
-
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
 # category:            Web
@@ -21,6 +17,20 @@ description:         Please see the README on GitHub at <https://github.com/gith
 
 dependencies:
 - base >= 4.7 && < 5
+- bytestring
+- JuicyPixels
+- bmp
+- protolude
+- gloss
+- gloss-rendering
+- GLFW-b
+- Euterpea
+- pathfinding
+- file-embed
+- unix
+
+default-extensions:
+- TemplateHaskell
 
 library:
   source-dirs: src
@@ -35,10 +45,6 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - spaceminer
-    - protolude
-    - gloss
-    - gloss-rendering
-    - GLFW-b
 
 tests:
   spaceminer-test:

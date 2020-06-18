@@ -41,6 +41,18 @@ packages:
 #
 # extra-deps: []
 
+extra-deps:
+- Euterpea-2.0.7
+# Euterpea deps
+- PortMidi-0.2.0.0
+- arrows-0.4.4.2
+- Stream-0.4.7.2
+- lazysmallcheck-0.6
+#-----------
+- pathfinding-0.1.0.0
+
+allow-newer: true
+
 # Override default flag values for local packages and extra-deps
 # flags: {}
 

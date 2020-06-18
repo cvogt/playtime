@@ -21,6 +21,7 @@ where
 import Control.Applicative (pure)
 import Control.Monad ((=<<), (>>=))
 import Control.Monad (fail)
+import Control.Monad (unless, when)
 import Data.Bool (Bool (False, True))
 import Data.Char (Char)
 import Data.Either (either)

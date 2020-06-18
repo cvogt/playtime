@@ -10,11 +10,11 @@ import Codec.Picture (dynamicMap, encodeDynamicBitmap, imageHeight, imageWidth, 
 import Control.Monad (unless, when)
 import qualified Data.ByteString as BS
 import Data.FileEmbed
-import Data.List (unwords)
 import Data.List (filter, reverse)
 import GHC.Float
 import GHC.Real ((/), round)
 import GLFWHelpers
+import Graphics
 import Graphics.Gloss
 import Graphics.Gloss.Data.Color
 import Graphics.Gloss.Data.Picture
@@ -94,34 +94,6 @@ xg2g x = (round x - 320)
 
 yg2g :: Double -> Int
 yg2g y = (round y - 240) * (-1)
-
-pictureFromFile :: FilePath -> IO Picture
-pictureFromFile path = do
-  dynImage <- either fail pure =<< readImage path
-  bmpBytes <- either (fail . show) pure $ encodeDynamicBitmap dynImage
-  bmp <- either (fail . show) pure $ parseBMP bmpBytes
-  pure $ translate ((int2Float $ dynamicMap imageWidth dynImage) / 2) ((int2Float $ dynamicMap imageHeight dynImage) / 2) $ bitmapOfBMP bmp
-
-withWindow :: Int -> Int -> [Char] -> MVar CapturedInput -> (GLFW.Window -> IO ()) -> IO ()
-withWindow width height title inputsMVar f = do
-  GLFW.setErrorCallback $ Just simpleErrorCallback
-  r <- GLFW.init
-  Just mon <- getPrimaryMonitor
-  let fullscreen = Nothing -- (Just mon)
-  when r $ do
-    m <- GLFW.createWindow width height title fullscreen Nothing
-    case m of
-      (Just win) -> do
-        GLFW.makeContextCurrent m
-        startCaptureEvents win inputsMVar
-        f win
-        GLFW.setErrorCallback $ Just simpleErrorCallback
-        GLFW.destroyWindow win
-      Nothing -> pure ()
-    GLFW.terminate
-  where
-    simpleErrorCallback e s =
-      putStrLn $ unwords [show e, show s]
 
 keyIsPressed :: Window -> Key -> IO Bool
 keyIsPressed win key = isPress `fmap` GLFW.getKey win key

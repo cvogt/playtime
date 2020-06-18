@@ -1,24 +1,28 @@
 module Game where
 
-import Data.List (filter, reverse)
 import GLFWHelpers
 import "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.Prelude
 
 data GameState = GameState
-  { gsBoard :: [(Double, Double)],
+  { gsBoard :: [GLFWCursorPosition],
     gsPlacementMode :: Bool
   }
 
 initialGameState :: GameState
 initialGameState = GameState [] False
 
-handleEvents :: (Double, Double) -> GameState -> CapturedInput -> GameState
-handleEvents (x, y) gameState capturedInputs =
-  let newPlacementMode = case fmap meButtonState . headMay $ cieMouse capturedInputs of
-        Just MouseButtonState'Pressed -> True
-        Just MouseButtonState'Released -> False
-        Nothing -> gsPlacementMode gameState
-      clicks = unGLFWCursorPosition . meCursorPosition <$> (reverse $ filter ((MouseButtonState'Pressed ==) . meButtonState) $ cieMouse capturedInputs)
-      newBoard = gsBoard gameState <> clicks <> (if newPlacementMode then [(x, y)] else [])
-   in gameState {gsBoard = newBoard, gsPlacementMode = newPlacementMode}
+handleEvents :: (Double, Double) -> GameState -> [InputEvent] -> GameState
+handleEvents (x, y) = foldl $ handleEvent (x, y)
+
+handleEvent :: (Double, Double) -> GameState -> InputEvent -> GameState
+handleEvent (x, y) (GameState oldBoard oldPlacementMode) input =
+  let newPlacementMode = case input of
+        MouseEvent' (MouseEvent _ MouseButtonState'Pressed _ _) -> True
+        MouseEvent' (MouseEvent _ MouseButtonState'Released _ _) -> False
+        _ -> oldPlacementMode
+      newBoard = case input of
+        GameLoopEvent _ -> if newPlacementMode then (GLFWCursorPosition (x, y)) : oldBoard else oldBoard
+        MouseEvent' (MouseEvent _ MouseButtonState'Pressed _ cursor) -> cursor : oldBoard
+        _ -> oldBoard
+   in GameState newBoard newPlacementMode

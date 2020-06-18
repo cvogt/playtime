@@ -5,6 +5,7 @@ import Codec.Picture (dynamicMap, encodeDynamicBitmap, imageHeight, imageWidth, 
 import Data.FileEmbed
 import GHC.Float
 import GHC.Real ((/), round)
+import GLFWHelpers
 import Game
 import Graphics.Gloss
 import My.IO
@@ -12,7 +13,7 @@ import My.Prelude
 
 vizualizeGame :: (Double, Double) -> GameState -> IO Picture
 vizualizeGame (x, y) gameState = do
-  let board = gsBoard gameState <&> \(x', y') -> (int2Float $ xg2g x', int2Float $ yg2g y')
+  let board = gsBoard gameState <&> \(GLFWCursorPosition (x', y')) -> (int2Float $ xg2g x', int2Float $ yg2g y')
   pic <- pictureFromFile $ $(makeRelativeToProject "assets/main_character.png" >>= strToExp)
   -- let blueSquare = Color blue $ Polygon [(0, 0), (0, 50), (50, 50), (50, 0)]
   pure $

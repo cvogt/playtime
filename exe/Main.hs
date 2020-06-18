@@ -39,12 +39,14 @@ main = do
     --setCursorInputMode win CursorInputMode'Hidden
     flip unfoldM_ initialGameState $ \oldGameState -> do
       threadDelay 50000
+      time <- getSystemTime
       pollEvents
       capturedInputs <- modifyMVar inputsMVar $ \cs -> pure (emptyCapturedInput, cs)
       (x, y) <- GLFW.getCursorPos window
-      let newGameState = handleEvents (x, y) oldGameState capturedInputs
+      let newGameState = handleEvents (x, y) oldGameState $ reverse $ GameLoopEvent time : capturedInputs
 
       picture <- vizualizeGame (x, y) newGameState
+
       withModelview (float2Int windowWidth, float2Int windowHeight)
         $ withClearBuffer black
         $ do

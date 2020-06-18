@@ -24,6 +24,7 @@ dependencies:
 - monad-extras
 - safe
 - text
+- time
 - unix
 
 # formatting

@@ -5,6 +5,7 @@ module My.Prelude
     module Data.Char,
     module Data.Either,
     module Data.Eq,
+    module Data.Foldable,
     module Data.Function,
     module Data.Functor,
     module Data.Int,
@@ -26,10 +27,11 @@ import Data.Bool (Bool (False, True), not)
 import Data.Char (Char)
 import Data.Either (either)
 import Data.Eq (Eq ((==)))
+import Data.Foldable (fold, foldl)
 import Data.Function (($), (.), flip)
 import Data.Functor ((<$>), (<&>), fmap)
 import Data.Int (Int)
-import Data.Maybe (Maybe (Just, Nothing), isJust, isNothing)
+import Data.Maybe (Maybe (Just, Nothing), catMaybes, isJust, isNothing)
 import Data.Monoid ((<>))
 import Data.Tuple (uncurry)
 import GHC.Float (Double, Float)

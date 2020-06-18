@@ -15,21 +15,21 @@ data MouseEvent = MouseEvent
   }
   deriving (Show)
 
-data CapturedInput = CapturedInput
-  { cieMouse :: [MouseEvent]
-  }
+data InputEvent
+  = MouseEvent' MouseEvent
+  | GameLoopEvent SystemTime
   deriving (Show)
 
-emptyCapturedInput :: CapturedInput
-emptyCapturedInput = CapturedInput []
+emptyCapturedInput :: [InputEvent]
+emptyCapturedInput = []
 
-startCaptureEvents :: Window -> MVar CapturedInput -> IO ()
+startCaptureEvents :: Window -> MVar [InputEvent] -> IO ()
 startCaptureEvents win mvar = do
   setMouseButtonCallback win $ Just $ \_ mb mbs mk -> do
     (x, y) <- GLFW.getCursorPos win
-    modifyMVar_ mvar $ \ci -> pure ci {cieMouse = MouseEvent mb mbs mk (GLFWCursorPosition (x, y)) : cieMouse ci}
+    modifyMVar_ mvar $ pure . ((MouseEvent' $ MouseEvent mb mbs mk $ GLFWCursorPosition (x, y)) :)
 
-withWindow :: Int -> Int -> [Char] -> MVar CapturedInput -> (GLFW.Window -> IO ()) -> IO ()
+withWindow :: Int -> Int -> [Char] -> MVar [InputEvent] -> (GLFW.Window -> IO ()) -> IO ()
 withWindow width height title inputsMVar f = do
   GLFW.setErrorCallback $ Just simpleErrorCallback
   r <- GLFW.init

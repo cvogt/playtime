@@ -14,6 +14,7 @@ import Data.List (filter, reverse)
 import GHC.Float
 import GHC.Real ((/), round)
 import GLFWHelpers
+import Game
 import Graphics
 import Graphics.Gloss
 import Graphics.Gloss.Data.Color
@@ -27,14 +28,6 @@ import System.Exit (exitSuccess)
 windowWidth, windowHeight :: Float
 windowWidth = 640
 windowHeight = 480
-
-data GameState = GameState
-  { gsBoard :: [(Double, Double)],
-    gsPlacementMode :: Bool
-  }
-
-initialGameState :: GameState
-initialGameState = GameState [] False
 
 main :: IO ()
 main = do

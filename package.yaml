@@ -34,12 +34,12 @@ default-extensions:
 - TemplateHaskell
 
 library:
-  source-dirs: src
+  source-dirs: lib
 
 executables:
-  spaceminer-exe:
+  spaceminer:
     main:                Main.hs
-    source-dirs:         app
+    source-dirs:         exe
     ghc-options:
     - -threaded
     - -rtsopts

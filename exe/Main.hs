@@ -1,27 +1,26 @@
-{-# LANGUAGE PackageImports #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE NoImplicitPrelude #-}
+{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+{-# OPTIONS_GHC -fno-warn-unused-imports #-}
+{-# OPTIONS_GHC -fno-warn-unused-local-binds #-}
+{-# OPTIONS_GHC -fno-warn-unused-matches #-}
 
 module Main where
 
 import Codec.BMP (parseBMP)
-import Codec.Picture (decodePng, dynamicMap, encodeDynamicBitmap, imageHeight, imageWidth, readImage)
-import Control.Concurrent (threadDelay)
-import Control.Monad (fail)
+import Codec.Picture (dynamicMap, encodeDynamicBitmap, imageHeight, imageWidth, readImage)
 import Control.Monad (unless, when)
 import qualified Data.ByteString as BS
 import Data.FileEmbed
-import Euterpea hiding (Text, forever)
+import Data.List (unwords)
 import GHC.Float
+import GHC.Real ((/), round)
 import Graphics.Gloss
 import Graphics.Gloss.Data.Color
 import Graphics.Gloss.Data.Picture
 import Graphics.Gloss.Rendering
 import "GLFW-b" Graphics.UI.GLFW as GLFW
-import Protolude hiding (State)
+import My.IO
+import My.Prelude
 import System.Exit (exitSuccess)
-import System.Posix.Process
 
 windowWidth, windowHeight :: Float
 windowWidth = 640
@@ -31,18 +30,10 @@ type Clicks = [(Double, Double)]
 
 main :: IO ()
 main = do
-  --forkIO $ executeFile "/usr/local/bin/fluidsynth" False [$(makeRelativeToProject "Steinway+Grand+Piano+ER3A.sf2" >>= strToExp)] Nothing
-
   clicksMVar :: MVar Clicks <- newMVar []
   mouseDownMVar :: MVar Bool <- newMVar False
   glossState <- initState
   withWindow (float2Int windowWidth) (float2Int windowHeight) "Game-Demo" clicksMVar mouseDownMVar $ \win -> do
-    -- let p1 = [ c 5 qn, e 5 qn, d 5 en, c 5 en, e 5 qn, c 5 qn, b 4 en, e 5 en, a 4 hn ]
-    -- let p2 = [ e 5 qn, e 5 qn, g 5 qn, g 5 en, a 5 en, f 5 qn, a 5 qn, e 5 hn ]
-    -- let p3 = [ c 6 qn, b 5 en, a 5 en, b 5 qn, e 5 qn, a 5 qn, e 5 en, d 5 en, e 5 qn, b 4 qn ]
-    -- let p = Euterpea.play . Euterpea.line
-    -- forkIO $ forever $ p $ [chord [ c 4 en, e 4 en, g 4 en ], chord [ c 4 en, e 4 en, g 4 en ], chord [ c 4 en, e 4 en, g 4 en ], chord [ a 3 hn, c 4 hn, e 4 hn ]]  -- p1 <> p2 <> p3
-
     loop glossState win [] clicksMVar mouseDownMVar
     exitSuccess
   where
@@ -120,7 +111,7 @@ withWindow width height title clicksMVar mouseDownMVar f = do
         f win
         GLFW.setErrorCallback $ Just simpleErrorCallback
         GLFW.destroyWindow win
-      Nothing -> return ()
+      Nothing -> pure ()
     GLFW.terminate
   where
     simpleErrorCallback e s =

@@ -4,9 +4,9 @@ module SpaceMiner where
 
 import GHC.Float (int2Double)
 import GHC.Real ((/))
-import GLFWHelpers
-import Game
-import Graphics
+import GLFWHelpers (fetchEvents, initGUI, renderGame, withWindow)
+import Game (gsExitGame, handleEvent, initialGameState)
+import Graphics (vizualizeGame)
 import qualified Graphics.Gloss.Rendering as GlossRendering
 import "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.Extra

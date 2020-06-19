@@ -5,24 +5,29 @@ import "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.Prelude
 
 data GameState = GameState
-  { gsBoard :: [GLFWCursorPosition],
-    gsPlacementMode :: Bool
+  { gsBoard :: [CursorPos],
+    gsPlacementMode :: Bool,
+    gsExitGame :: Bool,
+    gsCursorPos :: CursorPos
   }
 
-initialGameState :: GameState
-initialGameState = GameState [] False
+initialGameState :: CursorPos -> GameState
+initialGameState = GameState [] False False
 
-handleEvents :: (Double, Double) -> GameState -> [InputEvent] -> GameState
-handleEvents (x, y) = foldl $ handleEvent (x, y)
-
-handleEvent :: (Double, Double) -> GameState -> InputEvent -> GameState
-handleEvent (x, y) (GameState oldBoard oldPlacementMode) input =
+handleEvent :: GameState -> InputEvent -> GameState
+handleEvent (GameState oldBoard oldPlacementMode oldExitGame oldCursorPos) input =
   let newPlacementMode = case input of
         MouseEvent' (MouseEvent _ MouseButtonState'Pressed _ _) -> True
         MouseEvent' (MouseEvent _ MouseButtonState'Released _ _) -> False
         _ -> oldPlacementMode
       newBoard = case input of
-        GameLoopEvent _ -> if newPlacementMode then (GLFWCursorPosition (x, y)) : oldBoard else oldBoard
+        GameLoopEvent _ -> if newPlacementMode then oldCursorPos : oldBoard else oldBoard
         MouseEvent' (MouseEvent _ MouseButtonState'Pressed _ cursor) -> cursor : oldBoard
         _ -> oldBoard
-   in GameState newBoard newPlacementMode
+      newCursorPos = case input of
+        CursorPosEvent' (CursorPosEvent pos) -> pos
+        _ -> oldCursorPos
+      newExitGame = case input of
+        KeyEvent' (KeyEvent Key'Q KeyState'Pressed _) -> True
+        _ -> oldExitGame
+   in GameState newBoard newPlacementMode newExitGame newCursorPos

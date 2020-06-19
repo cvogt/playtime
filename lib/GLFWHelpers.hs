@@ -1,17 +1,18 @@
 module GLFWHelpers where
 
 import Data.List (unwords)
+import Data.List (reverse)
 import "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.IO
 import My.Prelude
 
-newtype GLFWCursorPosition = GLFWCursorPosition {unGLFWCursorPosition :: (Double, Double)} deriving (Show)
+newtype CursorPos = CursorPos {unCursorPos :: (Double, Double)} deriving (Show)
 
 data MouseEvent = MouseEvent
   { meButton :: MouseButton,
     meButtonState :: MouseButtonState,
     meModifierKeys :: ModifierKeys,
-    meCursorPosition :: GLFWCursorPosition
+    meCursorPosition :: CursorPos
   }
   deriving (Show)
 
@@ -22,25 +23,35 @@ data KeyEvent = KeyEvent
   }
   deriving (Show)
 
+data CursorPosEvent = CursorPosEvent CursorPos
+  deriving (Show)
+
 data InputEvent
   = GameLoopEvent SystemTime
   | MouseEvent' MouseEvent
   | KeyEvent' KeyEvent
+  | CursorPosEvent' CursorPosEvent
   deriving (Show)
-
-emptyCapturedInput :: [InputEvent]
-emptyCapturedInput = []
 
 startCaptureEvents :: Window -> MVar [InputEvent] -> IO ()
 startCaptureEvents win mvar = do
   setMouseButtonCallback win $ Just $ \_ button state modifiers -> do
     (x, y) <- GLFW.getCursorPos win
-    modifyMVar_ mvar $ pure . ((MouseEvent' $ MouseEvent button state modifiers $ GLFWCursorPosition (x, y)) :)
+    modifyMVar_ mvar $ pure . ((MouseEvent' $ MouseEvent button state modifiers $ CursorPos (x, y)) :)
   setKeyCallback win $ Just $ \_ key _scancode keyState modifiers -> do
     modifyMVar_ mvar $ pure . ((KeyEvent' $ KeyEvent key keyState modifiers) :)
+  setCursorPosCallback win $ Just $ \_ x y -> do
+    modifyMVar_ mvar $ pure . ((CursorPosEvent' $ CursorPosEvent $ CursorPos (x, y)) :)
 
-withWindow :: Int -> Int -> [Char] -> MVar [InputEvent] -> (GLFW.Window -> IO ()) -> IO ()
-withWindow width height title inputsMVar f = do
+fetchEvents :: MVar [InputEvent] -> IO [InputEvent]
+fetchEvents eventsMVar = do
+  pollEvents
+  capturedInputs <- modifyMVar eventsMVar $ \cs -> pure ([], cs)
+  time <- getSystemTime
+  pure $ reverse $ GameLoopEvent time : capturedInputs
+
+withWindow :: Int -> Int -> [Char] -> (GLFW.Window -> IO ()) -> IO ()
+withWindow width height title f = do
   GLFW.setErrorCallback $ Just simpleErrorCallback
   r <- GLFW.init
   Just _mon <- getPrimaryMonitor
@@ -50,7 +61,6 @@ withWindow width height title inputsMVar f = do
     case m of
       (Just win) -> do
         GLFW.makeContextCurrent m
-        startCaptureEvents win inputsMVar
         f win
         GLFW.setErrorCallback $ Just simpleErrorCallback
         GLFW.destroyWindow win

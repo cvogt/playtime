@@ -11,11 +11,12 @@ import Graphics.Gloss
 import My.IO
 import My.Prelude
 
-vizualizeGame :: (Double, Double) -> GameState -> IO Picture
-vizualizeGame (x, y) gameState = do
-  let board = gsBoard gameState <&> \(GLFWCursorPosition (x', y')) -> (int2Float $ xg2g x', int2Float $ yg2g y')
+vizualizeGame :: GameState -> IO Picture
+vizualizeGame gameState = do
+  let board = gsBoard gameState <&> \(CursorPos (x, y)) -> (int2Float $ xg2g x, int2Float $ yg2g y)
   pic <- pictureFromFile $ $(makeRelativeToProject "assets/main_character.png" >>= strToExp)
   -- let blueSquare = Color blue $ Polygon [(0, 0), (0, 50), (50, 50), (50, 0)]
+  let CursorPos (x, y) = gsCursorPos gameState
   pure $
     Pictures
       [ translate 0 100 $ Scale 0.2 0.2 $ Color white $ Text $ show (xg2g x, yg2g y)

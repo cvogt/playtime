@@ -11,7 +11,6 @@ import Control.Monad (unless, when)
 import Control.Monad.Extra (unfoldM_)
 import qualified Data.ByteString as BS
 import Data.FileEmbed
-import Data.List (filter, reverse)
 import GHC.Float
 import GHC.Real ((/), round)
 import GLFWHelpers
@@ -22,6 +21,7 @@ import Graphics.Gloss.Data.Color
 import Graphics.Gloss.Data.Picture
 import Graphics.Gloss.Rendering
 import "GLFW-b" Graphics.UI.GLFW as GLFW
+import Music
 import My.IO
 import My.Prelude
 import System.Exit (exitSuccess)
@@ -32,21 +32,22 @@ windowHeight = 480
 
 main :: IO ()
 main = do
-  inputsMVar <- newMVar emptyCapturedInput
+  -- forkIO $ playMusic
+  eventsMVar <- newMVar []
   glossState <- initState
-
-  withWindow (float2Int windowWidth) (float2Int windowHeight) "Game-Demo" inputsMVar $ \window -> do
+  withWindow (float2Int windowWidth) (float2Int windowHeight) "Game-Demo" $ \window -> do
+    pos <- GLFW.getCursorPos window
+    startCaptureEvents window eventsMVar
     --setCursorInputMode win CursorInputMode'Hidden
     setWindowCloseCallback window $ Just $ \_ -> exitSuccess
-    flip unfoldM_ initialGameState $ \oldGameState -> do
+    flip unfoldM_ (initialGameState $ CursorPos pos) $ \oldGameState -> do
       waitEventsTimeout 50000
-      time <- getSystemTime
-      pollEvents
-      capturedInputs <- modifyMVar inputsMVar $ \cs -> pure (emptyCapturedInput, cs)
-      (x, y) <- GLFW.getCursorPos window
-      let newGameState = handleEvents (x, y) oldGameState $ reverse $ GameLoopEvent time : capturedInputs
 
-      picture <- vizualizeGame (x, y) newGameState
+      events <- fetchEvents eventsMVar
+
+      let newGameState = foldl handleEvent oldGameState events
+
+      picture <- vizualizeGame newGameState
 
       withModelview (float2Int windowWidth, float2Int windowHeight)
         $ withClearBuffer black
@@ -54,13 +55,5 @@ main = do
           renderPicture glossState 1.0 picture
 
       swapBuffers window
-      k <- keyIsPressed window Key'Q
-      pure $ if k then Nothing else Just newGameState
 
-keyIsPressed :: Window -> Key -> IO Bool
-keyIsPressed win key = isPress `fmap` GLFW.getKey win key
-
-isPress :: KeyState -> Bool
-isPress KeyState'Pressed = True
-isPress KeyState'Repeating = True
-isPress _ = False
+      pure $ if gsExitGame newGameState then Nothing else Just newGameState

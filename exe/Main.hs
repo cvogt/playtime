@@ -37,8 +37,9 @@ main = do
 
   withWindow (float2Int windowWidth) (float2Int windowHeight) "Game-Demo" inputsMVar $ \window -> do
     --setCursorInputMode win CursorInputMode'Hidden
+    setWindowCloseCallback window $ Just $ \_ -> exitSuccess
     flip unfoldM_ initialGameState $ \oldGameState -> do
-      threadDelay 50000
+      waitEventsTimeout 50000
       time <- getSystemTime
       pollEvents
       capturedInputs <- modifyMVar inputsMVar $ \cs -> pure (emptyCapturedInput, cs)

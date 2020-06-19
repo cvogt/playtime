@@ -29,6 +29,7 @@ handleEvent = \gs@GameState {gsBoard, gsPlacementMode, gsKeysPressed, gsMainChar
   MouseEvent' (MouseEvent _ MouseButtonState'Released _ _) -> gs {gsPlacementMode = False}
   CursorPosEvent' (CursorPosEvent pos) -> gs {gsCursorPos = pos}
   KeyEvent' (KeyEvent Key'Q KeyState'Pressed _) -> gs {gsExitGame = True}
+  WindowCloseEvent -> gs {gsExitGame = True}
   KeyEvent' (KeyEvent key KeyState'Pressed _) -> gs {gsKeysPressed = Set.insert key gsKeysPressed}
   KeyEvent' (KeyEvent key KeyState'Released _) -> gs {gsKeysPressed = Set.delete key gsKeysPressed}
   GameLoopEvent time ->

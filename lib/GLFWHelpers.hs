@@ -2,6 +2,8 @@ module GLFWHelpers where
 
 import Data.List (unwords)
 import Data.List (reverse)
+import qualified Graphics.Gloss as Gloss
+import qualified Graphics.Gloss.Rendering as GlossRendering
 import "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.IO
 import My.Prelude
@@ -31,17 +33,20 @@ data InputEvent
   | MouseEvent' MouseEvent
   | KeyEvent' KeyEvent
   | CursorPosEvent' CursorPosEvent
+  | WindowCloseEvent
   deriving (Show)
 
 startCaptureEvents :: Window -> MVar [InputEvent] -> IO ()
-startCaptureEvents win mvar = do
-  setMouseButtonCallback win $ Just $ \_ button state modifiers -> do
-    (x, y) <- GLFW.getCursorPos win
+startCaptureEvents window mvar = do
+  setMouseButtonCallback window $ Just $ \_ button state modifiers -> do
+    (x, y) <- GLFW.getCursorPos window
     modifyMVar_ mvar $ pure . ((MouseEvent' $ MouseEvent button state modifiers $ CursorPos (x, y)) :)
-  setKeyCallback win $ Just $ \_ key _scancode keyState modifiers -> do
+  setKeyCallback window $ Just $ \_ key _scancode keyState modifiers ->
     modifyMVar_ mvar $ pure . ((KeyEvent' $ KeyEvent key keyState modifiers) :)
-  setCursorPosCallback win $ Just $ \_ x y -> do
+  setCursorPosCallback window $ Just $ \_ x y ->
     modifyMVar_ mvar $ pure . ((CursorPosEvent' $ CursorPosEvent $ CursorPos (x, y)) :)
+  setWindowCloseCallback window $ Just $ \_ ->
+    modifyMVar_ mvar $ pure . (WindowCloseEvent :)
 
 fetchEvents :: MVar [InputEvent] -> IO [InputEvent]
 fetchEvents eventsMVar = do
@@ -49,6 +54,13 @@ fetchEvents eventsMVar = do
   capturedInputs <- modifyMVar eventsMVar $ \cs -> pure ([], cs)
   time <- getSystemTime
   pure $ reverse $ GameLoopEvent time : capturedInputs
+
+initGUI :: Window -> MVar [InputEvent] -> IO CursorPos
+initGUI window eventsMVar = do
+  pos <- GLFW.getCursorPos window
+  startCaptureEvents window eventsMVar
+  --setCursorInputMode win CursorInputMode'Hidden
+  pure $ CursorPos pos
 
 withWindow :: Int -> Int -> [Char] -> (GLFW.Window -> IO ()) -> IO ()
 withWindow width height title f = do
@@ -61,11 +73,19 @@ withWindow width height title f = do
     case m of
       (Just win) -> do
         GLFW.makeContextCurrent m
-        f win
         GLFW.setErrorCallback $ Just simpleErrorCallback
+        f win
         GLFW.destroyWindow win
       Nothing -> pure ()
     GLFW.terminate
   where
     simpleErrorCallback e s =
       putStrLn $ unwords [show e, show s]
+
+renderGame :: Window -> GlossRendering.State -> Gloss.Picture -> IO ()
+renderGame window glossState picture = do
+  (w, h) <- getWindowSize window
+  GlossRendering.withModelview (w, h) $ do
+    GlossRendering.withClearBuffer Gloss.black $ pure ()
+    GlossRendering.renderPicture glossState 1.0 picture
+  swapBuffers window

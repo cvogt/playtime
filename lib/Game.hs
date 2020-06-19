@@ -1,6 +1,3 @@
-{-# OPTIONS_GHC -fno-warn-unused-imports #-}
-{-# OPTIONS_GHC -fno-warn-unused-matches #-}
-
 module Game where
 
 import qualified Data.Set as Set
@@ -8,7 +5,7 @@ import Data.Time.Clock
 import Data.Time.Clock.System
 import Data.Time.Clock.TAI
 import GHC.Float
-import GHC.Real ((%), (/), fromIntegral)
+import GHC.Real ((/), fromIntegral)
 import GLFWHelpers
 import "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.Prelude

@@ -15,7 +15,7 @@ vizualizeGame :: GameState -> IO Picture
 vizualizeGame gameState = do
   let g2gp = \(CursorPos (x, y)) -> (int2Float $ xg2g x, int2Float $ yg2g y)
   let board = gsBoard gameState <&> g2gp
-  pic <- pictureFromFile $ $(makeRelativeToProject "assets/main_character.png" >>= strToExp) -- "/Users/chris/Downloads/Screenshot 2020-06-18 at 22.22.57.png"
+  pic <- pictureFromFile $ $(makeRelativeToProject "assets/main_character.png" >>= strToExp)
   -- let blueSquare = Color blue $ Polygon [(0, 0), (0, 50), (50, 50), (50, 0)]
   let CursorPos (x, y) = gsCursorPos gameState
   let CursorPos (x', y') = gsMainCharacterPosition gameState

@@ -49,6 +49,7 @@ default-extensions:
 - DerivingStrategies
 - FlexibleInstances
 - GeneralizedNewtypeDeriving
+- LambdaCase
 - MultiParamTypeClasses
 - NamedFieldPuns
 - NoImplicitPrelude

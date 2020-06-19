@@ -27,37 +27,24 @@ initialGameState :: SystemTime -> CursorPos -> GameState
 initialGameState = GameState [] False Set.empty (CursorPos (320, 240)) False
 
 handleEvent :: GameState -> InputEvent -> GameState
-handleEvent (GameState oldBoard oldPlacementMode oldKeysPressed oldMainCharacterPosition oldExitGame oldLastLoopTime oldCursorPos) input =
-  let newPlacementMode = case input of
-        MouseEvent' (MouseEvent _ MouseButtonState'Pressed _ _) -> True
-        MouseEvent' (MouseEvent _ MouseButtonState'Released _ _) -> False
-        _ -> oldPlacementMode
-      newBoard = case input of
-        GameLoopEvent _ -> if newPlacementMode then oldCursorPos : oldBoard else oldBoard
-        MouseEvent' (MouseEvent _ MouseButtonState'Pressed _ cursor) -> cursor : oldBoard
-        _ -> oldBoard
-      newCursorPos = case input of
-        CursorPosEvent' (CursorPosEvent pos) -> pos
-        _ -> oldCursorPos
-      newKeysPressed = case input of
-        KeyEvent' (KeyEvent key KeyState'Pressed _) -> Set.insert key oldKeysPressed
-        KeyEvent' (KeyEvent key KeyState'Released _) -> Set.delete key oldKeysPressed
-        _ -> oldKeysPressed
-      newExitGame = case input of
-        KeyEvent' (KeyEvent Key'Q KeyState'Pressed _) -> True
-        _ -> oldExitGame
-      newMainCharacterPosition = case input of
-        GameLoopEvent time ->
-          let picosecs = diffTimeToPicoseconds $ diffAbsoluteTime (systemToTAITime time) (systemToTAITime oldLastLoopTime)
-              timePassed = int2Double (fromIntegral picosecs) / 1000 / 1000 / 1000 / 1000
-              distancePerSec = 500
-              d = timePassed * distancePerSec
-              CursorPos (x, y) = oldMainCharacterPosition
-              newY = if Set.member Key'W newKeysPressed then y - d else if Set.member Key'S newKeysPressed then y + d else y
-              newX = if Set.member Key'A newKeysPressed then x - d else if Set.member Key'D newKeysPressed then x + d else x
-           in CursorPos (newX, newY)
-        _ -> oldMainCharacterPosition
-      newLastLoopTime = case input of
-        GameLoopEvent time -> time
-        _ -> oldLastLoopTime
-   in GameState newBoard newPlacementMode newKeysPressed newMainCharacterPosition newExitGame newLastLoopTime newCursorPos
+handleEvent = \gs@GameState {gsBoard, gsPlacementMode, gsKeysPressed, gsMainCharacterPosition, gsLastLoopTime, gsCursorPos} -> \case
+  MouseEvent' (MouseEvent _ MouseButtonState'Pressed _ cursor) -> gs {gsPlacementMode = True, gsBoard = cursor : gsBoard}
+  MouseEvent' (MouseEvent _ MouseButtonState'Released _ _) -> gs {gsPlacementMode = False}
+  CursorPosEvent' (CursorPosEvent pos) -> gs {gsCursorPos = pos}
+  KeyEvent' (KeyEvent Key'Q KeyState'Pressed _) -> gs {gsExitGame = True}
+  KeyEvent' (KeyEvent key KeyState'Pressed _) -> gs {gsKeysPressed = Set.insert key gsKeysPressed}
+  KeyEvent' (KeyEvent key KeyState'Released _) -> gs {gsKeysPressed = Set.delete key gsKeysPressed}
+  GameLoopEvent time ->
+    let picosecs = diffTimeToPicoseconds $ diffAbsoluteTime (systemToTAITime time) (systemToTAITime gsLastLoopTime)
+        timePassed = int2Double (fromIntegral picosecs) / 1000 / 1000 / 1000 / 1000
+        distancePerSec = 200
+        d = timePassed * distancePerSec
+        CursorPos (x, y) = gsMainCharacterPosition
+        newY = if Set.member Key'W gsKeysPressed then y - d else if Set.member Key'S gsKeysPressed then y + d else y
+        newX = if Set.member Key'A gsKeysPressed then x - d else if Set.member Key'D gsKeysPressed then x + d else x
+     in gs
+          { gsLastLoopTime = time,
+            gsMainCharacterPosition = CursorPos (newX, newY),
+            gsBoard = if gsPlacementMode then gsCursorPos : gsBoard else gsBoard
+          }
+  _ -> gs

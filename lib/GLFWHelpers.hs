@@ -15,9 +15,17 @@ data MouseEvent = MouseEvent
   }
   deriving (Show)
 
+data KeyEvent = KeyEvent
+  { keKey :: Key,
+    keKeyState :: KeyState,
+    keModifierKeys :: ModifierKeys
+  }
+  deriving (Show)
+
 data InputEvent
-  = MouseEvent' MouseEvent
-  | GameLoopEvent SystemTime
+  = GameLoopEvent SystemTime
+  | MouseEvent' MouseEvent
+  | KeyEvent' KeyEvent
   deriving (Show)
 
 emptyCapturedInput :: [InputEvent]
@@ -25,9 +33,11 @@ emptyCapturedInput = []
 
 startCaptureEvents :: Window -> MVar [InputEvent] -> IO ()
 startCaptureEvents win mvar = do
-  setMouseButtonCallback win $ Just $ \_ mb mbs mk -> do
+  setMouseButtonCallback win $ Just $ \_ button state modifiers -> do
     (x, y) <- GLFW.getCursorPos win
-    modifyMVar_ mvar $ pure . ((MouseEvent' $ MouseEvent mb mbs mk $ GLFWCursorPosition (x, y)) :)
+    modifyMVar_ mvar $ pure . ((MouseEvent' $ MouseEvent button state modifiers $ GLFWCursorPosition (x, y)) :)
+  setKeyCallback win $ Just $ \_ key _scancode keyState modifiers -> do
+    modifyMVar_ mvar $ pure . ((KeyEvent' $ KeyEvent key keyState modifiers) :)
 
 withWindow :: Int -> Int -> [Char] -> MVar [InputEvent] -> (GLFW.Window -> IO ()) -> IO ()
 withWindow width height title inputsMVar f = do

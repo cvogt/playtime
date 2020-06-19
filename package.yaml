@@ -20,6 +20,7 @@ dependencies:
 - base
 - bmp
 - bytestring
+- containers
 - file-embed
 - monad-extras
 - safe

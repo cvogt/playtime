@@ -32,16 +32,17 @@ windowHeight = 480
 
 main :: IO ()
 main = do
-  -- forkIO $ playMusic
+  --void $ forkIO $ forever $ playMusic
   eventsMVar <- newMVar []
   glossState <- initState
+  time <- getSystemTime
   withWindow (float2Int windowWidth) (float2Int windowHeight) "Game-Demo" $ \window -> do
     pos <- GLFW.getCursorPos window
     startCaptureEvents window eventsMVar
     --setCursorInputMode win CursorInputMode'Hidden
     setWindowCloseCallback window $ Just $ \_ -> exitSuccess
-    flip unfoldM_ (initialGameState $ CursorPos pos) $ \oldGameState -> do
-      waitEventsTimeout 50000
+    flip unfoldM_ (initialGameState time $ CursorPos pos) $ \oldGameState -> do
+      waitEventsTimeout (1 / 60 :: Double)
 
       events <- fetchEvents eventsMVar
 

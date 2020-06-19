@@ -13,16 +13,24 @@ import My.Prelude
 
 vizualizeGame :: GameState -> IO Picture
 vizualizeGame gameState = do
-  let board = gsBoard gameState <&> \(CursorPos (x, y)) -> (int2Float $ xg2g x, int2Float $ yg2g y)
-  pic <- pictureFromFile $ $(makeRelativeToProject "assets/main_character.png" >>= strToExp)
+  let g2gp = \(CursorPos (x, y)) -> (int2Float $ xg2g x, int2Float $ yg2g y)
+  let board = gsBoard gameState <&> g2gp
+  pic <- pictureFromFile $ $(makeRelativeToProject "assets/main_character.png" >>= strToExp) -- "/Users/chris/Downloads/Screenshot 2020-06-18 at 22.22.57.png"
   -- let blueSquare = Color blue $ Polygon [(0, 0), (0, 50), (50, 50), (50, 0)]
   let CursorPos (x, y) = gsCursorPos gameState
+  let CursorPos (x', y') = gsMainCharacterPosition gameState
   pure $
     Pictures
       [ translate 0 100 $ Scale 0.2 0.2 $ Color white $ Text $ show (xg2g x, yg2g y)
       --, Color blue $ Polygon [(0,0),(0,50),(50,50),(50,0)]
       ]
+      <> (uncurry translate (g2gp $ gsMainCharacterPosition gameState) $ Scale 5 5 pic)
       <> (Pictures $ (uncurry translate <$> board) <&> ($ pic))
+      <> (Scale 4 4 $ uncurry translate (g2gp $ CursorPos (0, 0)) pic)
+      <> (Scale 4 4 $ uncurry translate (g2gp $ CursorPos (100, 100)) pic)
+      <> (translate 0 25 $ Scale 0.2 0.2 $ Color white $ Text $ "keys: " <> (show $ gsKeysPressed gameState))
+      <> (translate 0 50 $ Scale 0.2 0.2 $ Color white $ Text $ "char: " <> show (round x' :: Int, round y' :: Int))
+      <> (translate 0 75 $ Scale 0.2 0.2 $ Color white $ Text $ "char g2g: " <> show (g2gp $ gsMainCharacterPosition gameState))
       <> (Scale 0.2 0.2 $ Color white $ Text $ "openGL: " <> show (round x :: Int, round y :: Int))
 
 pictureFromFile :: FilePath -> IO Picture

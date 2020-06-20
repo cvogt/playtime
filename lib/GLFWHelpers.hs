@@ -105,7 +105,6 @@ renderGame :: Window -> IORef [Texture] -> Picture -> IO ()
 renderGame window glossState picture = do
   (w, h) <- getWindowSize window
   withModelview (w, h) $ do
-    withClearBuffer (GL.Color4 0.0 0.0 0.0 1.0) $ pure ()
     renderPicture glossState 1.0 picture
   swapBuffers window
 
@@ -131,34 +130,25 @@ withModelview (sizeX, sizeY) action =
 
         -- draw the world
         GL.matrixMode $= GL.Modelview 0
+
+        -- initialization (done every time in this case)
+        -- we don't need the depth buffer for 2d.
+        GL.depthFunc GL.$= Just GL.Always
+
+        GL.clearColor GL.$= GL.Color4 0.0 0.0 0.0 1.0
+
+        -- on every loop
+        GL.clear [GL.ColorBuffer, GL.DepthBuffer]
+        GL.color $ GL.Color4 0 0 0 (1 :: GL.GLfloat)
+
+        GL.lineSmooth $= GL.Disabled
+        GL.blend $= GL.Enabled
+        GL.blendFunc $= (GL.SrcAlpha, GL.OneMinusSrcAlpha) -- GL.blendFunc $= (GL.One, GL.Zero)
         action
 
         GL.matrixMode $= GL.Projection
 
     GL.matrixMode $= GL.Modelview 0
-
--- | Clear the OpenGL buffer with the given background color and run
---   an action to draw the model.
-withClearBuffer ::
-  -- | Background color
-  GL.Color4 GL.GLfloat ->
-  -- | Action to perform
-  IO () ->
-  IO ()
-withClearBuffer clearColor action =
-  do
-    -- initialization (done every time in this case)
-    -- we don't need the depth buffer for 2d.
-    GL.depthFunc GL.$= Just GL.Always
-
-    -- always clear the buffer to white
-    GL.clearColor GL.$= clearColor
-
-    -- on every loop
-    GL.clear [GL.ColorBuffer, GL.DepthBuffer]
-    GL.color $ GL.Color4 0 0 0 (1 :: GL.GLfloat)
-
-    action
 
 type Color = GL.Color4 Float
 
@@ -229,10 +219,6 @@ renderPicture ::
   IO ()
 renderPicture state circScale picture =
   do
-    -- Setup render state for world
-    setLineSmooth False
-    setBlendAlpha True
-
     -- Draw the picture
     checkErrors "before drawPicture."
     drawPicture state circScale picture
@@ -481,23 +467,6 @@ checkErrors place =
     errors <- get $ GLU.errors
     when (not $ null errors) $
       mapM_ (handleError place) errors
-
-setBlendAlpha :: Bool -> IO ()
-setBlendAlpha state
-  | state =
-    do
-      GL.blend $= GL.Enabled
-      GL.blendFunc $= (GL.SrcAlpha, GL.OneMinusSrcAlpha)
-  | otherwise =
-    do
-      GL.blend $= GL.Disabled
-      GL.blendFunc $= (GL.One, GL.Zero)
-
--- | Turn line smoothing on or off
-setLineSmooth :: Bool -> IO ()
-setLineSmooth state
-  | state = GL.lineSmooth $= GL.Enabled
-  | otherwise = GL.lineSmooth $= GL.Disabled
 
 handleError :: String -> GLU.Error -> IO ()
 handleError place err =

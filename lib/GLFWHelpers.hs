@@ -1,9 +1,7 @@
 module GLFWHelpers where
 
-import Control.Monad (forM_, mapM_)
-import Data.List (unwords)
-import Data.List (reverse)
-import Data.List (zip)
+import Control.Monad (mapM_)
+import Data.List (reverse, unwords)
 import Data.Ord (max)
 import Data.Word (Word8)
 import Foreign (withForeignPtr)
@@ -195,14 +193,10 @@ drawPicture circScale picture =
       GL.currentColor $= GL.Color4 1.0 1.0 1.0 1.0
 
       -- Draw textured polygon
-      GL.renderPrimitive GL.Polygon
-        $ forM_
-          ( [(0, 0), (width, 0), (width, height), (0, height)] `zip` [(0, 0), (1, 0), (1, 1), (0, 1)]
-          )
-        $ \((polygonCoordX :: Float, polygonCoordY :: Float), (textureCoordX :: Float, textureCoordY :: Float)) ->
-          do
-            GL.texCoord $ GL.TexCoord2 @GL.GLfloat (unsafeCoerce textureCoordX) (unsafeCoerce textureCoordY)
-            GL.vertex $ GL.Vertex2 @GL.GLfloat (unsafeCoerce polygonCoordX) (unsafeCoerce polygonCoordY)
+      let corners = [(0, 0), (0, 1), (1, 1), (1, 0)] :: [(Float, Float)]
+      GL.renderPrimitive GL.Polygon $ forM_ corners $ \(x, y) -> do
+        GL.texCoord $ GL.TexCoord2 @GL.GLfloat (unsafeCoerce x) (unsafeCoerce y)
+        GL.vertex $ GL.Vertex2 @GL.GLfloat (unsafeCoerce $ x * width) (unsafeCoerce $ y * height)
 
       -- Restore color
       GL.currentColor $= oldColor

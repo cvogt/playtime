@@ -3,7 +3,7 @@ module GLFWHelpers where
 import Control.Monad (forM_, mapM_)
 import Data.List (unwords)
 import Data.List (reverse)
-import Data.List (map, zip)
+import Data.List (zip)
 import Data.Ord (max)
 import Data.Word (Word8)
 import Foreign (withForeignPtr)
@@ -176,32 +176,7 @@ drawPicture circScale picture =
           let mscale = max sx sy
           drawPicture (circScale * mscale) p
     Bitmap imgData tex -> do
-      let (width, height) = bitmapSize imgData
-          imgSectionSize = (fromIntegral width, fromIntegral height)
-          rowInfo =
-            -- calculate texture coordinates
-            -- remark:
-            --   On some hardware, using exact "integer" coordinates causes texture coords
-            --   with a component == 0  flip to -1. This appears as the texture flickering
-            --   on the left and sometimes show one additional row of pixels outside the
-            --   given rectangle
-            --   To prevent this we add an "epsilon-border".
-            --   This has been testet to fix the problem.
-            map (\(x, y) -> (x / fromIntegral width, y / fromIntegral height)) $
-              [ (eps, eps),
-                ( 0 + fst imgSectionSize,
-                  eps
-                ),
-                ( 0 + fst imgSectionSize - eps,
-                  0 + snd imgSectionSize - eps
-                ),
-                ( eps,
-                  0 + snd imgSectionSize - eps
-                )
-              ] ::
-              [(Float, Float)]
-            where
-              eps = 0.001 :: Float
+      let (fromIntegral -> width, fromIntegral -> height) = bitmapSize imgData
 
       -- Set up wrap and filtering mode
       GL.textureWrapMode GL.Texture2D GL.S $= (GL.Repeated, GL.Repeat)
@@ -222,30 +197,18 @@ drawPicture circScale picture =
       -- Draw textured polygon
       GL.renderPrimitive GL.Polygon
         $ forM_
-          ( bitmapPath
-              (fst imgSectionSize)
-              (snd imgSectionSize)
-              `zip` rowInfo
+          ( [(0, 0), (width, 0), (width, height), (0, height)] `zip` [(0, 0), (1, 0), (1, 1), (0, 1)]
           )
-        $ \((polygonCoordX, polygonCoordY), (textureCoordX, textureCoordY)) ->
+        $ \((polygonCoordX :: Float, polygonCoordY :: Float), (textureCoordX :: Float, textureCoordY :: Float)) ->
           do
-            GL.texCoord $ GL.TexCoord2 (gf textureCoordX) (gf textureCoordY)
-            GL.vertex $ GL.Vertex2 (gf polygonCoordX) (gf polygonCoordY)
+            GL.texCoord $ GL.TexCoord2 @GL.GLfloat (unsafeCoerce textureCoordX) (unsafeCoerce textureCoordY)
+            GL.vertex $ GL.Vertex2 @GL.GLfloat (unsafeCoerce polygonCoordX) (unsafeCoerce polygonCoordY)
 
       -- Restore color
       GL.currentColor $= oldColor
 
       -- Disable texturing
       GL.texture GL.Texture2D $= GL.Disabled
-  where
-    gf = unsafeCoerce :: Float -> GL.GLfloat
-
-bitmapPath :: Float -> Float -> [(Float, Float)]
-bitmapPath width height =
-  [(- width', - height'), (width', - height'), (width', height'), (- width', height')]
-  where
-    width' = width / 2
-    height' = height / 2
 
 sendTextureToGL :: BitmapData -> IO GL.TextureObject
 sendTextureToGL (BitmapData (width, height) fptr) = do

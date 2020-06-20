@@ -22,7 +22,7 @@ main width height fps = do
 
   withWindow width height "SpaceMiner" $ \window -> do
     pos <- initGUI window eventsMVar
-    pic <- loadPic
+    pic <- loadPic textureCache
 
     flip unfoldM_ (initialGameState time pos) $ \oldGameState -> do
       when False $ waitEventsTimeout (1 / int2Double fps :: Double) -- FIXME: subtract time taken by loop run

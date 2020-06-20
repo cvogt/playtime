@@ -133,7 +133,7 @@ type Color = GL.Color4 Float
 
 --------------------------------------
 data Picture
-  = Bitmap BitmapData
+  = Bitmap BitmapData GL.TextureObject
   | Translate Float Float Picture
   | -- | Some text to draw with a vector font.
     Text Color String
@@ -177,7 +177,7 @@ drawPicture state circScale picture =
           GL.scale (gf sx) (gf sy) 1
           let mscale = max sx sy
           drawPicture state (circScale * mscale) p
-    Bitmap imgData -> do
+    Bitmap imgData tex -> do
       let cacheMe = True
           (width, height) = bitmapSize imgData
           imgSectionPos = (0, 0)
@@ -212,10 +212,6 @@ drawPicture state circScale picture =
               vecMap :: (a -> c) -> (b -> d) -> (a, b) -> (c, d)
               vecMap f g (x, y) = (f x, g y)
               eps = 0.001 :: Float
-
-      -- Load the image data into a texture,
-      -- or grab it from the cache if we've already done that before.
-      tex <- loadTexture state imgData cacheMe
 
       -- Set up wrap and filtering mode
       GL.textureWrapMode GL.Texture2D GL.S $= (GL.Repeated, GL.Repeat)
@@ -273,7 +269,7 @@ bitmapPath width height =
     width' = width / 2
     height' = height / 2
 
-type TextureCache = IORef [(StableName BitmapData, GLUT.TextureObject)]
+type TextureCache = IORef [(StableName BitmapData, GL.TextureObject)]
 
 loadTexture ::
   -- | Existing texture cache.
@@ -282,20 +278,20 @@ loadTexture ::
   BitmapData ->
   -- | Force cache for newly loaded textures.
   Bool ->
-  IO GLUT.TextureObject
+  IO GL.TextureObject
 loadTexture textureCache imgData cacheMe = do
   -- Try and find this same texture in the cache.
   name <- makeStableName imgData
   textures <- readIORef textureCache
-  maybe (installTexture' name) (pure . snd) $ find ((name==).fst) textures
+  maybe (installTexture' name) (pure . snd) $ find ((name ==) . fst) textures
   where
     installTexture' name = do
       textures <- readIORef textureCache
       tex <- installTexture imgData
-      when cacheMe $ writeIORef textureCache $ (name,tex) : textures
+      when cacheMe $ writeIORef textureCache $ (name, tex) : textures
       pure tex
 
-installTexture :: BitmapData -> IO GLUT.TextureObject
+installTexture :: BitmapData -> IO GL.TextureObject
 installTexture (BitmapData (width, height) fptr) = do
   let txSize = GL.TextureSize2D (unsafeCoerce width) (unsafeCoerce height)
   [texture] <- GL.genObjectNames 1

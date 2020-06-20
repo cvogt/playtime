@@ -15,9 +15,9 @@ import My.Prelude
 import System.IO.Unsafe (unsafePerformIO)
 
 -- | O(size). Copy a `BMP` file into a bitmap.
-bitmapOfBMP :: BMP -> Picture
+bitmapOfBMP :: BMP -> BitmapData
 bitmapOfBMP bmp =
-  Bitmap $ unsafePerformIO $ do
+  unsafePerformIO $ do
     let (width, height) = bmpDimensions bmp
     let bs = unpackBMPToRGBA32 bmp
     let len = width * height * 4
@@ -26,9 +26,11 @@ bitmapOfBMP bmp =
     BSU.unsafeUseAsCString bs $ \cstr -> copyBytes ptr (castPtr cstr) len
     pure $ BitmapData (width, height) fptr
 
-pictureFromFile :: FilePath -> IO Picture
-pictureFromFile path = do
+pictureFromFile :: TextureCache -> FilePath -> IO Picture
+pictureFromFile textureCache path = do
   dynImage <- either fail pure =<< readImage path
   bmpBytes <- either (fail . show) pure $ encodeDynamicBitmap dynImage
   bmp <- either (fail . show) pure $ parseBMP bmpBytes
-  pure $ Translate ((int2Float $ dynamicMap imageWidth dynImage) / 2) ((int2Float $ dynamicMap imageHeight dynImage) / 2) $ bitmapOfBMP bmp
+  let imgData = bitmapOfBMP bmp
+  tex <- loadTexture textureCache imgData True
+  pure $ Translate ((int2Float $ dynamicMap imageWidth dynImage) / 2) ((int2Float $ dynamicMap imageHeight dynImage) / 2) $ Bitmap imgData tex

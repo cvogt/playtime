@@ -13,8 +13,8 @@ import My.Prelude
 white :: Color
 white = Color4 1.0 1.0 1.0 1.0
 
-loadPic :: IO Picture
-loadPic = pictureFromFile $ $(makeRelativeToProject "assets/main_character.png" >>= strToExp)
+loadPic :: TextureCache -> IO Picture
+loadPic textureCache = pictureFromFile textureCache $ $(makeRelativeToProject "assets/main_character.png" >>= strToExp)
 
 vizualizeGame :: Picture -> GameState -> IO Picture
 vizualizeGame pic gameState = do

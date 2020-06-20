@@ -18,7 +18,7 @@ import My.IO
 import My.Prelude
 import System.Mem.StableName (StableName, makeStableName)
 import Unsafe.Coerce (unsafeCoerce)
-import Prelude (Read, String, error, return)
+import Prelude (String, error, return)
 
 newtype CursorPos = CursorPos {unCursorPos :: (Int, Int)} deriving (Eq, Ord, Show)
 
@@ -134,12 +134,10 @@ type Color = GL.Color4 Float
 --------------------------------------
 data Picture
   = Bitmap BitmapData
-  | BitmapSection Rectangle BitmapData
   | Translate Float Float Picture
   | -- | Some text to draw with a vector font.
-    Text String
+    Text Color String
   | Pictures [Picture]
-  | Color Color Picture
   | -- | A picture scaled by the given x and y factors.
     Scale Float Float Picture
   deriving (Show, Eq)
@@ -151,15 +149,6 @@ data BitmapData = BitmapData
   }
   deriving (Show, Eq)
 
--- | Represents a rectangular section in a bitmap
-data Rectangle = Rectangle
-  { -- | x- and y-pos in the bitmap in pixels
-    rectPos :: (Int, Int),
-    -- | width/height of the area in pixelsi
-    rectSize :: (Int, Int)
-  }
-  deriving (Show, Read, Eq, Ord)
-
 drawPicture :: IORef [Texture] -> Float -> Picture -> IO ()
 drawPicture state circScale picture =
   {-# SCC "drawComponent" #-}
@@ -169,115 +158,102 @@ drawPicture state circScale picture =
     -- stroke text
     --      text looks weird when we've got blend on,
     --      so disable it during the renderString call.
-    Text str ->
+    Text col str ->
       do
+        oldColor <- get GL.currentColor
+        GL.currentColor $= col
         GL.blend $= GL.Disabled
         GL.preservingMatrix $ GLUT.renderString GLUT.Roman str
         GL.blend $= GL.Enabled
+        GL.currentColor $= oldColor
     Translate tx ty p ->
       GL.preservingMatrix $
         do
           GL.translate (GL.Vector3 (gf tx) (gf ty) 0)
           drawPicture state circScale p
-    Bitmap imgData ->
-      let (width, height) = bitmapSize imgData
-       in drawPicture state circScale $
-            BitmapSection (Rectangle (0, 0) (width, height)) imgData
-    -- Scale --------------------------------
     Scale sx sy p ->
       GL.preservingMatrix $
         do
           GL.scale (gf sx) (gf sy) 1
           let mscale = max sx sy
           drawPicture state (circScale * mscale) p
-    Color col p -> do
+    Bitmap imgData -> do
+      let cacheMe = True
+          (width, height) = bitmapSize imgData
+          imgSectionPos = (0, 0)
+          imgSectionSize = (width, height)
+          rowInfo =
+            -- calculate texture coordinates
+            -- remark:
+            --   On some hardware, using exact "integer" coordinates causes texture coords
+            --   with a component == 0  flip to -1. This appears as the texture flickering
+            --   on the left and sometimes show one additional row of pixels outside the
+            --   given rectangle
+            --   To prevent this we add an "epsilon-border".
+            --   This has been testet to fix the problem.
+            map (\(x, y) -> (x / fromIntegral width, y / fromIntegral height)) $
+              [ vecMap (+ eps) (+ eps) $ toFloatVec imgSectionPos,
+                vecMap (subtract eps) (+ eps) $ toFloatVec $
+                  ( fst imgSectionPos + fst imgSectionSize,
+                    snd imgSectionPos
+                  ),
+                vecMap (subtract eps) (subtract eps) $ toFloatVec $
+                  ( fst imgSectionPos + fst imgSectionSize,
+                    snd imgSectionPos + snd imgSectionSize
+                  ),
+                vecMap (+ eps) (subtract eps) $ toFloatVec $
+                  ( fst imgSectionPos,
+                    snd imgSectionPos + snd imgSectionSize
+                  )
+              ] ::
+              [(Float, Float)]
+            where
+              toFloatVec = vecMap fromIntegral fromIntegral
+              vecMap :: (a -> c) -> (b -> d) -> (a, b) -> (c, d)
+              vecMap f g (x, y) = (f x, g y)
+              eps = 0.001 :: Float
+
+      -- Load the image data into a texture,
+      -- or grab it from the cache if we've already done that before.
+      tex <- loadTexture state imgData cacheMe
+
+      -- Set up wrap and filtering mode
+      GL.textureWrapMode GL.Texture2D GL.S $= (GL.Repeated, GL.Repeat)
+      GL.textureWrapMode GL.Texture2D GL.T $= (GL.Repeated, GL.Repeat)
+      GL.textureFilter GL.Texture2D $= ((GL.Nearest, Nothing), GL.Nearest)
+
+      -- Enable texturing
+      GL.texture GL.Texture2D $= GL.Enabled
+      GL.textureFunction $= GL.Combine
+
+      -- Set current texture
+      GL.textureBinding GL.Texture2D $= Just (texObject tex)
+
+      -- Set to opaque
       oldColor <- get GL.currentColor
-      GL.currentColor $= col
-      drawPicture state circScale p
+      GL.currentColor $= GL.Color4 1.0 1.0 1.0 1.0
+
+      -- Draw textured polygon
+      GL.renderPrimitive GL.Polygon
+        $ forM_
+          ( bitmapPath
+              (fromIntegral $ fst imgSectionSize)
+              (fromIntegral $ snd imgSectionSize)
+              `zip` rowInfo
+          )
+        $ \((polygonCoordX, polygonCoordY), (textureCoordX, textureCoordY)) ->
+          do
+            GL.texCoord $ GL.TexCoord2 (gf textureCoordX) (gf textureCoordY)
+            GL.vertex $ GL.Vertex2 (gf polygonCoordX) (gf polygonCoordY)
+
+      -- Restore color
       GL.currentColor $= oldColor
-    BitmapSection
-      Rectangle
-        { rectPos = imgSectionPos,
-          rectSize = imgSectionSize
-        }
-      imgData@BitmapData
-        { bitmapSize = (width, height)
-        } ->
-        do
-          let rowInfo =
-                -- calculate texture coordinates
-                -- remark:
-                --   On some hardware, using exact "integer" coordinates causes texture coords
-                --   with a component == 0  flip to -1. This appears as the texture flickering
-                --   on the left and sometimes show one additional row of pixels outside the
-                --   given rectangle
-                --   To prevent this we add an "epsilon-border".
-                --   This has been testet to fix the problem.
-                let defTexCoords =
-                      map (\(x, y) -> (x / fromIntegral width, y / fromIntegral height)) $
-                        [ vecMap (+ eps) (+ eps) $ toFloatVec imgSectionPos,
-                          vecMap (subtract eps) (+ eps) $ toFloatVec $
-                            ( fst imgSectionPos + fst imgSectionSize,
-                              snd imgSectionPos
-                            ),
-                          vecMap (subtract eps) (subtract eps) $ toFloatVec $
-                            ( fst imgSectionPos + fst imgSectionSize,
-                              snd imgSectionPos + snd imgSectionSize
-                            ),
-                          vecMap (+ eps) (subtract eps) $ toFloatVec $
-                            ( fst imgSectionPos,
-                              snd imgSectionPos + snd imgSectionSize
-                            )
-                        ] ::
-                        [(Float, Float)]
-                    toFloatVec = vecMap fromIntegral fromIntegral
-                    vecMap :: (a -> c) -> (b -> d) -> (a, b) -> (c, d)
-                    vecMap f g (x, y) = (f x, g y)
-                    eps = 0.001 :: Float
-                 in defTexCoords
 
-          let cacheMe = True
-          -- Load the image data into a texture,
-          -- or grab it from the cache if we've already done that before.
-          tex <- loadTexture state imgData cacheMe
+      -- Disable texturing
+      GL.texture GL.Texture2D $= GL.Disabled
 
-          -- Set up wrap and filtering mode
-          GL.textureWrapMode GL.Texture2D GL.S $= (GL.Repeated, GL.Repeat)
-          GL.textureWrapMode GL.Texture2D GL.T $= (GL.Repeated, GL.Repeat)
-          GL.textureFilter GL.Texture2D $= ((GL.Nearest, Nothing), GL.Nearest)
-
-          -- Enable texturing
-          GL.texture GL.Texture2D $= GL.Enabled
-          GL.textureFunction $= GL.Combine
-
-          -- Set current texture
-          GL.textureBinding GL.Texture2D $= Just (texObject tex)
-
-          -- Set to opaque
-          oldColor <- get GL.currentColor
-          GL.currentColor $= GL.Color4 1.0 1.0 1.0 1.0
-
-          -- Draw textured polygon
-          GL.renderPrimitive GL.Polygon
-            $ forM_
-              ( bitmapPath
-                  (fromIntegral $ fst imgSectionSize)
-                  (fromIntegral $ snd imgSectionSize)
-                  `zip` rowInfo
-              )
-            $ \((polygonCoordX, polygonCoordY), (textureCoordX, textureCoordY)) ->
-              do
-                GL.texCoord $ GL.TexCoord2 (gf textureCoordX) (gf textureCoordY)
-                GL.vertex $ GL.Vertex2 (gf polygonCoordX) (gf polygonCoordY)
-
-          -- Restore color
-          GL.currentColor $= oldColor
-
-          -- Disable texturing
-          GL.texture GL.Texture2D $= GL.Disabled
-
-          -- Free uncachable texture objects.
-          when (not cacheMe) $ GL.deleteObjectNames [texObject tex]
+      -- Free uncachable texture objects.
+      when (not cacheMe) $ GL.deleteObjectNames [texObject tex]
   where
     gf = unsafeCoerce :: Float -> GL.GLfloat
 

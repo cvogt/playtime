@@ -4,7 +4,7 @@ import Control.Monad (forM_, mapM_)
 import Data.IORef (IORef, readIORef, writeIORef)
 import Data.List (unwords)
 import Data.List (reverse)
-import Data.List ((++), map, zip)
+import Data.List (map, zip)
 import Data.Ord (max)
 import Data.Word (Word8)
 import Foreign (withForeignPtr)
@@ -18,7 +18,7 @@ import My.IO
 import My.Prelude
 import System.Mem.StableName (StableName, makeStableName)
 import Unsafe.Coerce (unsafeCoerce)
-import Prelude (Read, String, error, return, unlines)
+import Prelude (Read, String, error, return)
 
 newtype CursorPos = CursorPos {unCursorPos :: (Int, Int)} deriving (Eq, Ord, Show)
 
@@ -120,9 +120,9 @@ renderGame window textureCache picture = do
     GL.lineSmooth $= GL.Disabled
     GL.blend $= GL.Enabled
     GL.blendFunc $= (GL.SrcAlpha, GL.OneMinusSrcAlpha) -- GL.blendFunc $= (GL.One, GL.Zero)
-    checkErrors "before drawPicture."
+    void $ error . show <$> get GLU.errors
     drawPicture textureCache 1.0 picture
-    checkErrors "after drawPicture."
+    void $ error . show <$> get GLU.errors
     swapBuffers window
 
     GL.matrixMode $= GL.Projection
@@ -206,7 +206,7 @@ drawPicture state circScale picture =
     Bitmap imgData ->
       let (width, height) = bitmapSize imgData
        in drawPicture state circScale $
-            BitmapSection (rectAtOrigin width height) imgData
+            BitmapSection (Rectangle (0, 0) (width, height)) imgData
     -- Scale --------------------------------
     Scale sx sy p ->
       GL.preservingMatrix $
@@ -304,9 +304,8 @@ drawPicture state circScale picture =
 
           -- Free uncachable texture objects.
           freeTexture tex
-
-gf :: Float -> GL.GLfloat
-gf x = unsafeCoerce x
+  where
+    gf = unsafeCoerce :: Float -> GL.GLfloat
 
 freeTexture :: Texture -> IO ()
 freeTexture tex
@@ -391,8 +390,8 @@ installTexture bitmapData@(BitmapData _ fmt (width, height) cacheMe fptr) =
           0
           GL.RGBA8
           ( GL.TextureSize2D
-              (gsizei width)
-              (gsizei height)
+              (unsafeCoerce width)
+              (unsafeCoerce height)
           )
           0
           (GL.PixelData glFormat GL.UnsignedByte ptr)
@@ -411,53 +410,3 @@ installTexture bitmapData@(BitmapData _ fmt (width, height) cacheMe fptr) =
           texObject = tex,
           texCacheMe = cacheMe
         }
-
--- | Used for similar reasons to above
-gsizei :: Int -> GL.GLsizei
-gsizei x = unsafeCoerce x
-
--- | Construct a rectangle of the given width and height,
---   with the lower left corner at the origin.
-rectAtOrigin :: Int -> Int -> Rectangle
-rectAtOrigin w h = Rectangle (0, 0) (w, h)
-
-checkErrors :: String -> IO ()
-checkErrors place =
-  do
-    errors <- get $ GLU.errors
-    when (not $ null errors) $
-      mapM_ (handleError place) errors
-
-handleError :: String -> GLU.Error -> IO ()
-handleError place err =
-  case err of
-    GLU.Error GLU.StackOverflow _ ->
-      error $
-        unlines
-          [ "Gloss / OpenGL Stack Overflow " ++ show place,
-            "  This program uses the Gloss vector graphics library, which tried to",
-            "  draw a picture using more nested transforms (Translate/Rotate/Scale)",
-            "  than your OpenGL implementation supports. The OpenGL spec requires",
-            "  all implementations to have a transform stack depth of at least 32,",
-            "  and Gloss tries not to push the stack when it doesn't have to, but",
-            "  that still wasn't enough.",
-            "",
-            "  You should complain to your harware vendor that they don't provide",
-            "  a better way to handle this situation at the OpenGL API level.",
-            "",
-            "  To make this program work you'll need to reduce the number of nested",
-            "  transforms used when defining the Picture given to Gloss. Sorry."
-          ]
-    -- Issue #32: Spurious "Invalid Operation" errors under Windows 7 64-bit.
-    --   When using GLUT under Windows 7 it complains about InvalidOperation,
-    --   but doesn't provide any other details. All the examples look ok, so
-    --   we're just ignoring the error for now.
-    GLU.Error GLU.InvalidOperation _ ->
-      return ()
-    _ ->
-      error $
-        unlines
-          [ "Gloss / OpenGL Internal Error " ++ show place,
-            "  Please report this on haskell-gloss@googlegroups.com.",
-            show err
-          ]

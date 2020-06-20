@@ -1,11 +1,9 @@
 module Graphics where
 
-import Codec.BMP (parseBMP)
-import Codec.Picture (dynamicMap, encodeDynamicBitmap, imageHeight, imageWidth, readImage)
+import Bitmap
 import Data.FileEmbed
 import qualified Data.Set as Set
-import GHC.Float
-import GHC.Real ((/))
+import GHC.Float (int2Float)
 import GLFWHelpers
 import Game
 import Graphics.Rendering.OpenGL.GL (Color4 (Color4))
@@ -37,13 +35,6 @@ vizualizeGame pic gameState = do
       Scale 0.2 0.2 $ Color white $ Text $ "openGL: " <> show (x, y)
     ]
       <> ((uncurry Translate <$> board) <&> ($ pic))
-
-pictureFromFile :: FilePath -> IO Picture
-pictureFromFile path = do
-  dynImage <- either fail pure =<< readImage path
-  bmpBytes <- either (fail . show) pure $ encodeDynamicBitmap dynImage
-  bmp <- either (fail . show) pure $ parseBMP bmpBytes
-  pure $ Translate ((int2Float $ dynamicMap imageWidth dynImage) / 2) ((int2Float $ dynamicMap imageHeight dynImage) / 2) $ bitmapOfBMP bmp
 
 xg2g :: Int -> Int
 xg2g x = (x - 320)

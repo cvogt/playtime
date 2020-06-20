@@ -20,7 +20,7 @@ main width height fps = do
   textureCache <- newIORef []
   time <- getSystemTime
 
-  withWindow width height "Game-Demo" $ \window -> do
+  withWindow width height "SpaceMiner" $ \window -> do
     pos <- initGUI window eventsMVar
     pic <- loadPic
 

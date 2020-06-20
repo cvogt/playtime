@@ -1,8 +1,6 @@
 module GLFWHelpers where
 
-import Codec.BMP
 import Control.Monad (forM_, mapM_)
-import qualified Data.ByteString.Unsafe as BSU
 import Data.IORef (IORef, readIORef, writeIORef)
 import Data.List (unwords)
 import Data.List (reverse)
@@ -10,10 +8,6 @@ import Data.List ((++), map, zip)
 import Data.Ord (max)
 import Data.Word (Word8)
 import Foreign (withForeignPtr)
-import Foreign.ForeignPtr (newForeignPtr)
-import Foreign.Marshal.Alloc (finalizerFree, mallocBytes, mallocBytes)
-import Foreign.Marshal.Utils (copyBytes)
-import Foreign.Ptr (castPtr)
 import GHC.Real ((/), fromIntegral, round)
 import Graphics.Rendering.OpenGL (($=), get)
 import qualified Graphics.Rendering.OpenGL.GL as GL
@@ -22,7 +16,6 @@ import "GLFW-b" Graphics.UI.GLFW as GLFW
 import qualified Graphics.UI.GLUT as GLUT
 import My.IO
 import My.Prelude
-import System.IO.Unsafe (unsafePerformIO)
 import System.Mem.StableName (StableName, makeStableName)
 import Unsafe.Coerce (unsafeCoerce)
 import Prelude (Read, String, error, return, unlines)
@@ -468,25 +461,3 @@ handleError place err =
             "  Please report this on haskell-gloss@googlegroups.com.",
             show err
           ]
-
--- | O(size). Copy a `BMP` file into a bitmap.
-bitmapOfBMP :: BMP -> Picture
-bitmapOfBMP bmp =
-  Bitmap $ bitmapDataOfBMP bmp
-
--- | O(size). Copy a `BMP` file into a bitmap.
-bitmapDataOfBMP :: BMP -> BitmapData
-bitmapDataOfBMP bmp =
-  unsafePerformIO $
-    do
-      let (width, height) = bmpDimensions bmp
-      let bs = unpackBMPToRGBA32 bmp
-      let len = width * height * 4
-
-      ptr <- mallocBytes len
-      fptr <- newForeignPtr finalizerFree ptr
-
-      BSU.unsafeUseAsCString bs $
-        \cstr -> copyBytes ptr (castPtr cstr) len
-
-      return $ BitmapData len (BitmapFormat BottomToTop PxRGBA) (width, height) True fptr

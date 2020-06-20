@@ -146,8 +146,7 @@ data Picture
 
 -- | Abstract 32-bit RGBA bitmap data.
 data BitmapData = BitmapData
-  { bitmapDataLength :: Int, -- length (in bytes)
-    bitmapSize :: (Int, Int),
+  { bitmapSize :: (Int, Int),
     bitmapPointer :: (ForeignPtr Word8)
   }
   deriving (Show, Eq)
@@ -337,7 +336,7 @@ loadTexture refTextures imgData@BitmapData {bitmapSize = (width, height)} cacheM
         return tex
 
 installTexture :: Bool -> BitmapData -> IO Texture
-installTexture cacheMe bitmapData@(BitmapData _ (width, height) fptr) =
+installTexture cacheMe bitmapData@(BitmapData (width, height) fptr) =
   do
     -- Allocate texture handle for texture
     [tex] <- GL.genObjectNames 1

@@ -18,7 +18,7 @@ import My.IO
 import My.Prelude
 import System.Mem.StableName (StableName, makeStableName)
 import Unsafe.Coerce (unsafeCoerce)
-import Prelude (String, error, return)
+import Prelude (String, error)
 
 newtype CursorPos = CursorPos {unCursorPos :: (Int, Int)} deriving (Eq, Ord, Show)
 
@@ -94,7 +94,7 @@ withWindow width height title f = do
     simpleErrorCallback e s =
       putStrLn $ unwords [show e, show s]
 
-renderGame :: Window -> IORef [Texture] -> Picture -> IO ()
+renderGame :: Window -> TextureCache -> Picture -> IO ()
 renderGame window textureCache picture = do
   (width, height) <- getWindowSize window
   GL.matrixMode $= GL.Projection
@@ -149,7 +149,7 @@ data BitmapData = BitmapData
   }
   deriving (Show, Eq)
 
-drawPicture :: IORef [Texture] -> Float -> Picture -> IO ()
+drawPicture :: TextureCache -> Float -> Picture -> IO ()
 drawPicture state circScale picture =
   {-# SCC "drawComponent" #-}
   case picture of
@@ -227,7 +227,7 @@ drawPicture state circScale picture =
       GL.textureFunction $= GL.Combine
 
       -- Set current texture
-      GL.textureBinding GL.Texture2D $= Just (texObject tex)
+      GL.textureBinding GL.Texture2D $= Just tex
 
       -- Set to opaque
       oldColor <- get GL.currentColor
@@ -253,23 +253,17 @@ drawPicture state circScale picture =
       GL.texture GL.Texture2D $= GL.Disabled
 
       -- Free uncachable texture objects.
-      when (not cacheMe) $ GL.deleteObjectNames [texObject tex]
+      when (not cacheMe) $ GL.deleteObjectNames [tex]
   where
     gf = unsafeCoerce :: Float -> GL.GLfloat
 
 data Texture = Texture
   { -- | Stable name derived from the `BitmapData` that the user gives us.
     texName :: StableName BitmapData,
-    -- | Width of the image, in pixels.
-    texWidth :: Int,
-    -- | Height of the image, in pixels.
-    texHeight :: Int,
     -- | Pointer to the Raw texture data.
     texData :: ForeignPtr Word8,
     -- | The OpenGL texture object.
-    texObject :: GL.TextureObject,
-    -- | Whether we want to leave this in OpenGL texture memory between frames.
-    texCacheMe :: Bool
+    texObject :: GL.TextureObject
   }
 
 bitmapPath :: Float -> Float -> [(Float, Float)]
@@ -279,73 +273,32 @@ bitmapPath width height =
     width' = width / 2
     height' = height / 2
 
+type TextureCache = IORef [(StableName BitmapData, GLUT.TextureObject)]
+
 loadTexture ::
   -- | Existing texture cache.
-  IORef [Texture] ->
+  TextureCache ->
   -- | Texture data.
   BitmapData ->
   -- | Force cache for newly loaded textures.
   Bool ->
-  IO Texture
-loadTexture refTextures imgData@BitmapData {bitmapSize = (width, height)} cacheMe = do
-  textures <- readIORef refTextures
-
+  IO GLUT.TextureObject
+loadTexture textureCache imgData cacheMe = do
   -- Try and find this same texture in the cache.
   name <- makeStableName imgData
-  let mTexCached =
-        find
-          ( \tex ->
-              texName tex == name
-                && texWidth tex == width
-                && texHeight tex == height
-          )
-          textures
+  textures <- readIORef textureCache
+  maybe (installTexture' name) (pure . snd) $ find ((name==).fst) textures
+  where
+    installTexture' name = do
+      textures <- readIORef textureCache
+      tex <- installTexture imgData
+      when cacheMe $ writeIORef textureCache $ (name,tex) : textures
+      pure tex
 
-  case mTexCached of
-    Just tex ->
-      return tex
-    Nothing ->
-      do
-        tex <- installTexture cacheMe imgData
-        when cacheMe $
-          writeIORef refTextures (tex : textures)
-        return tex
-
-installTexture :: Bool -> BitmapData -> IO Texture
-installTexture cacheMe bitmapData@(BitmapData (width, height) fptr) =
-  do
-    -- Allocate texture handle for texture
-    [tex] <- GL.genObjectNames 1
-    GL.textureBinding GL.Texture2D $= Just tex
-
-    -- Sets the texture in imgData as the current texture
-    -- This copies the data from the pointer into OpenGL texture memory,
-    -- so it's ok if the foreignptr gets garbage collected after this.
-    withForeignPtr fptr $
-      \ptr ->
-        GL.texImage2D
-          GL.Texture2D
-          GL.NoProxy
-          0
-          GL.RGBA8
-          ( GL.TextureSize2D
-              (unsafeCoerce width)
-              (unsafeCoerce height)
-          )
-          0
-          (GL.PixelData GL.RGBA GL.UnsignedByte ptr)
-
-    -- Make a stable name that we can use to identify this data again.
-    -- If the user gives us the same texture data at the same size then we
-    -- can avoid loading it into texture memory again.
-    name <- makeStableName bitmapData
-
-    return
-      Texture
-        { texName = name,
-          texWidth = width,
-          texHeight = height,
-          texData = fptr,
-          texObject = tex,
-          texCacheMe = cacheMe
-        }
+installTexture :: BitmapData -> IO GLUT.TextureObject
+installTexture (BitmapData (width, height) fptr) = do
+  let txSize = GL.TextureSize2D (unsafeCoerce width) (unsafeCoerce height)
+  [texture] <- GL.genObjectNames 1
+  GL.textureBinding GL.Texture2D $= Just texture
+  withForeignPtr fptr $ GL.texImage2D GL.Texture2D GL.NoProxy 0 GL.RGBA8 txSize 0 . GL.PixelData GL.RGBA GL.UnsignedByte
+  pure texture

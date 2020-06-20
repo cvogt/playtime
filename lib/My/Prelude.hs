@@ -11,6 +11,7 @@ module My.Prelude
     module Data.Functor,
     module Data.Int,
     module Data.List,
+    module Data.Map,
     module Data.Maybe,
     module Data.Monoid,
     module Data.Ord,
@@ -36,7 +37,8 @@ import Data.Function (($), (.), flip)
 import Data.Functor ((<$>), (<&>), fmap)
 import Data.Int (Int)
 import Data.List (drop, take)
-import Data.Maybe (Maybe (Just, Nothing), catMaybes, isJust, isNothing)
+import Data.Map (Map)
+import Data.Maybe (Maybe (Just, Nothing), catMaybes, isJust, isNothing, maybe)
 import Data.Monoid ((<>), mempty)
 import Data.Ord (Ord ((<), (<=), (>), (>=)))
 import Data.Set (Set)

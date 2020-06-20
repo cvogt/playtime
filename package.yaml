@@ -32,9 +32,9 @@ dependencies:
 - ormolu
 
 # opengl and friends
+- OpenGL
+- GLUT
 - JuicyPixels
-- gloss
-- gloss-rendering
 - GLFW-b
 
 # maybe game dev relevant

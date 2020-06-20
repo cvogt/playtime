@@ -135,11 +135,12 @@ data Bitmap = Bitmap Float Float Float Float Texture
   deriving (Show, Eq)
 
 data Picture
-  = Bitmap' Texture
+  = Bitmap' Bitmap
   | Translate Float Float Picture
   | -- | Some text to draw with a vector font.
     Text Float Float Float Float Color String
   | Pictures [Picture]
+  | Bitmaps [Picture]
   | -- | A picture scaled by the given x and y factors.
     Scale Float Float Picture
   deriving (Show, Eq)
@@ -156,6 +157,8 @@ drawPicture circScale picture =
   {-# SCC "drawComponent" #-}
   case picture of
     Pictures ps ->
+      mapM_ (drawPicture circScale) ps
+    Bitmaps ps ->
       mapM_ (drawPicture circScale) ps
     -- stroke text
     --      text looks weird when we've got blend on,
@@ -182,7 +185,7 @@ drawPicture circScale picture =
           GL.scale (unsafeCoerce sx) (unsafeCoerce sy :: GL.GLfloat) 1
           let mscale = max sx sy
           drawPicture (circScale * mscale) p
-    Bitmap' (Texture xy tex) -> do
+    Bitmap' (Bitmap _xs _ys xd yd (Texture xy tex)) -> do
       let (fromIntegral -> width, fromIntegral -> height) = xy
 
       -- Set up wrap and filtering mode
@@ -205,7 +208,7 @@ drawPicture circScale picture =
       let corners = [(0, 0), (0, 1), (1, 1), (1, 0)] :: [(Float, Float)]
       GL.renderPrimitive GL.Polygon $ forM_ corners $ \(x, y) -> do
         GL.texCoord $ GL.TexCoord2 @GL.GLfloat (unsafeCoerce x) (unsafeCoerce y)
-        GL.vertex $ GL.Vertex2 @GL.GLfloat (unsafeCoerce $ x * width) (unsafeCoerce $ y * height)
+        GL.vertex $ GL.Vertex2 @GL.GLfloat ((unsafeCoerce $ x * width) + xd) ((unsafeCoerce $ y * height) + yd)
 
       -- Restore color
       GL.currentColor $= oldColor

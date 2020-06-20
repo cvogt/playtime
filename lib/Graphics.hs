@@ -24,7 +24,7 @@ vizualizeGame pic gameState = do
   let CursorPos (x, y) = gsCursorPos gameState
   let CursorPos (x', y') = gsMainCharacterPosition gameState
   pure $ Pictures $
-    [ (uncurry Translate (g2gp $ gsMainCharacterPosition gameState) $ Bitmap' pic),
+    [ Bitmaps $ pure $ Bitmap' $ (uncurry (Bitmap 4 4) (g2gp $ gsMainCharacterPosition gameState) pic),
       Text 0.2 0.2 0 100 white $ show (xg2g x, yg2g y),
       --, Color blue $ Polygon [(0,0),(0,50),(50,50),(50,0)]
       Text 0.2 0.2 0 25 white $ "keys: " <> (show $ gsKeysPressed gameState),
@@ -32,9 +32,10 @@ vizualizeGame pic gameState = do
       Text 0.2 0.2 0 75 white $ "char g2g: " <> show (g2gp $ gsMainCharacterPosition gameState),
       Text 0.2 0.2 0 125 white $ "poss: " <> show (Set.size $ gsBoard gameState),
       Text 0.2 0.2 0 150 white $ "fps: " <> show (gsFps gameState),
-      Text 0.2 0.2 0 0 white $ "openGL: " <> show (x, y)
+      Text 0.2 0.2 0 0 white $ "openGL: " <> show (x, y),
+      Bitmaps $ pure $ Bitmap' $ Bitmap 5 5 0 0 $ pic,
+      Bitmaps $ Bitmap' <$> ((uncurry (Bitmap 0 0) <$> board) <&> ($ pic))
     ]
-      <> ((uncurry Translate <$> board) <&> ($ Bitmap' pic))
 
 xg2g :: Int -> Int
 xg2g x = (x - 320)

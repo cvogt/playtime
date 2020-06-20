@@ -102,53 +102,39 @@ withWindow width height title f = do
       putStrLn $ unwords [show e, show s]
 
 renderGame :: Window -> IORef [Texture] -> Picture -> IO ()
-renderGame window glossState picture = do
-  (w, h) <- getWindowSize window
-  withModelview (w, h) $ do
-    renderPicture glossState 1.0 picture
-  swapBuffers window
+renderGame window textureCache picture = do
+  (width, height) <- getWindowSize window
+  GL.matrixMode $= GL.Projection
+  GL.preservingMatrix $ do
+    -- setup the co-ordinate system
+    GL.loadIdentity
+    let (sx, sy) = (fromIntegral width / 2, fromIntegral height / 2)
+    GL.ortho (- sx) sx (- sy) sy 0 (-100)
 
--- copied from Gloss for now:
-
--- | Set up the OpenGL rendering context for orthographic projection and run an
---   action to draw the model.
-withModelview ::
-  -- | Width and height of window.
-  (Int, Int) ->
-  -- | Action to perform.
-  IO () ->
-  IO ()
-withModelview (sizeX, sizeY) action =
-  do
-    GL.matrixMode $= GL.Projection
-    GL.preservingMatrix $
-      do
-        -- setup the co-ordinate system
-        GL.loadIdentity
-        let (sx, sy) = (fromIntegral sizeX / 2, fromIntegral sizeY / 2)
-        GL.ortho (- sx) sx (- sy) sy 0 (-100)
-
-        -- draw the world
-        GL.matrixMode $= GL.Modelview 0
-
-        -- initialization (done every time in this case)
-        -- we don't need the depth buffer for 2d.
-        GL.depthFunc GL.$= Just GL.Always
-
-        GL.clearColor GL.$= GL.Color4 0.0 0.0 0.0 1.0
-
-        -- on every loop
-        GL.clear [GL.ColorBuffer, GL.DepthBuffer]
-        GL.color $ GL.Color4 0 0 0 (1 :: GL.GLfloat)
-
-        GL.lineSmooth $= GL.Disabled
-        GL.blend $= GL.Enabled
-        GL.blendFunc $= (GL.SrcAlpha, GL.OneMinusSrcAlpha) -- GL.blendFunc $= (GL.One, GL.Zero)
-        action
-
-        GL.matrixMode $= GL.Projection
-
+    -- draw the world
     GL.matrixMode $= GL.Modelview 0
+
+    -- initialization (done every time in this case)
+    -- we don't need the depth buffer for 2d.
+    GL.depthFunc GL.$= Just GL.Always
+
+    GL.clearColor GL.$= GL.Color4 0.0 0.0 0.0 1.0
+
+    -- on every loop
+    GL.clear [GL.ColorBuffer, GL.DepthBuffer]
+    GL.color $ GL.Color4 0 0 0 (1 :: GL.GLfloat)
+
+    GL.lineSmooth $= GL.Disabled
+    GL.blend $= GL.Enabled
+    GL.blendFunc $= (GL.SrcAlpha, GL.OneMinusSrcAlpha) -- GL.blendFunc $= (GL.One, GL.Zero)
+    checkErrors "before drawPicture."
+    drawPicture textureCache 1.0 picture
+    checkErrors "after drawPicture."
+    swapBuffers window
+
+    GL.matrixMode $= GL.Projection
+
+  GL.matrixMode $= GL.Modelview 0
 
 type Color = GL.Color4 Float
 
@@ -204,25 +190,6 @@ data BitmapFormat = BitmapFormat
     pixelFormat :: PixelFormat
   }
   deriving (Eq, Show)
-
--- | Render a picture into the current OpenGL context.
---
---   Assumes that the OpenGL matrix mode is set to @Modelview@
-renderPicture ::
-  -- | Current rendering state.
-  IORef [Texture] ->
-  -- | View port scale, which controls the level of detail.
-  --   Use 1.0 to start with.
-  Float ->
-  -- | Picture to render.
-  Picture ->
-  IO ()
-renderPicture state circScale picture =
-  do
-    -- Draw the picture
-    checkErrors "before drawPicture."
-    drawPicture state circScale picture
-    checkErrors "after drawPicture."
 
 drawPicture :: IORef [Texture] -> Float -> Picture -> IO ()
 drawPicture state circScale picture =

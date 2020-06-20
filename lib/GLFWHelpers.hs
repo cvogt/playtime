@@ -147,10 +147,7 @@ data Picture
 -- | Abstract 32-bit RGBA bitmap data.
 data BitmapData = BitmapData
   { bitmapDataLength :: Int, -- length (in bytes)
-    bitmapFormat :: BitmapFormat,
-    -- | width, height in pixels
     bitmapSize :: (Int, Int),
-    bitmapCacheMe :: Bool,
     bitmapPointer :: (ForeignPtr Word8)
   }
   deriving (Show, Eq)
@@ -163,26 +160,6 @@ data Rectangle = Rectangle
     rectSize :: (Int, Int)
   }
   deriving (Show, Read, Eq, Ord)
-
-data RowOrder
-  = TopToBottom
-  | BottomToTop
-  deriving (Eq, Show, Ord)
-
--- | Pixel formats describe the order of the color channels in memory.
-data PixelFormat
-  = PxRGBA
-  | PxABGR
-  deriving (Eq, Show, Ord)
-
--- | Description of how the bitmap is layed out in memory.
---
---   * Prior version of Gloss assumed `BitmapFormat BottomToTop PxAGBR`
-data BitmapFormat = BitmapFormat
-  { rowOrder :: RowOrder,
-    pixelFormat :: PixelFormat
-  }
-  deriving (Eq, Show)
 
 drawPicture :: IORef [Texture] -> Float -> Picture -> IO ()
 drawPicture state circScale picture =
@@ -225,8 +202,7 @@ drawPicture state circScale picture =
           rectSize = imgSectionSize
         }
       imgData@BitmapData
-        { bitmapSize = (width, height),
-          bitmapCacheMe = cacheMe
+        { bitmapSize = (width, height)
         } ->
         do
           let rowInfo =
@@ -259,10 +235,9 @@ drawPicture state circScale picture =
                     vecMap :: (a -> c) -> (b -> d) -> (a, b) -> (c, d)
                     vecMap f g (x, y) = (f x, g y)
                     eps = 0.001 :: Float
-                 in case rowOrder (bitmapFormat imgData) of
-                      BottomToTop -> defTexCoords
-                      TopToBottom -> reverse defTexCoords
+                 in defTexCoords
 
+          let cacheMe = True
           -- Load the image data into a texture,
           -- or grab it from the cache if we've already done that before.
           tex <- loadTexture state imgData cacheMe
@@ -303,14 +278,9 @@ drawPicture state circScale picture =
           GL.texture GL.Texture2D $= GL.Disabled
 
           -- Free uncachable texture objects.
-          freeTexture tex
+          when (not cacheMe) $ GL.deleteObjectNames [texObject tex]
   where
     gf = unsafeCoerce :: Float -> GL.GLfloat
-
-freeTexture :: Texture -> IO ()
-freeTexture tex
-  | texCacheMe tex = return ()
-  | otherwise = GL.deleteObjectNames [texObject tex]
 
 data Texture = Texture
   { -- | Stable name derived from the `BitmapData` that the user gives us.
@@ -342,39 +312,33 @@ loadTexture ::
   -- | Force cache for newly loaded textures.
   Bool ->
   IO Texture
-loadTexture refTextures imgData@BitmapData {bitmapSize = (width, height)} cacheMe =
-  do
-    textures <- readIORef refTextures
+loadTexture refTextures imgData@BitmapData {bitmapSize = (width, height)} cacheMe = do
+  textures <- readIORef refTextures
 
-    -- Try and find this same texture in the cache.
-    name <- makeStableName imgData
-    let mTexCached =
-          find
-            ( \tex ->
-                texName tex == name
-                  && texWidth tex == width
-                  && texHeight tex == height
-            )
-            textures
+  -- Try and find this same texture in the cache.
+  name <- makeStableName imgData
+  let mTexCached =
+        find
+          ( \tex ->
+              texName tex == name
+                && texWidth tex == width
+                && texHeight tex == height
+          )
+          textures
 
-    case mTexCached of
-      Just tex ->
+  case mTexCached of
+    Just tex ->
+      return tex
+    Nothing ->
+      do
+        tex <- installTexture cacheMe imgData
+        when cacheMe $
+          writeIORef refTextures (tex : textures)
         return tex
-      Nothing ->
-        do
-          tex <- installTexture imgData
-          when cacheMe $
-            writeIORef refTextures (tex : textures)
-          return tex
 
-installTexture :: BitmapData -> IO Texture
-installTexture bitmapData@(BitmapData _ fmt (width, height) cacheMe fptr) =
+installTexture :: Bool -> BitmapData -> IO Texture
+installTexture cacheMe bitmapData@(BitmapData _ (width, height) fptr) =
   do
-    let glFormat =
-          case pixelFormat fmt of
-            PxABGR -> GL.ABGR
-            PxRGBA -> GL.RGBA
-
     -- Allocate texture handle for texture
     [tex] <- GL.genObjectNames 1
     GL.textureBinding GL.Texture2D $= Just tex
@@ -394,7 +358,7 @@ installTexture bitmapData@(BitmapData _ fmt (width, height) cacheMe fptr) =
               (unsafeCoerce height)
           )
           0
-          (GL.PixelData glFormat GL.UnsignedByte ptr)
+          (GL.PixelData GL.RGBA GL.UnsignedByte ptr)
 
     -- Make a stable name that we can use to identify this data again.
     -- If the user gives us the same texture data at the same size then we

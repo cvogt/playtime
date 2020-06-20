@@ -24,7 +24,7 @@ bitmapOfBMP bmp =
     ptr <- mallocBytes len
     fptr <- newForeignPtr finalizerFree ptr
     BSU.unsafeUseAsCString bs $ \cstr -> copyBytes ptr (castPtr cstr) len
-    pure $ BitmapData len (BitmapFormat BottomToTop PxRGBA) (width, height) True fptr
+    pure $ BitmapData len (width, height) fptr
 
 pictureFromFile :: FilePath -> IO Picture
 pictureFromFile path = do

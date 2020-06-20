@@ -13,10 +13,10 @@ import My.Prelude
 white :: Color
 white = Color4 1.0 1.0 1.0 1.0
 
-loadPic :: IO Picture
+loadPic :: IO Texture
 loadPic = pictureFromFile $ $(makeRelativeToProject "assets/main_character.png" >>= strToExp)
 
-vizualizeGame :: Picture -> GameState -> IO Picture
+vizualizeGame :: Texture -> GameState -> IO Picture
 vizualizeGame pic gameState = do
   let g2gp = \(CursorPos (x, y)) -> (int2Float $ xg2g x, int2Float $ yg2g y)
   let board = fmap g2gp . toList $ gsBoard gameState
@@ -24,7 +24,7 @@ vizualizeGame pic gameState = do
   let CursorPos (x, y) = gsCursorPos gameState
   let CursorPos (x', y') = gsMainCharacterPosition gameState
   pure $ Pictures $
-    [ (uncurry Translate (g2gp $ gsMainCharacterPosition gameState) pic),
+    [ (uncurry Translate (g2gp $ gsMainCharacterPosition gameState) $ Bitmap' pic),
       Text 0.2 0.2 0 100 white $ show (xg2g x, yg2g y),
       --, Color blue $ Polygon [(0,0),(0,50),(50,50),(50,0)]
       Text 0.2 0.2 0 25 white $ "keys: " <> (show $ gsKeysPressed gameState),
@@ -34,7 +34,7 @@ vizualizeGame pic gameState = do
       Text 0.2 0.2 0 150 white $ "fps: " <> show (gsFps gameState),
       Text 0.2 0.2 0 0 white $ "openGL: " <> show (x, y)
     ]
-      <> ((uncurry Translate <$> board) <&> ($ pic))
+      <> ((uncurry Translate <$> board) <&> ($ Bitmap' pic))
 
 xg2g :: Int -> Int
 xg2g x = (x - 320)

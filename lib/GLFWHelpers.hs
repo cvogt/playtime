@@ -128,8 +128,14 @@ renderGame window picture = do
 type Color = GL.Color4 Float
 
 --------------------------------------
+data Texture = Texture (Int, Int) GL.TextureObject
+  deriving (Show, Eq)
+
+data Bitmap = Bitmap Float Float Float Float Texture
+  deriving (Show, Eq)
+
 data Picture
-  = Bitmap BitmapData GL.TextureObject
+  = Bitmap' Texture
   | Translate Float Float Picture
   | -- | Some text to draw with a vector font.
     Text Float Float Float Float Color String
@@ -176,8 +182,8 @@ drawPicture circScale picture =
           GL.scale (unsafeCoerce sx) (unsafeCoerce sy :: GL.GLfloat) 1
           let mscale = max sx sy
           drawPicture (circScale * mscale) p
-    Bitmap imgData tex -> do
-      let (fromIntegral -> width, fromIntegral -> height) = bitmapSize imgData
+    Bitmap' (Texture xy tex) -> do
+      let (fromIntegral -> width, fromIntegral -> height) = xy
 
       -- Set up wrap and filtering mode
       GL.textureWrapMode GL.Texture2D GL.S $= (GL.Repeated, GL.Repeat)

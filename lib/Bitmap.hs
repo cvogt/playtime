@@ -24,11 +24,11 @@ bitmapOfBMP bmp =
     BSU.unsafeUseAsCString bs $ \cstr -> copyBytes ptr (castPtr cstr) len
     pure $ BitmapData (width, height) fptr
 
-pictureFromFile :: FilePath -> IO Picture
+pictureFromFile :: FilePath -> IO Texture
 pictureFromFile path = do
   dynImage <- either fail pure =<< readImage path
   bmpBytes <- either (fail . show) pure $ encodeDynamicBitmap dynImage
   bmp <- either (fail . show) pure $ parseBMP bmpBytes
-  let imgData = bitmapOfBMP bmp
+  let imgData@(BitmapData xy _) = bitmapOfBMP bmp
   tex <- sendTextureToGL imgData
-  pure $ Bitmap imgData tex
+  pure $ Texture xy tex

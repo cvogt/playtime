@@ -177,8 +177,7 @@ drawPicture circScale picture =
           drawPicture (circScale * mscale) p
     Bitmap imgData tex -> do
       let (width, height) = bitmapSize imgData
-          imgSectionPos = (0, 0)
-          imgSectionSize = (width, height)
+          imgSectionSize = (fromIntegral width, fromIntegral height)
           rowInfo =
             -- calculate texture coordinates
             -- remark:
@@ -189,25 +188,19 @@ drawPicture circScale picture =
             --   To prevent this we add an "epsilon-border".
             --   This has been testet to fix the problem.
             map (\(x, y) -> (x / fromIntegral width, y / fromIntegral height)) $
-              [ vecMap (+ eps) (+ eps) $ toFloatVec imgSectionPos,
-                vecMap (subtract eps) (+ eps) $ toFloatVec $
-                  ( fst imgSectionPos + fst imgSectionSize,
-                    snd imgSectionPos
-                  ),
-                vecMap (subtract eps) (subtract eps) $ toFloatVec $
-                  ( fst imgSectionPos + fst imgSectionSize,
-                    snd imgSectionPos + snd imgSectionSize
-                  ),
-                vecMap (+ eps) (subtract eps) $ toFloatVec $
-                  ( fst imgSectionPos,
-                    snd imgSectionPos + snd imgSectionSize
-                  )
+              [ (eps, eps),
+                ( 0 + fst imgSectionSize,
+                  eps
+                ),
+                ( 0 + fst imgSectionSize - eps,
+                  0 + snd imgSectionSize - eps
+                ),
+                ( eps,
+                  0 + snd imgSectionSize - eps
+                )
               ] ::
               [(Float, Float)]
             where
-              toFloatVec = vecMap fromIntegral fromIntegral
-              vecMap :: (a -> c) -> (b -> d) -> (a, b) -> (c, d)
-              vecMap f g (x, y) = (f x, g y)
               eps = 0.001 :: Float
 
       -- Set up wrap and filtering mode
@@ -230,8 +223,8 @@ drawPicture circScale picture =
       GL.renderPrimitive GL.Polygon
         $ forM_
           ( bitmapPath
-              (fromIntegral $ fst imgSectionSize)
-              (fromIntegral $ snd imgSectionSize)
+              (fst imgSectionSize)
+              (snd imgSectionSize)
               `zip` rowInfo
           )
         $ \((polygonCoordX, polygonCoordY), (textureCoordX, textureCoordY)) ->

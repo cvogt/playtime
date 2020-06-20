@@ -1,14 +1,12 @@
 module Bitmap where
 
 import Codec.BMP (BMP, bmpDimensions, parseBMP, unpackBMPToRGBA32)
-import Codec.Picture (dynamicMap, encodeDynamicBitmap, imageHeight, imageWidth, readImage)
+import Codec.Picture (encodeDynamicBitmap, readImage)
 import qualified Data.ByteString.Unsafe as BSU
 import Foreign.ForeignPtr (newForeignPtr)
 import Foreign.Marshal.Alloc (finalizerFree, mallocBytes, mallocBytes)
 import Foreign.Marshal.Utils (copyBytes)
 import Foreign.Ptr (castPtr)
-import GHC.Float (int2Float)
-import GHC.Real ((/))
 import GLFWHelpers
 import My.IO
 import My.Prelude
@@ -33,4 +31,4 @@ pictureFromFile path = do
   bmp <- either (fail . show) pure $ parseBMP bmpBytes
   let imgData = bitmapOfBMP bmp
   tex <- sendTextureToGL imgData
-  pure $ Translate ((int2Float $ dynamicMap imageWidth dynImage) / 2) ((int2Float $ dynamicMap imageHeight dynImage) / 2) $ Bitmap imgData tex
+  pure $ Bitmap imgData tex

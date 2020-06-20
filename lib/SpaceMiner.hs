@@ -39,3 +39,5 @@ main width height fps = do
       --putStrLn . show =<< getSystemTime
 
       pure $ if gsExitGame newGameState then Nothing else Just newGameState
+
+-- GL.deleteObjectNames [tex]

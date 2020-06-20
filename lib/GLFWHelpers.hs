@@ -167,17 +167,16 @@ drawPicture circScale picture =
     Translate tx ty p ->
       GL.preservingMatrix $
         do
-          GL.translate (GL.Vector3 (gf tx) (gf ty) 0)
+          GL.translate (GL.Vector3 (unsafeCoerce tx) (unsafeCoerce ty :: GL.GLfloat) 0)
           drawPicture circScale p
     Scale sx sy p ->
       GL.preservingMatrix $
         do
-          GL.scale (gf sx) (gf sy) 1
+          GL.scale (unsafeCoerce sx) (unsafeCoerce sy :: GL.GLfloat) 1
           let mscale = max sx sy
           drawPicture (circScale * mscale) p
     Bitmap imgData tex -> do
-      let cacheMe = True
-          (width, height) = bitmapSize imgData
+      let (width, height) = bitmapSize imgData
           imgSectionPos = (0, 0)
           imgSectionSize = (width, height)
           rowInfo =
@@ -245,9 +244,6 @@ drawPicture circScale picture =
 
       -- Disable texturing
       GL.texture GL.Texture2D $= GL.Disabled
-
-      -- Free uncachable texture objects.
-      when (not cacheMe) $ GL.deleteObjectNames [tex]
   where
     gf = unsafeCoerce :: Float -> GL.GLfloat
 

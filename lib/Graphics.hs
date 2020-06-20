@@ -32,7 +32,8 @@ vizualizeGame pic gameState = do
       Translate 0 75 $ Scale 0.2 0.2 $ Text white $ "char g2g: " <> show (g2gp $ gsMainCharacterPosition gameState),
       Translate 0 125 $ Scale 0.2 0.2 $ Text white $ "poss: " <> show (Set.size $ gsBoard gameState),
       Translate 0 150 $ Scale 0.2 0.2 $ Text white $ "fps: " <> show (gsFps gameState),
-      Scale 0.2 0.2 $ Text white $ "openGL: " <> show (x, y)
+      Scale 0.2 0.2 $ Text white $ "openGL: " <> show (x, y),
+      Scale 5 5 $ pic
     ]
       <> ((uncurry Translate <$> board) <&> ($ pic))
 

@@ -25,15 +25,14 @@ vizualizeGame pic gameState = do
   let CursorPos (x', y') = gsMainCharacterPosition gameState
   pure $ Pictures $
     [ (uncurry Translate (g2gp $ gsMainCharacterPosition gameState) pic),
-      Translate 0 100 $ Scale 0.2 0.2 $ Text white $ show (xg2g x, yg2g y),
+      Text 0.2 0.2 0 100 white $ show (xg2g x, yg2g y),
       --, Color blue $ Polygon [(0,0),(0,50),(50,50),(50,0)]
-      Translate 0 25 $ Scale 0.2 0.2 $ Text white $ "keys: " <> (show $ gsKeysPressed gameState),
-      Translate 0 50 $ Scale 0.2 0.2 $ Text white $ "char: " <> show (x', y'),
-      Translate 0 75 $ Scale 0.2 0.2 $ Text white $ "char g2g: " <> show (g2gp $ gsMainCharacterPosition gameState),
-      Translate 0 125 $ Scale 0.2 0.2 $ Text white $ "poss: " <> show (Set.size $ gsBoard gameState),
-      Translate 0 150 $ Scale 0.2 0.2 $ Text white $ "fps: " <> show (gsFps gameState),
-      Scale 0.2 0.2 $ Text white $ "openGL: " <> show (x, y),
-      Scale 5 5 $ pic
+      Text 0.2 0.2 0 25 white $ "keys: " <> (show $ gsKeysPressed gameState),
+      Text 0.2 0.2 0 50 white $ "char: " <> show (x', y'),
+      Text 0.2 0.2 0 75 white $ "char g2g: " <> show (g2gp $ gsMainCharacterPosition gameState),
+      Text 0.2 0.2 0 125 white $ "poss: " <> show (Set.size $ gsBoard gameState),
+      Text 0.2 0.2 0 150 white $ "fps: " <> show (gsFps gameState),
+      Text 0.2 0.2 0 0 white $ "openGL: " <> show (x, y)
     ]
       <> ((uncurry Translate <$> board) <&> ($ pic))
 

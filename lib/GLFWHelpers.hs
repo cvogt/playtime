@@ -132,7 +132,7 @@ data Picture
   = Bitmap BitmapData GL.TextureObject
   | Translate Float Float Picture
   | -- | Some text to draw with a vector font.
-    Text Color String
+    Text Float Float Float Float Color String
   | Pictures [Picture]
   | -- | A picture scaled by the given x and y factors.
     Scale Float Float Picture
@@ -154,14 +154,17 @@ drawPicture circScale picture =
     -- stroke text
     --      text looks weird when we've got blend on,
     --      so disable it during the renderString call.
-    Text col str ->
-      do
-        oldColor <- get GL.currentColor
-        GL.currentColor $= col
-        GL.blend $= GL.Disabled
-        GL.preservingMatrix $ GLUT.renderString GLUT.Roman str
-        GL.blend $= GL.Enabled
-        GL.currentColor $= oldColor
+    Text xs ys xd yd col str ->
+      GL.preservingMatrix $ do
+        GL.translate (GL.Vector3 (unsafeCoerce xd) (unsafeCoerce yd :: GL.GLfloat) 0)
+        GL.preservingMatrix $ do
+          GL.scale (unsafeCoerce xs) (unsafeCoerce ys :: GL.GLfloat) 1
+          oldColor <- get GL.currentColor
+          GL.currentColor $= col
+          GL.blend $= GL.Disabled
+          GL.preservingMatrix $ GLUT.renderString GLUT.Roman str
+          GL.blend $= GL.Enabled
+          GL.currentColor $= oldColor
     Translate tx ty p ->
       GL.preservingMatrix $
         do

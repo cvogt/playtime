@@ -1,7 +1,6 @@
 module GLFWHelpers where
 
 import Control.Monad (forM_, mapM_)
-import Data.IORef (IORef, readIORef, writeIORef)
 import Data.List (unwords)
 import Data.List (reverse)
 import Data.List (map, zip)
@@ -16,7 +15,6 @@ import "GLFW-b" Graphics.UI.GLFW as GLFW
 import qualified Graphics.UI.GLUT as GLUT
 import My.IO
 import My.Prelude
-import System.Mem.StableName (StableName, makeStableName)
 import Unsafe.Coerce (unsafeCoerce)
 import Prelude (String, error)
 
@@ -94,8 +92,8 @@ withWindow width height title f = do
     simpleErrorCallback e s =
       putStrLn $ unwords [show e, show s]
 
-renderGame :: Window -> TextureCache -> Picture -> IO ()
-renderGame window textureCache picture = do
+renderGame :: Window -> Picture -> IO ()
+renderGame window picture = do
   (width, height) <- getWindowSize window
   GL.matrixMode $= GL.Projection
   GL.preservingMatrix $ do
@@ -121,7 +119,7 @@ renderGame window textureCache picture = do
     GL.blend $= GL.Enabled
     GL.blendFunc $= (GL.SrcAlpha, GL.OneMinusSrcAlpha) -- GL.blendFunc $= (GL.One, GL.Zero)
     void $ error . show <$> get GLU.errors
-    drawPicture textureCache 1.0 picture
+    drawPicture 1.0 picture
     void $ error . show <$> get GLU.errors
     swapBuffers window
 
@@ -149,12 +147,12 @@ data BitmapData = BitmapData
   }
   deriving (Show, Eq)
 
-drawPicture :: TextureCache -> Float -> Picture -> IO ()
-drawPicture state circScale picture =
+drawPicture :: Float -> Picture -> IO ()
+drawPicture circScale picture =
   {-# SCC "drawComponent" #-}
   case picture of
     Pictures ps ->
-      mapM_ (drawPicture state circScale) ps
+      mapM_ (drawPicture circScale) ps
     -- stroke text
     --      text looks weird when we've got blend on,
     --      so disable it during the renderString call.
@@ -170,13 +168,13 @@ drawPicture state circScale picture =
       GL.preservingMatrix $
         do
           GL.translate (GL.Vector3 (gf tx) (gf ty) 0)
-          drawPicture state circScale p
+          drawPicture circScale p
     Scale sx sy p ->
       GL.preservingMatrix $
         do
           GL.scale (gf sx) (gf sy) 1
           let mscale = max sx sy
-          drawPicture state (circScale * mscale) p
+          drawPicture (circScale * mscale) p
     Bitmap imgData tex -> do
       let cacheMe = True
           (width, height) = bitmapSize imgData
@@ -253,15 +251,6 @@ drawPicture state circScale picture =
   where
     gf = unsafeCoerce :: Float -> GL.GLfloat
 
-data Texture = Texture
-  { -- | Stable name derived from the `BitmapData` that the user gives us.
-    texName :: StableName BitmapData,
-    -- | Pointer to the Raw texture data.
-    texData :: ForeignPtr Word8,
-    -- | The OpenGL texture object.
-    texObject :: GL.TextureObject
-  }
-
 bitmapPath :: Float -> Float -> [(Float, Float)]
 bitmapPath width height =
   [(- width', - height'), (width', - height'), (width', height'), (- width', height')]
@@ -269,30 +258,8 @@ bitmapPath width height =
     width' = width / 2
     height' = height / 2
 
-type TextureCache = IORef [(StableName BitmapData, GL.TextureObject)]
-
-loadTexture ::
-  -- | Existing texture cache.
-  TextureCache ->
-  -- | Texture data.
-  BitmapData ->
-  -- | Force cache for newly loaded textures.
-  Bool ->
-  IO GL.TextureObject
-loadTexture textureCache imgData cacheMe = do
-  -- Try and find this same texture in the cache.
-  name <- makeStableName imgData
-  textures <- readIORef textureCache
-  maybe (installTexture' name) (pure . snd) $ find ((name ==) . fst) textures
-  where
-    installTexture' name = do
-      textures <- readIORef textureCache
-      tex <- installTexture imgData
-      when cacheMe $ writeIORef textureCache $ (name, tex) : textures
-      pure tex
-
-installTexture :: BitmapData -> IO GL.TextureObject
-installTexture (BitmapData (width, height) fptr) = do
+sendTextureToGL :: BitmapData -> IO GL.TextureObject
+sendTextureToGL (BitmapData (width, height) fptr) = do
   let txSize = GL.TextureSize2D (unsafeCoerce width) (unsafeCoerce height)
   [texture] <- GL.genObjectNames 1
   GL.textureBinding GL.Texture2D $= Just texture

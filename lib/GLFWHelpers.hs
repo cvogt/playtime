@@ -3,7 +3,7 @@ module GLFWHelpers where
 import Codec.BMP
 import Control.Monad (forM_, mapM_)
 import qualified Data.ByteString.Unsafe as BSU
-import Data.IORef
+import Data.IORef (IORef, readIORef, writeIORef)
 import Data.List (unwords)
 import Data.List (reverse)
 import Data.List ((++), map, zip)
@@ -101,7 +101,7 @@ withWindow width height title f = do
     simpleErrorCallback e s =
       putStrLn $ unwords [show e, show s]
 
-renderGame :: Window -> State -> Picture -> IO ()
+renderGame :: Window -> IORef [Texture] -> Picture -> IO ()
 renderGame window glossState picture = do
   (w, h) <- getWindowSize window
   withModelview (w, h) $ do
@@ -220,7 +220,7 @@ data BitmapFormat = BitmapFormat
 --   Assumes that the OpenGL matrix mode is set to @Modelview@
 renderPicture ::
   -- | Current rendering state.
-  State ->
+  IORef [Texture] ->
   -- | View port scale, which controls the level of detail.
   --   Use 1.0 to start with.
   Float ->
@@ -230,15 +230,15 @@ renderPicture ::
 renderPicture state circScale picture =
   do
     -- Setup render state for world
-    setLineSmooth (stateLineSmooth state)
-    setBlendAlpha (stateBlendAlpha state)
+    setLineSmooth False
+    setBlendAlpha True
 
     -- Draw the picture
     checkErrors "before drawPicture."
     drawPicture state circScale picture
     checkErrors "after drawPicture."
 
-drawPicture :: State -> Float -> Picture -> IO ()
+drawPicture :: IORef [Texture] -> Float -> Picture -> IO ()
 drawPicture state circScale picture =
   {-# SCC "drawComponent" #-}
   case picture of
@@ -268,15 +268,11 @@ drawPicture state circScale picture =
           GL.scale (gf sx) (gf sy) 1
           let mscale = max sx sy
           drawPicture state (circScale * mscale) p
-    Color col p
-      | stateColor state ->
-        do
-          oldColor <- get GL.currentColor
-          GL.currentColor $= col
-          drawPicture state circScale p
-          GL.currentColor $= oldColor
-      | otherwise ->
-        drawPicture state circScale p
+    Color col p -> do
+      oldColor <- get GL.currentColor
+      GL.currentColor $= col
+      drawPicture state circScale p
+      GL.currentColor $= oldColor
     BitmapSection
       Rectangle
         { rectPos = imgSectionPos,
@@ -323,7 +319,7 @@ drawPicture state circScale picture =
 
           -- Load the image data into a texture,
           -- or grab it from the cache if we've already done that before.
-          tex <- loadTexture (stateTextures state) imgData cacheMe
+          tex <- loadTexture state imgData cacheMe
 
           -- Set up wrap and filtering mode
           GL.textureWrapMode GL.Texture2D GL.S $= (GL.Repeated, GL.Repeat)
@@ -474,19 +470,6 @@ installTexture bitmapData@(BitmapData _ fmt (width, height) cacheMe fptr) =
 gsizei :: Int -> GL.GLsizei
 gsizei x = unsafeCoerce x
 
-data State = State
-  { -- | Whether to use color
-    stateColor :: !Bool,
-    -- | Whether to force wireframe mode only
-    stateWireframe :: !Bool,
-    -- | Whether to use alpha blending
-    stateBlendAlpha :: !Bool,
-    -- | Whether to use line smoothing
-    stateLineSmooth :: !Bool,
-    -- | Cache of Textures that we've sent to OpenGL.
-    stateTextures :: !(IORef [Texture])
-  }
-
 -- | Construct a rectangle of the given width and height,
 --   with the lower left corner at the origin.
 rectAtOrigin :: Int -> Int -> Rectangle
@@ -571,16 +554,3 @@ bitmapDataOfBMP bmp =
         \cstr -> copyBytes ptr (castPtr cstr) len
 
       return $ BitmapData len (BitmapFormat BottomToTop PxRGBA) (width, height) True fptr
-
-initState :: IO State
-initState =
-  do
-    textures <- newIORef []
-    return
-      State
-        { stateColor = True,
-          stateWireframe = False,
-          stateBlendAlpha = True,
-          stateLineSmooth = False,
-          stateTextures = textures
-        }

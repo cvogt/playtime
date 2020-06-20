@@ -2,9 +2,10 @@ module SpaceMiner where
 
 -- import Music
 
+import Data.IORef (newIORef)
 import GHC.Float (int2Double)
 import GHC.Real ((/))
-import GLFWHelpers (fetchEvents, initGUI, initState, renderGame, withWindow)
+import GLFWHelpers (fetchEvents, initGUI, renderGame, withWindow)
 import Game (gsExitGame, handleEvent, initialGameState)
 import Graphics (loadPic, vizualizeGame)
 import "GLFW-b" Graphics.UI.GLFW as GLFW
@@ -16,7 +17,7 @@ main :: Int -> Int -> Int -> IO ()
 main width height fps = do
   --void $ forkIO $ forever $ playMusic
   eventsMVar <- newMVar []
-  glossState <- initState
+  textureCache <- newIORef []
   time <- getSystemTime
 
   withWindow width height "Game-Demo" $ \window -> do
@@ -36,7 +37,7 @@ main width height fps = do
       visualization <- vizualizeGame pic newGameState
       --putStrLn . show =<< getSystemTime
 
-      renderGame window glossState visualization
+      renderGame window textureCache visualization
       --putStrLn . show =<< getSystemTime
 
       pure $ if gsExitGame newGameState then Nothing else Just newGameState

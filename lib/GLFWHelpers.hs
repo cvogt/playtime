@@ -4,7 +4,7 @@ import Control.Monad (mapM_)
 import Data.List (reverse, unwords)
 import Data.Word (Word8)
 import Foreign (withForeignPtr)
-import GHC.Float (int2Double)
+import GHC.Float (double2Float, int2Double)
 import GHC.Real ((/), fromIntegral)
 import Graphics.Rendering.OpenGL (($=), get)
 import qualified Graphics.Rendering.OpenGL.GL as GL
@@ -134,11 +134,11 @@ type Color = GL.Color4 Float
 data Texture = Texture (Int, Int) GL.TextureObject
   deriving (Show, Eq)
 
-data TexturePlacement = TexturePlacement Float Float
+data TexturePlacement = TexturePlacement Double Double
   deriving (Show, Eq)
 
 data Picture
-  = TexturePlacements Texture Float Float [TexturePlacement]
+  = TexturePlacements Texture Double Double [TexturePlacement]
   | Pictures [Picture]
   deriving (Show, Eq)
 
@@ -155,35 +155,35 @@ drawPicture picture =
   case picture of
     Pictures ps ->
       mapM_ drawPicture ps
-    TexturePlacements (Texture xy texture) xs ys placements -> do
-      GL.preservingMatrix $ do
-        GL.scale (unsafeCoerce xs) (unsafeCoerce ys :: GL.GLfloat) 1
-        -- Set up wrap and filtering mode
-        GL.textureWrapMode GL.Texture2D GL.S $= (GL.Repeated, GL.ClampToBorder)
-        GL.textureWrapMode GL.Texture2D GL.T $= (GL.Repeated, GL.ClampToBorder)
-        GL.textureFilter GL.Texture2D $= ((GL.Nearest, Nothing), GL.Nearest)
+    TexturePlacements (Texture (int2Double -> width, int2Double -> height) texture) xs ys placements -> do
+      -- Set up wrap and filtering mode
+      GL.textureWrapMode GL.Texture2D GL.S $= (GL.Repeated, GL.Repeat)
+      GL.textureWrapMode GL.Texture2D GL.T $= (GL.Repeated, GL.Repeat)
+      GL.textureFilter GL.Texture2D $= ((GL.Nearest, Nothing), GL.Nearest)
 
-        -- Enable texturing
-        GL.texture GL.Texture2D $= GL.Enabled
-        GL.textureFunction $= GL.Combine
+      -- Enable texturing
+      GL.texture GL.Texture2D $= GL.Enabled
+      GL.textureFunction $= GL.Combine
 
-        oldColor <- get GL.currentColor
-        GL.currentColor $= GL.Color4 1.0 1.0 1.0 1.0
-        GL.textureBinding GL.Texture2D $= Just texture
-        GL.blend $= GL.Disabled
-        GL.renderPrimitive GL.Quads
-          $ for_ placements
-          $ \(TexturePlacement xd yd) -> do
-            let corners = [(0, 0), (0, 1), (1, 1), (1, 0)] :: [(Float, Float)]
-                (fromIntegral -> width, fromIntegral -> height) = xy
-            forM_ corners $ \(x, y) -> do
-              GL.texCoord $ GL.TexCoord2 @GL.GLfloat (unsafeCoerce x) (unsafeCoerce y)
-              GL.vertex $ GL.Vertex2 @GL.GLfloat ((unsafeCoerce $ x * width) + xd) ((unsafeCoerce $ y * height) + yd)
-        GL.blend $= GL.Enabled
-        --GL.primitiveRestart -- crashes with exception saying function doesnt exist
+      oldColor <- get GL.currentColor
+      GL.currentColor $= GL.Color4 1.0 1.0 1.0 1.0
+      GL.textureBinding GL.Texture2D $= Just texture
+      GL.blend $= GL.Disabled
+      GL.renderPrimitive GL.Quads
+        $ for_ placements
+        $ \(TexturePlacement xd yd) -> do
+          let corners = [(0, 0), (0, 1), (1, 1), (1, 0)] :: [(Double, Double)]
+          forM_ corners $ \(x, y) -> do
+            GL.texCoord $ GL.TexCoord2 @GL.GLfloat (gl x) (gl y) -- remember 1 makes this match the size of the vertex/quad
+            GL.vertex $ GL.Vertex2 @GL.GLfloat (gl $ (x * xs * width) + xd) (gl $ (y * ys * height) + yd)
+      GL.blend $= GL.Enabled
+      --GL.primitiveRestart -- crashes with exception saying function doesnt exist
 
-        GL.currentColor $= oldColor
-        GL.texture GL.Texture2D $= GL.Disabled
+      GL.currentColor $= oldColor
+      GL.texture GL.Texture2D $= GL.Disabled
+  where
+    gl :: Double -> GL.GLfloat
+    gl = unsafeCoerce . double2Float
 
 sendTextureToGL :: BitmapData -> IO GL.TextureObject
 sendTextureToGL (BitmapData (width, height) fptr) = do

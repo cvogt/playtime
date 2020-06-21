@@ -10,6 +10,7 @@ import "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.Extra
 import My.IO
 import My.Prelude
+import SpaceMiner.Debug.Vty (forkDebugTerminal)
 import System.Exit (exitSuccess)
 
 main :: Int -> Int -> Int -> IO ()
@@ -32,6 +33,7 @@ main width height _fps = do
         pure $ if gsExitGame newGameState then Nothing else Just newGameState
       exitSuccess
 
+    void forkDebugTerminal -- FIXME: cursor stays hidden after termination
     forever $ do
       pollEvents
       visualization <- takeMVar visualizationMVar

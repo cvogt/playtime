@@ -16,7 +16,7 @@ copyright:           "2020 Author name here"
 description:         Please see the README on GitHub at <https://github.com/githubuser/spaceminer#readme>
 
 dependencies:
-# the usual suspects
+# - ansi-terminal
 - base
 - bmp
 - bytestring
@@ -27,6 +27,7 @@ dependencies:
 - text
 - time
 - unix
+- vty
 
 # formatting
 - ormolu

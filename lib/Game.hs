@@ -3,7 +3,7 @@ module Game where
 import qualified Data.Set as Set
 import Data.Time.Clock.System
 import GHC.Float (int2Double)
-import GHC.Real ((/), fromIntegral, round)
+import GHC.Real ((/), fromIntegral)
 import GLFWHelpers
 import "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.Prelude
@@ -26,8 +26,8 @@ initialGameState = GameState mempty False Set.empty (CursorPos (320, 240)) False
 
 handleEvent :: GameState -> InputEvent -> GameState
 handleEvent = \gs@GameState {gsBoard, gsPlacementMode, gsKeysPressed, gsMainCharacterPosition, gsLastLoopTime, gsCursorPos, gsFps, gsTimes} -> \case
-  MouseEvent' (MouseEvent _ MouseButtonState'Pressed _ cursor) -> gs {gsPlacementMode = True, gsBoard = Set.insert cursor gsBoard}
-  MouseEvent' (MouseEvent _ MouseButtonState'Released _ _) -> gs {gsPlacementMode = False}
+  MouseEvent' (MouseEvent _ MouseButtonState'Pressed _) -> gs {gsPlacementMode = True, gsBoard = Set.insert gsCursorPos gsBoard}
+  MouseEvent' (MouseEvent _ MouseButtonState'Released _) -> gs {gsPlacementMode = False}
   CursorPosEvent' (CursorPosEvent pos) -> gs {gsCursorPos = pos}
   KeyEvent' (KeyEvent Key'Q KeyState'Pressed _) -> gs {gsExitGame = True}
   WindowCloseEvent -> gs {gsExitGame = True}
@@ -38,7 +38,7 @@ handleEvent = \gs@GameState {gsBoard, gsPlacementMode, gsKeysPressed, gsMainChar
         timePassed = int2Double (fromIntegral picosecs) / 1000 / 1000 / 1000 / 1000
         distancePerSec = 200
         halfsec = 500 * 1000 * 1000 * 1000
-        d = round $ timePassed * distancePerSec
+        d = timePassed * distancePerSec
         CursorPos (x, y) = gsMainCharacterPosition
         newY = if elem Key'S gsKeysPressed then y - d else if elem Key'W gsKeysPressed then y + d else y
         newX = if elem Key'A gsKeysPressed then x - d else if elem Key'D gsKeysPressed then x + d else x

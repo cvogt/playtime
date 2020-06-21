@@ -32,5 +32,5 @@ forkDebugTerminal gameLoopDebugMVar renderLoopDebugMVar = do
                 "sprite count: " <> show (Set.size $ gsBoard gameState)
               ]
 
-      threadDelay $ 100 * 1000
+      threadDelay $ 500 * 1000 -- FIXME: changing this to 100 * make process freeze on exit
       pure (newAvgGameLoopTime, newAvRenderLoopTime)

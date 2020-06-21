@@ -4,7 +4,8 @@ import Control.Monad (mapM_)
 import Data.List (reverse, unwords)
 import Data.Word (Word8)
 import Foreign (withForeignPtr)
-import GHC.Real (fromIntegral, round)
+import GHC.Float (int2Double)
+import GHC.Real ((/), fromIntegral)
 import Graphics.Rendering.OpenGL (($=), get)
 import qualified Graphics.Rendering.OpenGL.GL as GL
 import qualified Graphics.Rendering.OpenGL.GLU.Errors as GLU
@@ -14,13 +15,12 @@ import My.Prelude
 import Unsafe.Coerce (unsafeCoerce)
 import Prelude (error)
 
-newtype CursorPos = CursorPos {unCursorPos :: (Int, Int)} deriving (Eq, Ord, Show)
+newtype CursorPos = CursorPos {unCursorPos :: (Double, Double)} deriving (Eq, Ord, Show)
 
 data MouseEvent = MouseEvent
   { meButton :: MouseButton,
     meButtonState :: MouseButtonState,
-    meModifierKeys :: ModifierKeys,
-    meCursorPosition :: CursorPos
+    meModifierKeys :: ModifierKeys
   }
   deriving (Show)
 
@@ -42,17 +42,20 @@ data InputEvent
   | WindowCloseEvent
   deriving (Show)
 
-startCaptureEvents :: Window -> MVar [InputEvent] -> IO ()
-startCaptureEvents window mvar = do
+startCaptureEvents :: Window -> Int -> Int -> MVar [InputEvent] -> IO ()
+startCaptureEvents window (int2Double -> logicWidth) (int2Double -> logicHeight) mvar = do
   setMouseButtonCallback window $ Just $ \_ button state modifiers -> do
-    (x, y) <- GLFW.getCursorPos window
-    (_, width) <- getWindowSize window
-    modifyMVar_ mvar $ pure . ((MouseEvent' $ MouseEvent button state modifiers $ CursorPos (round x, width - (round y))) :)
+    modifyMVar_ mvar $ pure . ((MouseEvent' $ MouseEvent button state modifiers) :)
   setKeyCallback window $ Just $ \_ key _scancode keyState modifiers ->
     modifyMVar_ mvar $ pure . ((KeyEvent' $ KeyEvent key keyState modifiers) :)
   setCursorPosCallback window $ Just $ \_ x y -> do
-    (_, width) <- getWindowSize window
-    modifyMVar_ mvar $ pure . ((CursorPosEvent' $ CursorPosEvent $ CursorPos (round x, width - (round y))) :)
+    -- this ratio calculation leads to proper relative scaling on window resize
+    -- FIXME: we still get distortion if aspect ration of resized window is different
+    --        we should be able to fix that by adding black borders as needed
+    (int2Double -> actualWidth, int2Double -> actualHeight) <- getWindowSize window
+    let wratio = actualWidth / logicWidth
+        hratio = actualHeight / logicHeight
+    modifyMVar_ mvar $ pure . ((CursorPosEvent' $ CursorPosEvent $ CursorPos (x / wratio, (actualHeight - y) / hratio)) :)
   setWindowCloseCallback window $ Just $ \_ ->
     modifyMVar_ mvar $ pure . (WindowCloseEvent :)
 
@@ -62,10 +65,10 @@ fetchEvents eventsMVar = do
   time <- getSystemTime
   pure $ reverse $ GameLoopEvent time : capturedInputs
 
-initGUI :: Window -> MVar [InputEvent] -> IO () -- CursorPos
-initGUI window eventsMVar = do
+initGUI :: Window -> Int -> Int -> MVar [InputEvent] -> IO () -- CursorPos
+initGUI window width height eventsMVar = do
   --(x, y) <- GLFW.getCursorPos window
-  startCaptureEvents window eventsMVar
+  startCaptureEvents window width height eventsMVar
 
 --setCursorInputMode win CursorInputMode'Hidden
 --pure $ CursorPos $ (round x, round y)

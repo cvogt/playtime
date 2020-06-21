@@ -6,7 +6,7 @@ module Graphics where
 import Bitmap
 import Data.FileEmbed
 import qualified Data.Set as Set
-import GHC.Float (int2Float)
+import GHC.Float (double2Float)
 import GLFWHelpers
 import Game
 import Graphics.Rendering.OpenGL.GL (Color4 (Color4))
@@ -29,7 +29,7 @@ vizualizeGame pic gameState =
     ]
 
 cursor2texture :: CursorPos -> TexturePlacement
-cursor2texture (CursorPos (int2Float -> x, int2Float -> y)) = TexturePlacement x y
+cursor2texture (CursorPos (double2Float -> x, double2Float -> y)) = TexturePlacement x y
 
 -- move with cursor -- Translate (int2Float $ gridify x') (int2Float $ gridify y')
 

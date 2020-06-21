@@ -23,7 +23,7 @@ main width height _fps = do
   visualizationMVar <- newEmptyMVar
 
   withWindow width height "SpaceMiner" $ \window -> do
-    initGUI window eventsMVar
+    initGUI window width height eventsMVar
     pic <- loadPic
 
     gs <- initialGameState <$> getSystemTime

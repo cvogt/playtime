@@ -2,7 +2,6 @@ module GLFWHelpers where
 
 import Control.Monad (mapM_)
 import Data.List (reverse, unwords)
-import Data.Ord (max)
 import Data.Word (Word8)
 import Foreign (withForeignPtr)
 import GHC.Real ((/), fromIntegral, round)
@@ -117,7 +116,7 @@ renderGame window picture = do
     GL.blend $= GL.Enabled
     GL.blendFunc $= (GL.SrcAlpha, GL.OneMinusSrcAlpha) -- GL.blendFunc $= (GL.One, GL.Zero)
     void $ error . show <$> get GLU.errors
-    drawPicture 1.0 picture
+    drawPicture picture
     void $ error . show <$> get GLU.errors
     swapBuffers window
 
@@ -131,18 +130,13 @@ type Color = GL.Color4 Float
 data Texture = Texture (Int, Int) GL.TextureObject
   deriving (Show, Eq)
 
-data Bitmap = Bitmap Float Float Float Float Texture
+data TexturePlacement = TexturePlacement Float Float
   deriving (Show, Eq)
 
 data Picture
-  = Bitmap' Bitmap
-  | Translate Float Float Picture
-  | -- | Some text to draw with a vector font.
-    Text Float Float Float Float Color String
+  = TexturePlacements Texture Float Float [TexturePlacement]
+  | Text Float Float Float Float Color String
   | Pictures [Picture]
-  | Bitmaps [Picture]
-  | -- | A picture scaled by the given x and y factors.
-    Scale Float Float Picture
   deriving (Show, Eq)
 
 -- | Abstract 32-bit RGBA bitmap data.
@@ -152,14 +146,12 @@ data BitmapData = BitmapData
   }
   deriving (Show, Eq)
 
-drawPicture :: Float -> Picture -> IO ()
-drawPicture circScale picture =
+drawPicture :: Picture -> IO ()
+drawPicture picture =
   {-# SCC "drawComponent" #-}
   case picture of
     Pictures ps ->
-      mapM_ (drawPicture circScale) ps
-    Bitmaps ps ->
-      mapM_ (drawPicture circScale) ps
+      mapM_ drawPicture ps
     -- stroke text
     --      text looks weird when we've got blend on,
     --      so disable it during the renderString call.
@@ -174,47 +166,35 @@ drawPicture circScale picture =
           GL.preservingMatrix $ GLUT.renderString GLUT.Roman str
           GL.blend $= GL.Enabled
           GL.currentColor $= oldColor
-    Translate tx ty p ->
-      GL.preservingMatrix $
-        do
-          GL.translate (GL.Vector3 (unsafeCoerce tx) (unsafeCoerce ty :: GL.GLfloat) 0)
-          drawPicture circScale p
-    Scale sx sy p ->
-      GL.preservingMatrix $
-        do
-          GL.scale (unsafeCoerce sx) (unsafeCoerce sy :: GL.GLfloat) 1
-          let mscale = max sx sy
-          drawPicture (circScale * mscale) p
-    Bitmap' (Bitmap _xs _ys xd yd (Texture xy tex)) -> do
-      let (fromIntegral -> width, fromIntegral -> height) = xy
+    TexturePlacements (Texture xy texture) xs ys placements -> do
+      GL.preservingMatrix $ do
+        GL.scale (unsafeCoerce xs) (unsafeCoerce ys :: GL.GLfloat) 1
+        -- Set up wrap and filtering mode
+        GL.textureWrapMode GL.Texture2D GL.S $= (GL.Repeated, GL.ClampToBorder)
+        GL.textureWrapMode GL.Texture2D GL.T $= (GL.Repeated, GL.ClampToBorder)
+        GL.textureFilter GL.Texture2D $= ((GL.Nearest, Nothing), GL.Nearest)
 
-      -- Set up wrap and filtering mode
-      GL.textureWrapMode GL.Texture2D GL.S $= (GL.Repeated, GL.Repeat)
-      GL.textureWrapMode GL.Texture2D GL.T $= (GL.Repeated, GL.Repeat)
-      GL.textureFilter GL.Texture2D $= ((GL.Nearest, Nothing), GL.Nearest)
+        -- Enable texturing
+        GL.texture GL.Texture2D $= GL.Enabled
+        GL.textureFunction $= GL.Combine
 
-      -- Enable texturing
-      GL.texture GL.Texture2D $= GL.Enabled
-      GL.textureFunction $= GL.Combine
+        oldColor <- get GL.currentColor
+        GL.currentColor $= GL.Color4 1.0 1.0 1.0 1.0
+        GL.textureBinding GL.Texture2D $= Just texture
+        GL.blend $= GL.Disabled
+        GL.renderPrimitive GL.Quads
+          $ for_ placements
+          $ \(TexturePlacement xd yd) -> do
+            let corners = [(0, 0), (0, 1), (1, 1), (1, 0)] :: [(Float, Float)]
+                (fromIntegral -> width, fromIntegral -> height) = xy
+            forM_ corners $ \(x, y) -> do
+              GL.texCoord $ GL.TexCoord2 @GL.GLfloat (unsafeCoerce x) (unsafeCoerce y)
+              GL.vertex $ GL.Vertex2 @GL.GLfloat ((unsafeCoerce $ x * width) + xd) ((unsafeCoerce $ y * height) + yd)
+        GL.blend $= GL.Enabled
+        --GL.primitiveRestart -- crashes with exception saying function doesnt exist
 
-      -- Set current texture
-      GL.textureBinding GL.Texture2D $= Just tex
-
-      -- Set to opaque
-      oldColor <- get GL.currentColor
-      GL.currentColor $= GL.Color4 1.0 1.0 1.0 1.0
-
-      -- Draw textured polygon
-      let corners = [(0, 0), (0, 1), (1, 1), (1, 0)] :: [(Float, Float)]
-      GL.renderPrimitive GL.Polygon $ forM_ corners $ \(x, y) -> do
-        GL.texCoord $ GL.TexCoord2 @GL.GLfloat (unsafeCoerce x) (unsafeCoerce y)
-        GL.vertex $ GL.Vertex2 @GL.GLfloat ((unsafeCoerce $ x * width) + xd) ((unsafeCoerce $ y * height) + yd)
-
-      -- Restore color
-      GL.currentColor $= oldColor
-
-      -- Disable texturing
-      GL.texture GL.Texture2D $= GL.Disabled
+        GL.currentColor $= oldColor
+        GL.texture GL.Texture2D $= GL.Disabled
 
 sendTextureToGL :: BitmapData -> IO GL.TextureObject
 sendTextureToGL (BitmapData (width, height) fptr) = do

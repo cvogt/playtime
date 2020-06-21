@@ -1,3 +1,6 @@
+{-# OPTIONS_GHC -fno-warn-unused-imports #-}
+{-# OPTIONS_GHC -fno-warn-unused-local-binds #-}
+
 module Graphics where
 
 import Bitmap
@@ -24,8 +27,7 @@ vizualizeGame pic gameState = do
   let CursorPos (x, y) = gsCursorPos gameState
   let CursorPos (x', y') = gsMainCharacterPosition gameState
   pure $ Pictures $
-    [ Bitmaps $ pure $ Bitmap' $ (uncurry (Bitmap 4 4) (g2gp $ gsMainCharacterPosition gameState) pic),
-      Text 0.2 0.2 0 100 white $ show (xg2g x, yg2g y),
+    [ Text 0.2 0.2 0 100 white $ show (xg2g x, yg2g y),
       --, Color blue $ Polygon [(0,0),(0,50),(50,50),(50,0)]
       Text 0.2 0.2 0 25 white $ "keys: " <> (show $ gsKeysPressed gameState),
       Text 0.2 0.2 0 50 white $ "char: " <> show (x', y'),
@@ -33,8 +35,9 @@ vizualizeGame pic gameState = do
       Text 0.2 0.2 0 125 white $ "poss: " <> show (Set.size $ gsBoard gameState),
       Text 0.2 0.2 0 150 white $ "fps: " <> show (gsFps gameState),
       Text 0.2 0.2 0 0 white $ "openGL: " <> show (x, y),
-      Bitmaps $ pure $ Bitmap' $ Bitmap 5 5 0 0 $ pic,
-      Bitmaps $ Bitmap' <$> ((uncurry (Bitmap 0 0) <$> board) <&> ($ pic))
+      TexturePlacements pic 4 4 $ [uncurry TexturePlacement $ g2gp $ gsMainCharacterPosition gameState],
+      TexturePlacements pic 4 4 $ [TexturePlacement 0 0],
+      TexturePlacements pic 1 1 $ (uncurry TexturePlacement <$> board)
     ]
 
 xg2g :: Int -> Int

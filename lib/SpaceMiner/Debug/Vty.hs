@@ -1,5 +1,6 @@
 module SpaceMiner.Debug.Vty where
 
+import qualified Data.Set as Set
 import GHC.Float (int2Double)
 import GHC.Real ((/), round)
 import GLFWHelpers
@@ -21,13 +22,15 @@ forkDebugTerminal gameLoopDebugMVar renderLoopDebugMVar = do
       let newAvgGameLoopTime = if not $ null gameLoopTimes then (/ 100) . int2Double . round @Double @Int $ 100 * 1 / (pico2second $ avg gameLoopTimes) else oldAvgGameLoopTime
           newAvRenderLoopTime = if not $ null renderLoopTimes then (/ 100) . int2Double . round @Double @Int $ 100 * 1 / (pico2second $ avg renderLoopTimes) else oldAvgRenderLoopTime
           CursorPos (x, y) = gsCursorPos gameState
-      update vty $ picForImage $
-        foldl1
-          (<->)
-          [ string (defAttr `withForeColor` white) $ "fps: " <> show newAvRenderLoopTime,
-            string (defAttr `withForeColor` white) $ "1/gameLoopTime: " <> show newAvgGameLoopTime,
-            string (defAttr `withForeColor` white) $ "opengl pos: " <> show (x, y)
-          ]
+          CursorPos (x', y') = gsMainCharacterPosition gameState
+      update vty $ picForImage $ foldl1 (<->) $
+        string (defAttr `withForeColor` white)
+          <$> [ "fps: " <> show newAvRenderLoopTime,
+                "1/gameLoopTime: " <> show newAvgGameLoopTime,
+                "opengl pos: " <> show (x, y),
+                "main char: " <> show (x', y'),
+                "sprite count: " <> show (Set.size $ gsBoard gameState)
+              ]
 
-      threadDelay $ 500 * 1000
+      threadDelay $ 100 * 1000
       pure (newAvgGameLoopTime, newAvRenderLoopTime)

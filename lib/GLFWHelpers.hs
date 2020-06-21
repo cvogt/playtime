@@ -4,16 +4,15 @@ import Control.Monad (mapM_)
 import Data.List (reverse, unwords)
 import Data.Word (Word8)
 import Foreign (withForeignPtr)
-import GHC.Real ((/), fromIntegral, round)
+import GHC.Real (fromIntegral, round)
 import Graphics.Rendering.OpenGL (($=), get)
 import qualified Graphics.Rendering.OpenGL.GL as GL
 import qualified Graphics.Rendering.OpenGL.GLU.Errors as GLU
 import "GLFW-b" Graphics.UI.GLFW as GLFW
-import qualified Graphics.UI.GLUT as GLUT
 import My.IO
 import My.Prelude
 import Unsafe.Coerce (unsafeCoerce)
-import Prelude (String, error)
+import Prelude (error)
 
 newtype CursorPos = CursorPos {unCursorPos :: (Int, Int)} deriving (Eq, Ord, Show)
 
@@ -47,11 +46,13 @@ startCaptureEvents :: Window -> MVar [InputEvent] -> IO ()
 startCaptureEvents window mvar = do
   setMouseButtonCallback window $ Just $ \_ button state modifiers -> do
     (x, y) <- GLFW.getCursorPos window
-    modifyMVar_ mvar $ pure . ((MouseEvent' $ MouseEvent button state modifiers $ CursorPos (round x, round y)) :)
+    (_, width) <- getWindowSize window
+    modifyMVar_ mvar $ pure . ((MouseEvent' $ MouseEvent button state modifiers $ CursorPos (round x, width - (round y))) :)
   setKeyCallback window $ Just $ \_ key _scancode keyState modifiers ->
     modifyMVar_ mvar $ pure . ((KeyEvent' $ KeyEvent key keyState modifiers) :)
-  setCursorPosCallback window $ Just $ \_ x y ->
-    modifyMVar_ mvar $ pure . ((CursorPosEvent' $ CursorPosEvent $ CursorPos (round x, round y)) :)
+  setCursorPosCallback window $ Just $ \_ x y -> do
+    (_, width) <- getWindowSize window
+    modifyMVar_ mvar $ pure . ((CursorPosEvent' $ CursorPosEvent $ CursorPos (round x, width - (round y))) :)
   setWindowCloseCallback window $ Just $ \_ ->
     modifyMVar_ mvar $ pure . (WindowCloseEvent :)
 
@@ -91,13 +92,13 @@ withWindow width height title f = do
 
 renderGame :: Window -> Picture -> IO ()
 renderGame window picture = do
-  (width, height) <- getWindowSize window
+  -- (width, height) <- getWindowSize window
+  let (width, height) = (640, 480) :: (Int, Int)
   GL.matrixMode $= GL.Projection
   GL.preservingMatrix $ do
     -- setup the co-ordinate system
     GL.loadIdentity
-    let (sx, sy) = (fromIntegral width / 2, fromIntegral height / 2)
-    GL.ortho (- sx) sx (- sy) sy 0 (-100)
+    GL.ortho 0 (fromIntegral width) 0 (fromIntegral height) 0 1
 
     -- draw the world
     GL.matrixMode $= GL.Modelview 0
@@ -135,7 +136,6 @@ data TexturePlacement = TexturePlacement Float Float
 
 data Picture
   = TexturePlacements Texture Float Float [TexturePlacement]
-  | Text Float Float Float Float Color String
   | Pictures [Picture]
   deriving (Show, Eq)
 
@@ -152,20 +152,6 @@ drawPicture picture =
   case picture of
     Pictures ps ->
       mapM_ drawPicture ps
-    -- stroke text
-    --      text looks weird when we've got blend on,
-    --      so disable it during the renderString call.
-    Text xs ys xd yd col str ->
-      GL.preservingMatrix $ do
-        GL.translate (GL.Vector3 (unsafeCoerce xd) (unsafeCoerce yd :: GL.GLfloat) 0)
-        GL.preservingMatrix $ do
-          GL.scale (unsafeCoerce xs) (unsafeCoerce ys :: GL.GLfloat) 1
-          oldColor <- get GL.currentColor
-          GL.currentColor $= col
-          GL.blend $= GL.Disabled
-          GL.preservingMatrix $ GLUT.renderString GLUT.Roman str
-          GL.blend $= GL.Enabled
-          GL.currentColor $= oldColor
     TexturePlacements (Texture xy texture) xs ys placements -> do
       GL.preservingMatrix $ do
         GL.scale (unsafeCoerce xs) (unsafeCoerce ys :: GL.GLfloat) 1

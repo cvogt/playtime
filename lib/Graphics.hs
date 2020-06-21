@@ -21,27 +21,15 @@ loadPic = pictureFromFile $ $(makeRelativeToProject "assets/main_character.png" 
 
 vizualizeGame :: Texture -> GameState -> Picture
 vizualizeGame pic gameState =
-  let g2gp = \(CursorPos (x'', y'')) -> (int2Float $ xg2g x'', int2Float $ yg2g y'')
-      board = fmap g2gp . toList $ gsBoard gameState
-      -- blueSquare = Color blue $ Polygon [(0, 0), (0, 50), (50, 50), (50, 0)]
-      CursorPos (x, y) = gsCursorPos gameState
-      CursorPos (x', y') = gsMainCharacterPosition gameState
-   in Pictures $
-        [ Text 0.2 0.2 0 100 white $ show (xg2g x, yg2g y),
-          --, Color blue $ Polygon [(0,0),(0,50),(50,50),(50,0)]
-          Text 0.2 0.2 0 50 white $ "char: " <> show (x', y'),
-          Text 0.2 0.2 0 75 white $ "char g2g: " <> show (g2gp $ gsMainCharacterPosition gameState),
-          Text 0.2 0.2 0 125 white $ "poss: " <> show (Set.size $ gsBoard gameState),
-          TexturePlacements pic 4 4 $ [uncurry TexturePlacement $ g2gp $ gsMainCharacterPosition gameState],
-          TexturePlacements pic 4 4 $ [TexturePlacement 0 0],
-          TexturePlacements pic 1 1 $ (uncurry TexturePlacement <$> board)
-        ]
+  Pictures $
+    [ TexturePlacements pic 4 4 $ [cursor2texture $ gsMainCharacterPosition gameState],
+      TexturePlacements pic 4 4 $ [TexturePlacement 0 0],
+      TexturePlacements pic 4 4 $ [TexturePlacement 100 100],
+      TexturePlacements pic 1 1 $ (fmap cursor2texture . toList $ gsBoard gameState)
+    ]
 
-xg2g :: Int -> Int
-xg2g x = (x - 320)
-
-yg2g :: Int -> Int
-yg2g y = (y - 240) * (-1)
+cursor2texture :: CursorPos -> TexturePlacement
+cursor2texture (CursorPos (int2Float -> x, int2Float -> y)) = TexturePlacement x y
 
 -- move with cursor -- Translate (int2Float $ gridify x') (int2Float $ gridify y')
 

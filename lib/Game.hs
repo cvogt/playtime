@@ -40,7 +40,7 @@ handleEvent = \gs@GameState {gsBoard, gsPlacementMode, gsKeysPressed, gsMainChar
         halfsec = 500 * 1000 * 1000 * 1000
         d = round $ timePassed * distancePerSec
         CursorPos (x, y) = gsMainCharacterPosition
-        newY = if elem Key'W gsKeysPressed then y - d else if elem Key'S gsKeysPressed then y + d else y
+        newY = if elem Key'S gsKeysPressed then y - d else if elem Key'W gsKeysPressed then y + d else y
         newX = if elem Key'A gsKeysPressed then x - d else if elem Key'D gsKeysPressed then x + d else x
      in gs
           { gsLastLoopTime = time,

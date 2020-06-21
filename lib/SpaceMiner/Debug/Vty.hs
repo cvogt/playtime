@@ -17,14 +17,14 @@ forkDebugTerminal gameLoopDebugMVar renderLoopDebugMVar totalLoopDebugMVar = do
   vty <- mkVty cfg
   flip forkFinally (\_ -> shutdown vty) $ do
     flip iterateM_ (0, 0, 0) $ \(oldAvgGameLoopTime, oldAvgRenderLoopTime, oldAvgTotalLoopTime) -> do
-      (gameState, gameLoopTimes) <- modifyMVar gameLoopDebugMVar $ \v@(gs, _) -> pure ((gs, []), v)
+      (GameState {gsCursorPos, gsMainCharacterPosition, gsBoard, gsLastPlacement}, gameLoopTimes) <- modifyMVar gameLoopDebugMVar $ \v@(gs, _) -> pure ((gs, []), v)
       renderLoopTimes <- modifyMVar renderLoopDebugMVar $ \t -> pure ([], t)
       totalLoopTimes <- modifyMVar totalLoopDebugMVar $ \t -> pure ([], t)
       let newAvgGameLoopTime = if not $ null gameLoopTimes then (/ 100) . int2Double . round @Double @Int $ 100 * 1 / (pico2second $ avg gameLoopTimes) else oldAvgGameLoopTime
           newAvgRenderLoopTime = if not $ null renderLoopTimes then (/ 100) . int2Double . round @Double @Int $ 100 * 1 / (pico2second $ avg renderLoopTimes) else oldAvgRenderLoopTime
           newAvgTotalLoopTime = if not $ null totalLoopTimes then (/ 100) . int2Double . round @Double @Int $ 100 * 1 / (pico2second $ avg totalLoopTimes) else oldAvgTotalLoopTime
-          CursorPos (x, y) = gsCursorPos gameState
-          CursorPos (x', y') = gsMainCharacterPosition gameState
+          CursorPos (x, y) = gsCursorPos
+          CursorPos (x', y') = gsMainCharacterPosition
       update vty $ picForImage $ foldl1 (<->) $
         string (defAttr `withForeColor` white)
           <$> [ "fps: " <> show newAvgTotalLoopTime,
@@ -32,7 +32,8 @@ forkDebugTerminal gameLoopDebugMVar renderLoopDebugMVar totalLoopDebugMVar = do
                 "1/gameLoopTime: " <> show newAvgGameLoopTime,
                 "opengl pos: " <> show (x, y),
                 "main char: " <> show (x', y'),
-                "sprite count: " <> show (Set.size $ gsBoard gameState)
+                "last places sprite location: " <> show gsLastPlacement,
+                "sprite count: " <> show (Set.size gsBoard)
               ]
 
       threadDelay $ 500 * 1000 -- FIXME: changing this to 100 * make process freeze on exit

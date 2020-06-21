@@ -23,13 +23,16 @@ dependencies:
 - containers
 - file-embed
 - integer-gmp
-- monad-extras
-- monad-loops
 - safe
 - text
 - time
 - unix
 - vty
+
+# extra
+- extra
+- monad-extras
+- monad-loops
 
 # formatting
 - ormolu
@@ -70,7 +73,7 @@ default-extensions:
 library:
   source-dirs: lib
 
-ghc-options: -O0 -j -Wall -Werror
+ghc-options: -O0 -j -Wall -Werror -optP-Wno-nonportable-include-path
 
 executables:
   spaceminer:

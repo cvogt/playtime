@@ -2,6 +2,7 @@ module My.Prelude
   ( module Control.Applicative,
     module Control.Arrow,
     module Control.Monad,
+    module Data.Bifunctor,
     module Data.Bool,
     module Data.Char,
     module Data.Either,
@@ -30,6 +31,7 @@ where
 import Control.Applicative ((<*>), pure)
 import Control.Arrow (first, second)
 import Control.Monad ((=<<), (>>=), fail, forever, unless, void, when)
+import Data.Bifunctor (bimap)
 import Data.Bool ((&&), Bool (False, True), not, otherwise, (||))
 import Data.Char (Char)
 import Data.Either (either)

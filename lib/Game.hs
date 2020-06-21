@@ -41,7 +41,7 @@ handleEvent = \gs@GameState {gsDeleteMode, gsBoard, gsPlacementMode, gsKeysPress
   GameLoopEvent time ->
     let picosecs = timeDiffPico gsLastLoopTime time
         timePassed = int2Double (fromIntegral picosecs) / 1000 / 1000 / 1000 / 1000
-        distancePerSec = 50
+        distancePerSec = 100
         halfsec = 500 * 1000 * 1000 * 1000
         d = timePassed * distancePerSec
         CursorPos (x, y) = gsMainCharacterPosition

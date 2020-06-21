@@ -1,14 +1,13 @@
 module Game where
 
 import qualified Data.Set as Set
-import Data.Time.Clock
 import Data.Time.Clock.System
-import Data.Time.Clock.TAI
 import GHC.Float (int2Double)
 import GHC.Real ((/), fromIntegral, round)
 import GLFWHelpers
 import "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.Prelude
+import SpaceMiner.Util
 
 data GameState = GameState
   { gsBoard :: Set CursorPos,
@@ -16,7 +15,7 @@ data GameState = GameState
     gsKeysPressed :: Set Key,
     gsMainCharacterPosition :: CursorPos,
     gsExitGame :: Bool,
-    gsTimes :: [Double],
+    gsTimes :: [Integer],
     gsFps :: Double,
     gsCursorPos :: CursorPos,
     gsLastLoopTime :: SystemTime
@@ -35,9 +34,10 @@ handleEvent = \gs@GameState {gsBoard, gsPlacementMode, gsKeysPressed, gsMainChar
   KeyEvent' (KeyEvent key KeyState'Pressed _) -> gs {gsKeysPressed = Set.insert key gsKeysPressed}
   KeyEvent' (KeyEvent key KeyState'Released _) -> gs {gsKeysPressed = Set.delete key gsKeysPressed}
   GameLoopEvent time ->
-    let picosecs = diffTimeToPicoseconds $ diffAbsoluteTime (systemToTAITime time) (systemToTAITime gsLastLoopTime)
+    let picosecs = timeDiffPico gsLastLoopTime time
         timePassed = int2Double (fromIntegral picosecs) / 1000 / 1000 / 1000 / 1000
         distancePerSec = 200
+        halfsec = 500 * 1000 * 1000 * 1000
         d = round $ timePassed * distancePerSec
         CursorPos (x, y) = gsMainCharacterPosition
         newY = if elem Key'W gsKeysPressed then y - d else if elem Key'S gsKeysPressed then y + d else y
@@ -45,8 +45,8 @@ handleEvent = \gs@GameState {gsBoard, gsPlacementMode, gsKeysPressed, gsMainChar
      in gs
           { gsLastLoopTime = time,
             gsMainCharacterPosition = CursorPos (newX, newY),
-            gsTimes = if sum gsTimes > 0.5 then [] else timePassed : gsTimes,
-            gsFps = if sum gsTimes > 0.5 then (int2Double $ length gsTimes) / sum gsTimes else gsFps,
+            gsTimes = if sum gsTimes > halfsec then [] else picosecs : gsTimes,
+            gsFps = if sum gsTimes > halfsec then avg gsTimes else gsFps,
             gsBoard = if gsPlacementMode then Set.insert gsCursorPos gsBoard else gsBoard
           }
   _ -> gs

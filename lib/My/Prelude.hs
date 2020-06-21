@@ -20,6 +20,7 @@ module My.Prelude
     module Data.Tuple,
     module Foreign,
     module GHC.Float,
+    module GHC.Integer,
     module GHC.Num,
     module GHC.Show,
     module Safe,
@@ -33,11 +34,11 @@ import Data.Bool ((&&), Bool (False, True), not, otherwise, (||))
 import Data.Char (Char)
 import Data.Either (either)
 import Data.Eq (Eq ((==)))
-import Data.Foldable (elem, find, fold, foldl, forM_, for_, length, null, sum, toList)
+import Data.Foldable (Foldable, elem, find, fold, foldl, forM_, for_, length, null, sum, toList)
 import Data.Function (($), (.), flip)
 import Data.Functor ((<$>), (<&>), fmap)
 import Data.Int (Int)
-import Data.List (drop, take)
+import Data.List (drop, foldl1, foldr1, take)
 import Data.Map (Map)
 import Data.Maybe (Maybe (Just, Nothing), catMaybes, isJust, isNothing, maybe)
 import Data.Monoid ((<>), mempty)
@@ -47,6 +48,7 @@ import Data.Traversable (for, forM)
 import Data.Tuple (fst, snd, uncurry)
 import Foreign (ForeignPtr)
 import GHC.Float (Double, Float)
+import GHC.Integer (Integer)
 import GHC.Num ((*), (+), (-), subtract)
 import GHC.Show (Show (show))
 import Safe (headMay, lastMay)

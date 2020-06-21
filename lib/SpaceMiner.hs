@@ -11,7 +11,10 @@ import My.Extra
 import My.IO
 import My.Prelude
 import SpaceMiner.Debug.Vty (forkDebugTerminal)
+import SpaceMiner.Util (timeDiffPico)
 import System.Exit (exitSuccess)
+
+--import Data.IORef (newIORef)
 
 main :: Int -> Int -> Int -> IO ()
 main width height _fps = do
@@ -23,21 +26,30 @@ main width height _fps = do
     initGUI window eventsMVar
     pic <- loadPic
 
+    gs <- initialGameState <$> getSystemTime
+    gameLoopDebugMVar <- newMVar (gs, [])
+    renderLoopDebugMVar <- newMVar []
+
     void $ forkIO $ do
-      time <- getSystemTime
-      flip unfoldM_ (initialGameState time) $ \oldGameState -> do
+      flip unfoldM_ gs $ \oldGameState -> do
+        gameLoopStartTime <- getSystemTime
         events <- fetchEvents eventsMVar
         let newGameState = foldl handleEvent oldGameState events
-        visualization <- vizualizeGame pic newGameState
+        visualization <- evaluate $ vizualizeGame pic newGameState
+        gameLoopEndTime <- getSystemTime
+        modifyMVar_ gameLoopDebugMVar $ \(_, times) -> pure (newGameState, timeDiffPico gameLoopStartTime gameLoopEndTime : times)
         putMVar visualizationMVar visualization
         pure $ if gsExitGame newGameState then Nothing else Just newGameState
       exitSuccess
 
-    void forkDebugTerminal -- FIXME: cursor stays hidden after termination
+    void $ forkDebugTerminal gameLoopDebugMVar renderLoopDebugMVar -- FIXME: cursor stays hidden after termination
     forever $ do
       pollEvents
       visualization <- takeMVar visualizationMVar
+      renderLoopStartTime <- getSystemTime
       renderGame window visualization
+      renderLoopEndTime <- getSystemTime
+      modifyMVar_ renderLoopDebugMVar $ pure . (timeDiffPico renderLoopStartTime renderLoopEndTime :)
 
 --putStrLn . show =<< getSystemTime
 

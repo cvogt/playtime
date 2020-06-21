@@ -22,7 +22,9 @@ dependencies:
 - bytestring
 - containers
 - file-embed
+- integer-gmp
 - monad-extras
+- monad-loops
 - safe
 - text
 - time

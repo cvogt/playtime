@@ -19,26 +19,23 @@ white = Color4 1.0 1.0 1.0 1.0
 loadPic :: IO Texture
 loadPic = pictureFromFile $ $(makeRelativeToProject "assets/main_character.png" >>= strToExp)
 
-vizualizeGame :: Texture -> GameState -> IO Picture
-vizualizeGame pic gameState = do
-  let g2gp = \(CursorPos (x, y)) -> (int2Float $ xg2g x, int2Float $ yg2g y)
-  let board = fmap g2gp . toList $ gsBoard gameState
-  -- let blueSquare = Color blue $ Polygon [(0, 0), (0, 50), (50, 50), (50, 0)]
-  let CursorPos (x, y) = gsCursorPos gameState
-  let CursorPos (x', y') = gsMainCharacterPosition gameState
-  evaluate $ Pictures $
-    [ Text 0.2 0.2 0 100 white $ show (xg2g x, yg2g y),
-      --, Color blue $ Polygon [(0,0),(0,50),(50,50),(50,0)]
-      Text 0.2 0.2 0 25 white $ "keys: " <> (show $ gsKeysPressed gameState),
-      Text 0.2 0.2 0 50 white $ "char: " <> show (x', y'),
-      Text 0.2 0.2 0 75 white $ "char g2g: " <> show (g2gp $ gsMainCharacterPosition gameState),
-      Text 0.2 0.2 0 125 white $ "poss: " <> show (Set.size $ gsBoard gameState),
-      Text 0.2 0.2 0 150 white $ "fps: " <> show (gsFps gameState),
-      Text 0.2 0.2 0 0 white $ "openGL: " <> show (x, y),
-      TexturePlacements pic 4 4 $ [uncurry TexturePlacement $ g2gp $ gsMainCharacterPosition gameState],
-      TexturePlacements pic 4 4 $ [TexturePlacement 0 0],
-      TexturePlacements pic 1 1 $ (uncurry TexturePlacement <$> board)
-    ]
+vizualizeGame :: Texture -> GameState -> Picture
+vizualizeGame pic gameState =
+  let g2gp = \(CursorPos (x'', y'')) -> (int2Float $ xg2g x'', int2Float $ yg2g y'')
+      board = fmap g2gp . toList $ gsBoard gameState
+      -- blueSquare = Color blue $ Polygon [(0, 0), (0, 50), (50, 50), (50, 0)]
+      CursorPos (x, y) = gsCursorPos gameState
+      CursorPos (x', y') = gsMainCharacterPosition gameState
+   in Pictures $
+        [ Text 0.2 0.2 0 100 white $ show (xg2g x, yg2g y),
+          --, Color blue $ Polygon [(0,0),(0,50),(50,50),(50,0)]
+          Text 0.2 0.2 0 50 white $ "char: " <> show (x', y'),
+          Text 0.2 0.2 0 75 white $ "char g2g: " <> show (g2gp $ gsMainCharacterPosition gameState),
+          Text 0.2 0.2 0 125 white $ "poss: " <> show (Set.size $ gsBoard gameState),
+          TexturePlacements pic 4 4 $ [uncurry TexturePlacement $ g2gp $ gsMainCharacterPosition gameState],
+          TexturePlacements pic 4 4 $ [TexturePlacement 0 0],
+          TexturePlacements pic 1 1 $ (uncurry TexturePlacement <$> board)
+        ]
 
 xg2g :: Int -> Int
 xg2g x = (x - 320)

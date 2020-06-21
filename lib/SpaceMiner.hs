@@ -3,6 +3,7 @@ module SpaceMiner where
 -- import Music
 
 import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
+import Data.IORef (atomicModifyIORef', newIORef)
 import GLFWHelpers (fetchEvents, initGUI, renderGame, withWindow)
 import Game (gsExitGame, handleEvent, initialGameState)
 import Graphics (loadPic, vizualizeGame)
@@ -13,8 +14,6 @@ import My.Prelude
 import SpaceMiner.Debug.Vty (forkDebugTerminal)
 import SpaceMiner.Util (timeDiffPico)
 import System.Exit (exitSuccess)
-
---import Data.IORef (newIORef)
 
 main :: Int -> Int -> Int -> IO ()
 main width height _fps = do
@@ -29,6 +28,7 @@ main width height _fps = do
     gs <- initialGameState <$> getSystemTime
     gameLoopDebugMVar <- newMVar (gs, [])
     renderLoopDebugMVar <- newMVar []
+    totalLoopDebugMVar <- newMVar []
 
     void $ forkIO $ do
       flip unfoldM_ gs $ \oldGameState -> do
@@ -42,11 +42,14 @@ main width height _fps = do
         pure $ if gsExitGame newGameState then Nothing else Just newGameState
       exitSuccess
 
-    void $ forkDebugTerminal gameLoopDebugMVar renderLoopDebugMVar -- FIXME: cursor stays hidden after termination
+    renderLoopStartIORef <- newIORef =<< getSystemTime
+    void $ forkDebugTerminal gameLoopDebugMVar renderLoopDebugMVar totalLoopDebugMVar -- FIXME: cursor stays hidden after termination
     forever $ do
       pollEvents
       visualization <- takeMVar visualizationMVar
       renderLoopStartTime <- getSystemTime
+      previousRenderLoopStart <- atomicModifyIORef' renderLoopStartIORef $ \v -> (renderLoopStartTime, v)
+      modifyMVar_ totalLoopDebugMVar $ pure . (timeDiffPico previousRenderLoopStart renderLoopStartTime :)
       renderGame window visualization
       renderLoopEndTime <- getSystemTime
       modifyMVar_ renderLoopDebugMVar $ pure . (timeDiffPico renderLoopStartTime renderLoopEndTime :)

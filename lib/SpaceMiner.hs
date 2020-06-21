@@ -2,8 +2,7 @@ module SpaceMiner where
 
 -- import Music
 
-import GHC.Float (int2Double)
-import GHC.Real ((/))
+import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
 import GLFWHelpers (fetchEvents, initGUI, renderGame, withWindow)
 import Game (gsExitGame, handleEvent, initialGameState)
 import Graphics (loadPic, vizualizeGame)
@@ -11,33 +10,33 @@ import "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.Extra
 import My.IO
 import My.Prelude
+import System.Exit (exitSuccess)
 
 main :: Int -> Int -> Int -> IO ()
-main width height fps = do
+main width height _fps = do
   --void $ forkIO $ forever $ playMusic
   eventsMVar <- newMVar []
-  time <- getSystemTime
+  visualizationMVar <- newEmptyMVar
 
   withWindow width height "SpaceMiner" $ \window -> do
-    pos <- initGUI window eventsMVar
+    initGUI window eventsMVar
     pic <- loadPic
 
-    flip unfoldM_ (initialGameState time pos) $ \oldGameState -> do
-      when False $ waitEventsTimeout (1 / int2Double fps :: Double) -- FIXME: subtract time taken by loop run
-      --putStrLn "--------------------------------"
-      --putStrLn . show =<< getSystemTime
-      events <- fetchEvents eventsMVar
-      --putStrLn . show =<< getSystemTime
-      let newGameState = foldl handleEvent oldGameState events
-      --putStrLn . show =<< getSystemTime
-      --when (length events > 1) $
+    void $ forkIO $ do
+      time <- getSystemTime
+      flip unfoldM_ (initialGameState time) $ \oldGameState -> do
+        events <- fetchEvents eventsMVar
+        let newGameState = foldl handleEvent oldGameState events
+        visualization <- vizualizeGame pic newGameState
+        putMVar visualizationMVar visualization
+        pure $ if gsExitGame newGameState then Nothing else Just newGameState
+      exitSuccess
 
-      visualization <- vizualizeGame pic newGameState
-      --putStrLn . show =<< getSystemTime
-
+    forever $ do
+      pollEvents
+      visualization <- takeMVar visualizationMVar
       renderGame window visualization
-      --putStrLn . show =<< getSystemTime
 
-      pure $ if gsExitGame newGameState then Nothing else Just newGameState
+--putStrLn . show =<< getSystemTime
 
 -- GL.deleteObjectNames [tex]

@@ -18,12 +18,12 @@ data GameState = GameState
     gsExitGame :: Bool,
     gsTimes :: [Double],
     gsFps :: Double,
-    gsLastLoopTime :: SystemTime,
-    gsCursorPos :: CursorPos
+    gsCursorPos :: CursorPos,
+    gsLastLoopTime :: SystemTime
   }
 
-initialGameState :: SystemTime -> CursorPos -> GameState
-initialGameState = GameState mempty False Set.empty (CursorPos (320, 240)) False [] 0
+initialGameState :: SystemTime -> GameState
+initialGameState = GameState mempty False Set.empty (CursorPos (320, 240)) False [] 0 (CursorPos (0, 0))
 
 handleEvent :: GameState -> InputEvent -> GameState
 handleEvent = \gs@GameState {gsBoard, gsPlacementMode, gsKeysPressed, gsMainCharacterPosition, gsLastLoopTime, gsCursorPos, gsFps, gsTimes} -> \case

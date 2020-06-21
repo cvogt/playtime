@@ -26,7 +26,7 @@ vizualizeGame pic gameState = do
   -- let blueSquare = Color blue $ Polygon [(0, 0), (0, 50), (50, 50), (50, 0)]
   let CursorPos (x, y) = gsCursorPos gameState
   let CursorPos (x', y') = gsMainCharacterPosition gameState
-  pure $ Pictures $
+  evaluate $ Pictures $
     [ Text 0.2 0.2 0 100 white $ show (xg2g x, yg2g y),
       --, Color blue $ Polygon [(0,0),(0,50),(50,50),(50,0)]
       Text 0.2 0.2 0 25 white $ "keys: " <> (show $ gsKeysPressed gameState),

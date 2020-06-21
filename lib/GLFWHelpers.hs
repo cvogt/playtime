@@ -57,17 +57,17 @@ startCaptureEvents window mvar = do
 
 fetchEvents :: MVar [InputEvent] -> IO [InputEvent]
 fetchEvents eventsMVar = do
-  pollEvents
   capturedInputs <- modifyMVar eventsMVar $ \cs -> pure ([], cs)
   time <- getSystemTime
   pure $ reverse $ GameLoopEvent time : capturedInputs
 
-initGUI :: Window -> MVar [InputEvent] -> IO CursorPos
+initGUI :: Window -> MVar [InputEvent] -> IO () -- CursorPos
 initGUI window eventsMVar = do
-  (x, y) <- GLFW.getCursorPos window
+  --(x, y) <- GLFW.getCursorPos window
   startCaptureEvents window eventsMVar
-  --setCursorInputMode win CursorInputMode'Hidden
-  pure $ CursorPos $ (round x, round y)
+
+--setCursorInputMode win CursorInputMode'Hidden
+--pure $ CursorPos $ (round x, round y)
 
 withWindow :: Int -> Int -> [Char] -> (GLFW.Window -> IO ()) -> IO ()
 withWindow width height title f = do

@@ -45,7 +45,7 @@ handleEvent = \gs@GameState {gsDeleteMode, gsBoard, gsPlacementMode, gsKeysPress
         halfsec = 500 * 1000 * 1000 * 1000
         d = timePassed * distancePerSec
         CursorPos (x, y) = gsMainCharacterPosition
-        newY = if elem Key'S gsKeysPressed then y - d else if elem Key'W gsKeysPressed then y + d else y
+        newY = if elem Key'W gsKeysPressed then y - d else if elem Key'S gsKeysPressed then y + d else y
         newX = if elem Key'A gsKeysPressed then x - d else if elem Key'D gsKeysPressed then x + d else x
         gridsize :: Double
         gridsize = 12

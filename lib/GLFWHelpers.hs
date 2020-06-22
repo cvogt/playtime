@@ -3,7 +3,6 @@ module GLFWHelpers where
 import Control.Monad (mapM_)
 import Data.List (reverse, unwords)
 import Data.Word (Word8)
-import Foreign (withForeignPtr)
 import GHC.Float (double2Float, int2Double)
 import GHC.Real ((/), fromIntegral)
 import Graphics.Rendering.OpenGL (($=), get)
@@ -13,7 +12,9 @@ import "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.IO
 import My.Prelude
 import Unsafe.Coerce (unsafeCoerce)
-import Prelude (error)
+import Codec.Picture (readPng, DynamicImage(ImageRGBA8), Image(Image))
+import GHC.Err (error)
+import Data.Vector.Storable (unsafeWith)
 
 newtype CursorPos = CursorPos {unCursorPos :: (Double, Double)} deriving (Eq, Ord, Show)
 
@@ -48,14 +49,14 @@ startCaptureEvents window (int2Double -> logicWidth) (int2Double -> logicHeight)
     modifyMVar_ mvar $ pure . ((MouseEvent' $ MouseEvent button state modifiers) :)
   setKeyCallback window $ Just $ \_ key _scancode keyState modifiers ->
     modifyMVar_ mvar $ pure . ((KeyEvent' $ KeyEvent key keyState modifiers) :)
-  setCursorPosCallback window $ Just $ \_ x y -> do
+  setCursorPosCallback window $ Just $ \window' x y -> do
     -- this ratio calculation leads to proper relative scaling on window resize
     -- FIXME: we still get distortion if aspect ration of resized window is different
     --        we should be able to fix that by adding black borders as needed
-    (int2Double -> actualWidth, int2Double -> actualHeight) <- getWindowSize window
+    (int2Double -> actualWidth, int2Double -> actualHeight) <- getWindowSize window'
     let wratio = actualWidth / logicWidth
         hratio = actualHeight / logicHeight
-    modifyMVar_ mvar $ pure . ((CursorPosEvent' $ CursorPosEvent $ CursorPos (x / wratio, (actualHeight - y) / hratio)) :)
+    modifyMVar_ mvar $ pure . ((CursorPosEvent' $ CursorPosEvent $ CursorPos (x / wratio, y / hratio)) :)
   setWindowCloseCallback window $ Just $ \_ ->
     modifyMVar_ mvar $ pure . (WindowCloseEvent :)
 
@@ -78,7 +79,7 @@ withWindow width height title f = do
   GLFW.setErrorCallback $ Just simpleErrorCallback
   r <- GLFW.init
   Just _mon <- getPrimaryMonitor
-  let fullscreen = Nothing -- (Just mon)
+  let fullscreen = Nothing -- Just mon
   when r $ do
     m <- GLFW.createWindow width height title fullscreen Nothing
     case m of
@@ -101,7 +102,7 @@ renderGame window picture = do
   GL.preservingMatrix $ do
     -- setup the co-ordinate system
     GL.loadIdentity
-    GL.ortho 0 (fromIntegral width) 0 (fromIntegral height) 0 1
+    GL.ortho 0 (fromIntegral width) (fromIntegral height) 0 0 1
 
     -- draw the world
     GL.matrixMode $= GL.Modelview 0
@@ -168,7 +169,7 @@ drawPicture picture =
       oldColor <- get GL.currentColor
       GL.currentColor $= GL.Color4 1.0 1.0 1.0 1.0
       GL.textureBinding GL.Texture2D $= Just texture
-      GL.blend $= GL.Disabled
+      GL.blend $= GL.Enabled
       GL.renderPrimitive GL.Quads
         $ for_ placements
         $ \(TexturePlacement xd yd) -> do
@@ -176,7 +177,7 @@ drawPicture picture =
           forM_ corners $ \(x, y) -> do
             GL.texCoord $ GL.TexCoord2 @GL.GLfloat (gl x) (gl y) -- remember 1 makes this match the size of the vertex/quad
             GL.vertex $ GL.Vertex2 @GL.GLfloat (gl $ (x * xs * width) + xd) (gl $ (y * ys * height) + yd)
-      GL.blend $= GL.Enabled
+--      GL.blend $= GL.Enabled
       --GL.primitiveRestart -- crashes with exception saying function doesnt exist
 
       GL.currentColor $= oldColor
@@ -185,10 +186,13 @@ drawPicture picture =
     gl :: Double -> GL.GLfloat
     gl = unsafeCoerce . double2Float
 
-sendTextureToGL :: BitmapData -> IO GL.TextureObject
-sendTextureToGL (BitmapData (width, height) fptr) = do
-  let txSize = GL.TextureSize2D (unsafeCoerce width) (unsafeCoerce height)
-  [texture] <- GL.genObjectNames 1
-  GL.textureBinding GL.Texture2D $= Just texture
-  withForeignPtr fptr $ GL.texImage2D GL.Texture2D GL.NoProxy 0 GL.RGBA8 txSize 0 . GL.PixelData GL.RGBA GL.UnsignedByte
-  pure texture
+loadIntoOpenGL :: FilePath -> IO Texture
+loadIntoOpenGL file = do
+  readPng file >>= \case
+    Right (ImageRGBA8 (Image width height dat)) -> unsafeWith dat $ \ptr -> do
+      let txSize = GL.TextureSize2D (unsafeCoerce width) (unsafeCoerce height)
+      [texture] <- GL.genObjectNames 1
+      GL.textureBinding GL.Texture2D $= Just texture
+      GL.texImage2D GL.Texture2D GL.NoProxy 0 GL.RGBA8 txSize 0 $ GL.PixelData GL.RGBA GL.UnsignedByte ptr
+      pure $ Texture (width, height) texture
+    _ -> error "loadIntoOpenGL error: We currently only support png graphic files JuicyPixles reads as ImageRGBA8."

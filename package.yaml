@@ -22,11 +22,13 @@ dependencies:
 - bytestring
 - containers
 - file-embed
+- filepath
 - integer-gmp
 - safe
 - text
 - time
 - unix
+- vector
 - vty
 
 # extra

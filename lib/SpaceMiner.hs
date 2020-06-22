@@ -6,7 +6,7 @@ import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
 import Data.IORef (atomicModifyIORef', newIORef)
 import GLFWHelpers (fetchEvents, initGUI, renderGame, withWindow)
 import Game (gsExitGame, handleEvent, initialGameState)
-import Graphics (floor_plate, main_character, vizualizeGame)
+import Graphics (loadTextures, vizualizeGame)
 import "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.Extra
 import My.IO
@@ -23,8 +23,7 @@ main width height _fps = do
 
   withWindow width height "SpaceMiner" $ \window -> do
     initGUI window width height eventsMVar
-    main_character' <- main_character
-    floor_plate' <- floor_plate
+    textures <- loadTextures
 
     gs <- initialGameState <$> getSystemTime
     gameLoopDebugMVar <- newMVar (gs, [])
@@ -36,7 +35,7 @@ main width height _fps = do
         gameLoopStartTime <- getSystemTime
         events <- fetchEvents eventsMVar
         let newGameState = foldl handleEvent oldGameState events
-        visualization <- evaluate $ vizualizeGame main_character' floor_plate' newGameState
+        visualization <- evaluate $ vizualizeGame textures newGameState
         gameLoopEndTime <- getSystemTime
         modifyMVar_ gameLoopDebugMVar $ \(_, times) -> pure (newGameState, timeDiffPico gameLoopStartTime gameLoopEndTime : times)
         threadDelay $ 10 * 1000

@@ -98,13 +98,11 @@ renderGame window visualizations = do
   GL.matrixMode $= GL.Projection
   GL.loadIdentity
   GL.ortho 0 (fromIntegral width) (fromIntegral height) 0 0 1
+  GL.clear [GL.ColorBuffer, GL.DepthBuffer]
+  GL.currentColor $= GL.Color4 1.0 1.0 1.0 1.0
 
   GL.preservingMatrix $ do
     GL.matrixMode $= GL.Modelview 0
-    GL.clearColor GL.$= GL.Color4 0.0 0.0 0.0 1.0
-
-    GL.clear [GL.ColorBuffer, GL.DepthBuffer]
-    GL.color $ GL.Color4 0 0 0 (1 :: GL.GLfloat)
 
     GL.lineSmooth $= GL.Disabled
     GL.blend $= GL.Enabled
@@ -118,8 +116,6 @@ renderGame window visualizations = do
       GL.texture GL.Texture2D $= GL.Enabled
       GL.textureFunction $= GL.Combine
 
-      oldColor <- get GL.currentColor
-      GL.currentColor $= GL.Color4 1.0 1.0 1.0 1.0
       GL.textureBinding GL.Texture2D $= Just texture
       GL.blend $= GL.Enabled
       GL.renderPrimitive GL.Quads
@@ -131,7 +127,6 @@ renderGame window visualizations = do
             GL.vertex $ GL.Vertex2 (double2Float $ (x * xs * twidth) + xd) (double2Float $ (y * ys * theight) + yd)
       --GL.primitiveRestart -- crashes with exception saying function doesnt exist
 
-      GL.currentColor $= oldColor
       GL.texture GL.Texture2D $= GL.Disabled
 
     void $ error . show <$> get GLU.errors

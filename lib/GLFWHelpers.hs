@@ -10,7 +10,6 @@ import qualified Graphics.Rendering.OpenGL.GLU.Errors as GLU
 import "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.IO
 import My.Prelude
-import Unsafe.Coerce (unsafeCoerce)
 import Codec.Picture (readPng, DynamicImage(ImageRGBA8), Image(Image))
 import GHC.Err (error)
 import Data.Vector.Storable (unsafeWith)
@@ -97,35 +96,25 @@ renderGame :: Window -> [Visualization] -> IO ()
 renderGame window visualizations = do
   (width, height) <- getWindowSize window
   GL.matrixMode $= GL.Projection
+  GL.loadIdentity
+  GL.ortho 0 (fromIntegral width) (fromIntegral height) 0 0 1
+
   GL.preservingMatrix $ do
-    -- setup the co-ordinate system
-    GL.loadIdentity
-    GL.ortho 0 (fromIntegral width) (fromIntegral height) 0 0 1
-
-    -- draw the world
     GL.matrixMode $= GL.Modelview 0
-
-    -- initialization (done every time in this case)
-    -- we don't need the depth buffer for 2d.
-    GL.depthFunc GL.$= Just GL.Always
-
     GL.clearColor GL.$= GL.Color4 0.0 0.0 0.0 1.0
 
-    -- on every loop
     GL.clear [GL.ColorBuffer, GL.DepthBuffer]
     GL.color $ GL.Color4 0 0 0 (1 :: GL.GLfloat)
 
     GL.lineSmooth $= GL.Disabled
     GL.blend $= GL.Enabled
-    GL.blendFunc $= (GL.SrcAlpha, GL.OneMinusSrcAlpha) -- GL.blendFunc $= (GL.One, GL.Zero)
+    GL.blendFunc $= (GL.SrcAlpha, GL.OneMinusSrcAlpha)
     void $ error . show <$> get GLU.errors
     for_ visualizations $ \(TexturePlacements (Texture (int2Double -> twidth, int2Double -> theight) texture) xs ys placements) -> do
-      -- Set up wrap and filtering mode
       GL.textureWrapMode GL.Texture2D GL.S $= (GL.Repeated, GL.Repeat)
       GL.textureWrapMode GL.Texture2D GL.T $= (GL.Repeated, GL.Repeat)
       GL.textureFilter GL.Texture2D $= ((GL.Nearest, Nothing), GL.Nearest)
 
-      -- Enable texturing
       GL.texture GL.Texture2D $= GL.Enabled
       GL.textureFunction $= GL.Combine
 
@@ -138,9 +127,8 @@ renderGame window visualizations = do
         $ \(TexturePlacement xd yd) -> do
           let corners = [(0, 0), (0, 1), (1, 1), (1, 0)] :: [(Double, Double)]
           forM_ corners $ \(x, y) -> do
-            GL.texCoord $ GL.TexCoord2 @GL.GLfloat (gl x) (gl y) -- remember 1 makes this match the size of the vertex/quad
-            GL.vertex $ GL.Vertex2 @GL.GLfloat (gl $ (x * xs * twidth) + xd) (gl $ (y * ys * theight) + yd)
-    --      GL.blend $= GL.Enabled
+            GL.texCoord $ GL.TexCoord2 (double2Float x) (double2Float y) -- remember 1 makes this match the size of the vertex/quad
+            GL.vertex $ GL.Vertex2 (double2Float $ (x * xs * twidth) + xd) (double2Float $ (y * ys * theight) + yd)
       --GL.primitiveRestart -- crashes with exception saying function doesnt exist
 
       GL.currentColor $= oldColor
@@ -148,13 +136,6 @@ renderGame window visualizations = do
 
     void $ error . show <$> get GLU.errors
     swapBuffers window
-
-    GL.matrixMode $= GL.Projection
-
-  GL.matrixMode $= GL.Modelview 0
-  where
-    gl :: Double -> GL.GLfloat
-    gl = unsafeCoerce . double2Float
 
 type Color = GL.Color4 Float
 
@@ -179,7 +160,7 @@ loadIntoOpenGL :: FilePath -> IO Texture
 loadIntoOpenGL file = do
   readPng file >>= \case
     Right (ImageRGBA8 (Image width height dat)) -> unsafeWith dat $ \ptr -> do
-      let txSize = GL.TextureSize2D (unsafeCoerce width) (unsafeCoerce height)
+      let txSize = GL.TextureSize2D (fromIntegral width) (fromIntegral height)
       [texture] <- GL.genObjectNames 1
       GL.textureBinding GL.Texture2D $= Just texture
       GL.texImage2D GL.Texture2D GL.NoProxy 0 GL.RGBA8 txSize 0 $ GL.PixelData GL.RGBA GL.UnsignedByte ptr

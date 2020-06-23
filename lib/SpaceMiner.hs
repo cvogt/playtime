@@ -4,7 +4,6 @@ module SpaceMiner where
 
 import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
 import Data.IORef (atomicModifyIORef', newIORef)
-import GLFWHelpers
 import Game
 import Graphics
 import "GLFW-b" Graphics.UI.GLFW as GLFW
@@ -12,6 +11,8 @@ import My.Extra
 import My.IO
 import My.Prelude
 import SpaceMiner.Debug.Vty
+import SpaceMiner.GL
+import SpaceMiner.GLFW
 import SpaceMiner.MutableState
 import SpaceMiner.Types
 import SpaceMiner.Util

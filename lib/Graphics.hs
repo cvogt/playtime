@@ -3,7 +3,6 @@ module Graphics where
 import Data.FileEmbed
 import GLFWHelpers
 import Game
-import Graphics.Rendering.OpenGL.GL (Color4 (Color4))
 import qualified Data.Map as Map
 import My.IO
 import My.Prelude
@@ -16,9 +15,6 @@ data TextureId
   = MainCharacter
   | FloorPlate
   deriving (Eq, Ord, Show)
-
-white :: Color
-white = Color4 1.0 1.0 1.0 1.0
 
 loadTextures :: IO (TextureId -> Texture)
 loadTextures = do

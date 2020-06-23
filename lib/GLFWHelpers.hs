@@ -99,40 +99,33 @@ renderGame window visualizations = do
   GL.loadIdentity
   GL.ortho 0 (fromIntegral width) (fromIntegral height) 0 0 1
   GL.clear [GL.ColorBuffer, GL.DepthBuffer]
-  GL.currentColor $= GL.Color4 1.0 1.0 1.0 1.0
 
-  GL.preservingMatrix $ do
-    GL.matrixMode $= GL.Modelview 0
+  GL.matrixMode $= GL.Modelview 0
+  GL.lineSmooth $= GL.Disabled
+  GL.blend $= GL.Enabled
+  GL.blendFunc $= (GL.SrcAlpha, GL.OneMinusSrcAlpha)
+  void $ error . show <$> get GLU.errors
+  for_ visualizations $ \(TexturePlacements (Texture (int2Double -> twidth, int2Double -> theight) texture) xs ys placements) -> do
+    GL.textureWrapMode GL.Texture2D GL.S $= (GL.Repeated, GL.Repeat)
+    GL.textureWrapMode GL.Texture2D GL.T $= (GL.Repeated, GL.Repeat)
+    GL.textureFilter GL.Texture2D $= ((GL.Nearest, Nothing), GL.Nearest)
 
-    GL.lineSmooth $= GL.Disabled
+    GL.texture GL.Texture2D $= GL.Enabled
+    GL.textureFunction $= GL.Combine
+
+    GL.textureBinding GL.Texture2D $= Just texture
     GL.blend $= GL.Enabled
-    GL.blendFunc $= (GL.SrcAlpha, GL.OneMinusSrcAlpha)
-    void $ error . show <$> get GLU.errors
-    for_ visualizations $ \(TexturePlacements (Texture (int2Double -> twidth, int2Double -> theight) texture) xs ys placements) -> do
-      GL.textureWrapMode GL.Texture2D GL.S $= (GL.Repeated, GL.Repeat)
-      GL.textureWrapMode GL.Texture2D GL.T $= (GL.Repeated, GL.Repeat)
-      GL.textureFilter GL.Texture2D $= ((GL.Nearest, Nothing), GL.Nearest)
+    GL.renderPrimitive GL.Quads
+      $ for_ placements
+      $ \(TexturePlacement xd yd) -> do
+        let corners = [(0, 0), (0, 1), (1, 1), (1, 0)] :: [(Double, Double)]
+        forM_ corners $ \(x, y) -> do
+          GL.texCoord $ GL.TexCoord2 (double2Float x) (double2Float y) -- remember 1 makes this match the size of the vertex/quad
+          GL.vertex $ GL.Vertex2 (double2Float $ (x * xs * twidth) + xd) (double2Float $ (y * ys * theight) + yd)
+    GL.texture GL.Texture2D $= GL.Disabled
 
-      GL.texture GL.Texture2D $= GL.Enabled
-      GL.textureFunction $= GL.Combine
-
-      GL.textureBinding GL.Texture2D $= Just texture
-      GL.blend $= GL.Enabled
-      GL.renderPrimitive GL.Quads
-        $ for_ placements
-        $ \(TexturePlacement xd yd) -> do
-          let corners = [(0, 0), (0, 1), (1, 1), (1, 0)] :: [(Double, Double)]
-          forM_ corners $ \(x, y) -> do
-            GL.texCoord $ GL.TexCoord2 (double2Float x) (double2Float y) -- remember 1 makes this match the size of the vertex/quad
-            GL.vertex $ GL.Vertex2 (double2Float $ (x * xs * twidth) + xd) (double2Float $ (y * ys * theight) + yd)
-      --GL.primitiveRestart -- crashes with exception saying function doesnt exist
-
-      GL.texture GL.Texture2D $= GL.Disabled
-
-    void $ error . show <$> get GLU.errors
-    swapBuffers window
-
-type Color = GL.Color4 Float
+  void $ error . show <$> get GLU.errors
+  swapBuffers window
 
 --------------------------------------
 data Texture = Texture (Int, Int) GL.TextureObject

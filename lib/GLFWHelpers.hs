@@ -94,10 +94,9 @@ withWindow width height title f = do
     simpleErrorCallback e s =
       putStrLn $ unwords [show e, show s]
 
-renderGame :: Window -> Picture -> IO ()
-renderGame window picture = do
-  -- (width, height) <- getWindowSize window
-  let (width, height) = (640, 480) :: (Int, Int)
+renderGame :: Window -> [Visualization] -> IO ()
+renderGame window visualizations = do
+  (width, height) <- getWindowSize window
   GL.matrixMode $= GL.Projection
   GL.preservingMatrix $ do
     -- setup the co-ordinate system
@@ -121,7 +120,7 @@ renderGame window picture = do
     GL.blend $= GL.Enabled
     GL.blendFunc $= (GL.SrcAlpha, GL.OneMinusSrcAlpha) -- GL.blendFunc $= (GL.One, GL.Zero)
     void $ error . show <$> get GLU.errors
-    drawPicture picture
+    mapM_ drawPicture visualizations
     void $ error . show <$> get GLU.errors
     swapBuffers window
 
@@ -138,9 +137,7 @@ data Texture = Texture (Int, Int) GL.TextureObject
 data TexturePlacement = TexturePlacement Double Double
   deriving (Show, Eq)
 
-data Picture
-  = TexturePlacements Texture Double Double [TexturePlacement]
-  | Pictures [Picture]
+data Visualization = TexturePlacements Texture Double Double [TexturePlacement]
   deriving (Show, Eq)
 
 -- | Abstract 32-bit RGBA bitmap data.
@@ -150,12 +147,10 @@ data BitmapData = BitmapData
   }
   deriving (Show, Eq)
 
-drawPicture :: Picture -> IO ()
+drawPicture :: Visualization -> IO ()
 drawPicture picture =
   {-# SCC "drawComponent" #-}
   case picture of
-    Pictures ps ->
-      mapM_ drawPicture ps
     TexturePlacements (Texture (int2Double -> width, int2Double -> height) texture) xs ys placements -> do
       -- Set up wrap and filtering mode
       GL.textureWrapMode GL.Texture2D GL.S $= (GL.Repeated, GL.Repeat)

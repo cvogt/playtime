@@ -30,11 +30,10 @@ loadTextures = do
   m' <- sequence $ m <&> loadIntoOpenGL . (assetsDir </>) . (<>".png")
   pure $ \key -> fromMaybe (error $"failed to load texture: "<> show key) $ Map.lookup key m'
 
-vizualizeGame :: (TextureId -> Texture) -> GameState -> Picture
+vizualizeGame :: (TextureId -> Texture) -> GameState -> [Visualization]
 vizualizeGame textures gameState =
-  Pictures $
-    [ TexturePlacements (textures FloorPlate) 1 1 $ (uncurry TexturePlacement . unCursorPos <$> (toList $ gsBoard gameState)),
-      TexturePlacements (textures MainCharacter) 1 1 $ [uncurry TexturePlacement . unCursorPos $ gsMainCharacterPosition gameState],
-      TexturePlacements (textures MainCharacter) 4 4 $ [TexturePlacement 0 0],
-      TexturePlacements (textures MainCharacter) 4 4 $ [TexturePlacement 100 100]
-    ]
+  [ TexturePlacements (textures FloorPlate) 1 1 $ (uncurry TexturePlacement . unCursorPos <$> (toList $ gsBoard gameState)),
+    TexturePlacements (textures MainCharacter) 1 1 $ [uncurry TexturePlacement . unCursorPos $ gsMainCharacterPosition gameState],
+    TexturePlacements (textures MainCharacter) 4 4 $ [TexturePlacement 0 0],
+    TexturePlacements (textures MainCharacter) 4 4 $ [TexturePlacement 100 100]
+  ]

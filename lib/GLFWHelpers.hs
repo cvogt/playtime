@@ -1,6 +1,5 @@
 module GLFWHelpers where
 
-import Control.Monad (mapM_)
 import Data.List (reverse, unwords)
 import Data.Word (Word8)
 import GHC.Float (double2Float, int2Double)
@@ -120,38 +119,7 @@ renderGame window visualizations = do
     GL.blend $= GL.Enabled
     GL.blendFunc $= (GL.SrcAlpha, GL.OneMinusSrcAlpha) -- GL.blendFunc $= (GL.One, GL.Zero)
     void $ error . show <$> get GLU.errors
-    mapM_ drawPicture visualizations
-    void $ error . show <$> get GLU.errors
-    swapBuffers window
-
-    GL.matrixMode $= GL.Projection
-
-  GL.matrixMode $= GL.Modelview 0
-
-type Color = GL.Color4 Float
-
---------------------------------------
-data Texture = Texture (Int, Int) GL.TextureObject
-  deriving (Show, Eq)
-
-data TexturePlacement = TexturePlacement Double Double
-  deriving (Show, Eq)
-
-data Visualization = TexturePlacements Texture Double Double [TexturePlacement]
-  deriving (Show, Eq)
-
--- | Abstract 32-bit RGBA bitmap data.
-data BitmapData = BitmapData
-  { bitmapSize :: (Int, Int),
-    bitmapPointer :: (ForeignPtr Word8)
-  }
-  deriving (Show, Eq)
-
-drawPicture :: Visualization -> IO ()
-drawPicture picture =
-  {-# SCC "drawComponent" #-}
-  case picture of
-    TexturePlacements (Texture (int2Double -> width, int2Double -> height) texture) xs ys placements -> do
+    for_ visualizations $ \(TexturePlacements (Texture (int2Double -> twidth, int2Double -> theight) texture) xs ys placements) -> do
       -- Set up wrap and filtering mode
       GL.textureWrapMode GL.Texture2D GL.S $= (GL.Repeated, GL.Repeat)
       GL.textureWrapMode GL.Texture2D GL.T $= (GL.Repeated, GL.Repeat)
@@ -171,15 +139,41 @@ drawPicture picture =
           let corners = [(0, 0), (0, 1), (1, 1), (1, 0)] :: [(Double, Double)]
           forM_ corners $ \(x, y) -> do
             GL.texCoord $ GL.TexCoord2 @GL.GLfloat (gl x) (gl y) -- remember 1 makes this match the size of the vertex/quad
-            GL.vertex $ GL.Vertex2 @GL.GLfloat (gl $ (x * xs * width) + xd) (gl $ (y * ys * height) + yd)
---      GL.blend $= GL.Enabled
+            GL.vertex $ GL.Vertex2 @GL.GLfloat (gl $ (x * xs * twidth) + xd) (gl $ (y * ys * theight) + yd)
+    --      GL.blend $= GL.Enabled
       --GL.primitiveRestart -- crashes with exception saying function doesnt exist
 
       GL.currentColor $= oldColor
       GL.texture GL.Texture2D $= GL.Disabled
+
+    void $ error . show <$> get GLU.errors
+    swapBuffers window
+
+    GL.matrixMode $= GL.Projection
+
+  GL.matrixMode $= GL.Modelview 0
   where
     gl :: Double -> GL.GLfloat
     gl = unsafeCoerce . double2Float
+
+type Color = GL.Color4 Float
+
+--------------------------------------
+data Texture = Texture (Int, Int) GL.TextureObject
+  deriving (Show, Eq)
+
+data TexturePlacement = TexturePlacement Double Double
+  deriving (Show, Eq)
+
+data Visualization = TexturePlacements Texture Double Double [TexturePlacement]
+  deriving (Show, Eq)
+
+-- | Abstract 32-bit RGBA bitmap data.
+data BitmapData = BitmapData
+  { bitmapSize :: (Int, Int),
+    bitmapPointer :: (ForeignPtr Word8)
+  }
+  deriving (Show, Eq)
 
 loadIntoOpenGL :: FilePath -> IO Texture
 loadIntoOpenGL file = do

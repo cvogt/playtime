@@ -17,6 +17,7 @@ module My.Prelude
     module Data.Monoid,
     module Data.Ord,
     module Data.Set,
+    module Data.Time.Clock.System,
     module Data.Traversable,
     module Data.Tuple,
     module Foreign,
@@ -34,18 +35,19 @@ import Control.Monad ((=<<), (>>=), fail, forever, unless, void, when)
 import Data.Bifunctor (bimap)
 import Data.Bool ((&&), Bool (False, True), not, otherwise, (||))
 import Data.Char (Char)
-import Data.Either (either, Either(Right,Left))
+import Data.Either (Either (Left, Right), either)
 import Data.Eq (Eq ((==)))
 import Data.Foldable (Foldable, elem, find, fold, foldl, forM_, for_, length, null, sum, toList)
 import Data.Function (($), (.), flip)
 import Data.Functor ((<$>), (<&>), fmap)
 import Data.Int (Int)
-import Data.List (drop, foldl1, foldr1, take)
+import Data.List (drop, foldl1, foldr1, reverse, take)
 import Data.Map (Map)
-import Data.Maybe (Maybe (Just, Nothing), catMaybes, isJust, isNothing, maybe, fromMaybe)
+import Data.Maybe (Maybe (Just, Nothing), catMaybes, fromMaybe, isJust, isNothing, maybe)
 import Data.Monoid ((<>), mempty)
 import Data.Ord (Ord ((<), (<=), (>), (>=)))
 import Data.Set (Set)
+import Data.Time.Clock.System (SystemTime)
 import Data.Traversable (for, forM, sequence)
 import Data.Tuple (fst, snd, uncurry)
 import Foreign (ForeignPtr)

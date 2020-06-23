@@ -4,27 +4,25 @@ module SpaceMiner where
 
 import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
 import Data.IORef (atomicModifyIORef', newIORef)
-import GLFWHelpers (fetchEvents, initGUI, renderGame, withWindow)
-import Game (gsExitGame, handleEvent, initialGameState)
-import Graphics (loadTextures, vizualizeGame)
+import GLFWHelpers
+import Game
+import Graphics
 import "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.Extra
 import My.IO
 import My.Prelude
-import SpaceMiner.Debug.Vty (forkDebugTerminal)
-import SpaceMiner.Util (timeDiffPico)
+import SpaceMiner.Debug.Vty
+import SpaceMiner.MutableState
+import SpaceMiner.Types
+import SpaceMiner.Util
 import System.Exit (exitSuccess)
 
 main :: Int -> Int -> Int -> IO ()
 main width height _fps = do
   --void $ forkIO $ forever $ playMusic
-  eventsMVar <- newMVar []
   visualizationMVar <- newEmptyMVar
 
-  withWindow width height "SpaceMiner" $ \window -> do
-    initGUI window width height eventsMVar
-    textures <- loadTextures
-
+  withGLFW width height "SpaceMiner" $ \window mutableState textures -> do
     gs <- initialGameState <$> getSystemTime
     gameLoopDebugMVar <- newMVar (gs, [])
     renderLoopDebugMVar <- newMVar []
@@ -33,7 +31,7 @@ main width height _fps = do
     void $ forkIO $ do
       flip unfoldM_ gs $ \oldGameState -> do
         gameLoopStartTime <- getSystemTime
-        events <- fetchEvents eventsMVar
+        events <- fetchEvents mutableState
         let newGameState = foldl handleEvent oldGameState events
         visualization <- evaluate $ vizualizeGame textures newGameState
         gameLoopEndTime <- getSystemTime

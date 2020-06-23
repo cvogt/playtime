@@ -4,30 +4,16 @@ import qualified Data.Set as Set
 import Data.Time.Clock.System
 import GHC.Float (int2Double)
 import GHC.Real ((/), floor, fromIntegral)
-import GLFWHelpers
 import "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.Extra
 import My.Prelude
+import SpaceMiner.Types
 import SpaceMiner.Util
-
-data GameState = GameState
-  { gsBoard :: Set CursorPos,
-    gsPlacementMode :: Bool,
-    gsDeleteMode :: Bool,
-    gsKeysPressed :: Set Key,
-    gsMainCharacterPosition :: CursorPos,
-    gsExitGame :: Bool,
-    gsTimes :: [Integer],
-    gsFps :: Double,
-    gsCursorPos :: CursorPos,
-    gsLastPlacement :: CursorPos,
-    gsLastLoopTime :: SystemTime
-  }
 
 initialGameState :: SystemTime -> GameState
 initialGameState = GameState mempty False False Set.empty (CursorPos (320, 240)) False [] 0 (CursorPos (0, 0)) (CursorPos (0, 0))
 
-handleEvent :: GameState -> InputEvent -> GameState
+handleEvent :: GameState -> Event -> GameState
 handleEvent = \gs@GameState {gsDeleteMode, gsBoard, gsPlacementMode, gsKeysPressed, gsMainCharacterPosition, gsLastLoopTime, gsCursorPos, gsFps, gsTimes} -> \case
   MouseEvent' (MouseEvent MouseButton'1 MouseButtonState'Pressed _) -> gs {gsPlacementMode = True}
   MouseEvent' (MouseEvent MouseButton'1 MouseButtonState'Released _) -> gs {gsPlacementMode = False}

@@ -10,7 +10,7 @@ where
 
 import Control.Concurrent (ThreadId, forkFinally, forkIO, threadDelay)
 import Control.Concurrent.MVar (MVar, modifyMVar, modifyMVar_, newMVar, readMVar)
-import Control.Exception (evaluate, throwIO)
-import Data.Time.Clock.System (SystemTime, getSystemTime)
+import Control.Exception (evaluate, finally, throwIO)
+import Data.Time.Clock.System (getSystemTime)
+import System.FilePath.Posix ((</>))
 import System.IO (FilePath, IO, putStr, putStrLn)
-import  System.FilePath.Posix ((</>))

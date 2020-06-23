@@ -3,12 +3,11 @@ module SpaceMiner.Debug.Vty where
 import qualified Data.Set as Set
 import GHC.Float (int2Double)
 import GHC.Real ((/), round)
-import GLFWHelpers
-import Game
 import Graphics.Vty
 import My.Extra
 import My.IO
 import My.Prelude
+import SpaceMiner.Types
 import SpaceMiner.Util
 
 forkDebugTerminal :: MVar (GameState, [Integer]) -> MVar [Integer] -> MVar [Integer] -> IO ThreadId

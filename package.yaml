@@ -41,7 +41,6 @@ dependencies:
 
 # opengl and friends
 - OpenGL
-- GLUT
 - JuicyPixels
 - GLFW-b
 

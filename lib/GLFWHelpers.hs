@@ -102,8 +102,11 @@ renderGame window visualizations = do
 
   GL.matrixMode $= GL.Modelview 0
   GL.lineSmooth $= GL.Disabled
+
+  -- enable png alpha channel transparancy
   GL.blend $= GL.Enabled
   GL.blendFunc $= (GL.SrcAlpha, GL.OneMinusSrcAlpha)
+
   void $ error . show <$> get GLU.errors
   for_ visualizations $ \(TexturePlacements (Texture (int2Double -> twidth, int2Double -> theight) texture) xs ys placements) -> do
     GL.textureWrapMode GL.Texture2D GL.S $= (GL.Repeated, GL.Repeat)
@@ -114,7 +117,6 @@ renderGame window visualizations = do
     GL.textureFunction $= GL.Combine
 
     GL.textureBinding GL.Texture2D $= Just texture
-    GL.blend $= GL.Enabled
     GL.renderPrimitive GL.Quads
       $ for_ placements
       $ \(TexturePlacement xd yd) -> do

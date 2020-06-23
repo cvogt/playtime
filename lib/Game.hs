@@ -1,7 +1,6 @@
 module Game where
 
 import qualified Data.Set as Set
-import Data.Time.Clock.System
 import GHC.Float (int2Double)
 import GHC.Real ((/), floor, fromIntegral)
 import "GLFW-b" Graphics.UI.GLFW as GLFW

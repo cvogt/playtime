@@ -1,6 +1,6 @@
 module Music where
 
-import Data.FileEmbed
+import Data.FileEmbed (makeRelativeToProject, strToExp)
 import Euterpea hiding (Text, forever)
 import My.IO
 import My.Prelude

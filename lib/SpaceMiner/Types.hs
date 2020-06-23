@@ -1,23 +1,23 @@
 module SpaceMiner.Types where
 
 import qualified Graphics.Rendering.OpenGL.GL as GL (TextureObject)
-import "GLFW-b" Graphics.UI.GLFW
+import qualified "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.Prelude
 
 -- Event Types
 newtype CursorPos = CursorPos {unCursorPos :: (Double, Double)} deriving (Eq, Ord, Show)
 
 data MouseEvent = MouseEvent
-  { meButton :: MouseButton,
-    meButtonState :: MouseButtonState,
-    meModifierKeys :: ModifierKeys
+  { meButton :: GLFW.MouseButton,
+    meButtonState :: GLFW.MouseButtonState,
+    meModifierKeys :: GLFW.ModifierKeys
   }
   deriving (Show)
 
 data KeyEvent = KeyEvent
-  { keKey :: Key,
-    keKeyState :: KeyState,
-    keModifierKeys :: ModifierKeys
+  { keKey :: GLFW.Key,
+    keKeyState :: GLFW.KeyState,
+    keModifierKeys :: GLFW.ModifierKeys
   }
   deriving (Show)
 
@@ -38,7 +38,7 @@ data GameState = GameState
   { gsBoard :: Set CursorPos,
     gsPlacementMode :: Bool,
     gsDeleteMode :: Bool,
-    gsKeysPressed :: Set Key,
+    gsKeysPressed :: Set GLFW.Key,
     gsMainCharacterPosition :: CursorPos,
     gsExitGame :: Bool,
     gsTimes :: [Integer],

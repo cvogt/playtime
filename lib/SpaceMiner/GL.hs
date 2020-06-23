@@ -9,15 +9,15 @@ import GHC.Real (fromIntegral)
 import Graphics.Rendering.OpenGL (($=))
 import qualified Graphics.Rendering.OpenGL.GL as GL
 import qualified Graphics.Rendering.OpenGL.GLU.Errors as GLU
-import "GLFW-b" Graphics.UI.GLFW as GLFW
+import qualified "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.IO
 import My.Prelude
 import SpaceMiner.Textures
 import SpaceMiner.Types
 
-renderGame :: Window -> [Visualization] -> IO ()
+renderGame :: GLFW.Window -> [Visualization] -> IO ()
 renderGame window visualizations = do
-  (width, height) <- getWindowSize window
+  (width, height) <- GLFW.getWindowSize window
   GL.matrixMode $= GL.Projection
   GL.loadIdentity
   GL.ortho 0 (fromIntegral width) (fromIntegral height) 0 0 1
@@ -43,7 +43,7 @@ renderGame window visualizations = do
 
   checkErrorsGLU "after"
 
-  swapBuffers window
+  GLFW.swapBuffers window
   where
     checkErrorsGLU msg = void $ error . ("GLU.errors " <>) . (msg <>) . (": " <>) . show <$> GL.get GLU.errors
 

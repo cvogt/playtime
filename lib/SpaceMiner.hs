@@ -6,7 +6,7 @@ import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
 import Data.IORef (atomicModifyIORef', newIORef)
 import Game
 import Graphics
-import "GLFW-b" Graphics.UI.GLFW as GLFW
+import qualified "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.Extra
 import My.IO
 import My.Prelude
@@ -45,7 +45,7 @@ main width height _fps = do
     renderLoopStartIORef <- newIORef =<< getSystemTime
     void $ forkDebugTerminal gameLoopDebugMVar renderLoopDebugMVar totalLoopDebugMVar -- FIXME: cursor stays hidden after termination
     forever $ do
-      pollEvents
+      GLFW.pollEvents
       visualization <- takeMVar visualizationMVar
       renderLoopStartTime <- getSystemTime
       previousRenderLoopStart <- atomicModifyIORef' renderLoopStartIORef $ \v -> (renderLoopStartTime, v)

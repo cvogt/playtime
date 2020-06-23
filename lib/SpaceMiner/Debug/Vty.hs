@@ -3,7 +3,7 @@ module SpaceMiner.Debug.Vty where
 import qualified Data.Set as Set
 import GHC.Float (int2Double)
 import GHC.Real ((/), round)
-import Graphics.Vty
+import qualified Graphics.Vty as Vty
 import My.Extra
 import My.IO
 import My.Prelude
@@ -12,9 +12,9 @@ import SpaceMiner.Util
 
 forkDebugTerminal :: MVar (GameState, [Integer]) -> MVar [Integer] -> MVar [Integer] -> IO ThreadId
 forkDebugTerminal gameLoopDebugMVar renderLoopDebugMVar totalLoopDebugMVar = do
-  cfg <- standardIOConfig
-  vty <- mkVty cfg
-  flip forkFinally (\_ -> shutdown vty) $ do
+  cfg <- Vty.standardIOConfig
+  vty <- Vty.mkVty cfg
+  flip forkFinally (\_ -> Vty.shutdown vty) $ do
     flip iterateM_ (0, 0, 0) $ \(oldAvgGameLoopTime, oldAvgRenderLoopTime, oldAvgTotalLoopTime) -> do
       (GameState {gsCursorPos, gsMainCharacterPosition, gsBoard, gsLastPlacement}, gameLoopTimes) <- modifyMVar gameLoopDebugMVar $ \v@(gs, _) -> pure ((gs, []), v)
       renderLoopTimes <- modifyMVar renderLoopDebugMVar $ \t -> pure ([], t)
@@ -24,8 +24,8 @@ forkDebugTerminal gameLoopDebugMVar renderLoopDebugMVar totalLoopDebugMVar = do
           newAvgTotalLoopTime = if not $ null totalLoopTimes then (/ 100) . int2Double . round @Double @Int $ 100 * 1 / (pico2second $ avg totalLoopTimes) else oldAvgTotalLoopTime
           CursorPos (x, y) = gsCursorPos
           CursorPos (x', y') = gsMainCharacterPosition
-      update vty $ picForImage $ foldl1 (<->) $
-        string (defAttr `withForeColor` white)
+      Vty.update vty $ Vty.picForImage $ foldl1 (Vty.<->) $
+        Vty.string (Vty.defAttr `Vty.withForeColor` Vty.white)
           <$> [ "fps: " <> show newAvgTotalLoopTime,
                 "1/renderLoopTime: " <> show newAvgRenderLoopTime,
                 "1/gameLoopTime: " <> show newAvgGameLoopTime,

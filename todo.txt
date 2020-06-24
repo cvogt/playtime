@@ -33,5 +33,11 @@ usefulness of stuff:
 main character:
 - humantiy has dies, main character is a robot but with personality, has to find out what happened, find blueprints for new chips and modules as game progresses, maybe some related to music or speech synthesis
 
+spaceship building:
+- need air and have a hull integrity system similar to subnautica leading to intersting designs and danger
+
+planet art style:
+- maybe planets are actually 3d spheres of 2d tiles you can look at as you approach and when you get close enough to walk it is so large it's just a plane
+
 titles:
 - musicminer, musebot, museminer, left in space (wakes up as emergency repair bot after incident)

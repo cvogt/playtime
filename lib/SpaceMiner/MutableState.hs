@@ -1,5 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
-
 module SpaceMiner.MutableState where
 
 import My.IO

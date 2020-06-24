@@ -15,9 +15,8 @@ import My.Prelude
 import SpaceMiner.Textures
 import SpaceMiner.Types
 
-renderGame :: GLFW.Window -> [Visualization] -> IO ()
-renderGame window visualizations = do
-  (width, height) <- GLFW.getWindowSize window
+renderGame :: GLFW.Window -> Dimensions -> [Visualization] -> IO ()
+renderGame window Dimensions {width, height} visualizations = do
   GL.matrixMode $= GL.Projection
   GL.loadIdentity
   GL.ortho 0 (fromIntegral width) (fromIntegral height) 0 0 1
@@ -36,7 +35,7 @@ renderGame window visualizations = do
   for_ visualizations $ \(TexturePlacements (Texture (int2Double -> twidth, int2Double -> theight) texture) xs ys placements) -> do
     GL.textureFilter GL.Texture2D $= ((GL.Nearest, Nothing), GL.Nearest)
     GL.textureBinding GL.Texture2D $= Just texture
-    GL.renderPrimitive GL.Quads $ for_ placements $ \(TexturePlacement xd yd) -> do
+    GL.renderPrimitive GL.Quads $ for_ placements $ \(Pos xd yd) -> do
       forM_ [(0, 0), (0, 1), (1, 1), (1, 0)] $ \(x, y) -> do
         GL.texCoord $ GL.TexCoord2 (double2Float x) (double2Float y) -- remember 1 makes this match the size of the vertex/quad
         GL.vertex $ GL.Vertex2 (double2Float $ (x * xs * twidth) + xd) (double2Float $ (y * ys * theight) + yd)

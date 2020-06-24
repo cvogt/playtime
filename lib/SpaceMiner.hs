@@ -18,13 +18,16 @@ import SpaceMiner.Types
 import SpaceMiner.Util
 import System.Exit (exitSuccess)
 
-main :: Int -> Int -> Int -> IO ()
-main width height _fps = do
+main :: IO ()
+main = do
   --void $ forkIO $ forever $ playMusic
   visualizationMVar <- newEmptyMVar
 
-  withGLFW width height "SpaceMiner" $ \window mutableState textures -> do
-    gs <- initialGameState <$> getSystemTime
+  let logicalDimensions = Dimensions {width = 320, height = 240}
+  let windowScale = ScaleInt 3
+
+  withGLFW logicalDimensions windowScale "SpaceMiner" $ \window mutableState textures -> do
+    gs <- initialGameState logicalDimensions <$> getSystemTime
     gameLoopDebugMVar <- newMVar (gs, [])
     renderLoopDebugMVar <- newMVar []
     totalLoopDebugMVar <- newMVar []
@@ -50,7 +53,7 @@ main width height _fps = do
       renderLoopStartTime <- getSystemTime
       previousRenderLoopStart <- atomicModifyIORef' renderLoopStartIORef $ \v -> (renderLoopStartTime, v)
       modifyMVar_ totalLoopDebugMVar $ pure . (timeDiffPico previousRenderLoopStart renderLoopStartTime :)
-      renderGame window visualization
+      renderGame window logicalDimensions visualization
       renderLoopEndTime <- getSystemTime
       modifyMVar_ renderLoopDebugMVar $ pure . (timeDiffPico renderLoopStartTime renderLoopEndTime :)
 

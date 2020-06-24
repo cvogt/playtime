@@ -1,6 +1,6 @@
 module SpaceMiner.Debug.Vty where
 
-import qualified Data.Set as Set
+import qualified Data.Map as Map
 import GHC.Float (int2Double)
 import GHC.Real ((/), round)
 import qualified Graphics.Vty as Vty
@@ -22,8 +22,8 @@ forkDebugTerminal gameLoopDebugMVar renderLoopDebugMVar totalLoopDebugMVar = do
       let newAvgGameLoopTime = if not $ null gameLoopTimes then (/ 100) . int2Double . round @Double @Int $ 100 * 1 / (pico2second $ avg gameLoopTimes) else oldAvgGameLoopTime
           newAvgRenderLoopTime = if not $ null renderLoopTimes then (/ 100) . int2Double . round @Double @Int $ 100 * 1 / (pico2second $ avg renderLoopTimes) else oldAvgRenderLoopTime
           newAvgTotalLoopTime = if not $ null totalLoopTimes then (/ 100) . int2Double . round @Double @Int $ 100 * 1 / (pico2second $ avg totalLoopTimes) else oldAvgTotalLoopTime
-          CursorPos (x, y) = gsCursorPos
-          CursorPos (x', y') = gsMainCharacterPosition
+          Pos x y = gsCursorPos
+          Pos x' y' = gsMainCharacterPosition
       Vty.update vty $ Vty.picForImage $ foldl1 (Vty.<->) $
         Vty.string (Vty.defAttr `Vty.withForeColor` Vty.white)
           <$> [ "fps: " <> show newAvgTotalLoopTime,
@@ -32,7 +32,7 @@ forkDebugTerminal gameLoopDebugMVar renderLoopDebugMVar totalLoopDebugMVar = do
                 "opengl pos: " <> show (x, y),
                 "main char: " <> show (x', y'),
                 "last places sprite location: " <> show gsLastPlacement,
-                "sprite count: " <> show (Set.size gsBoard)
+                "sprite count: " <> show (Map.size gsBoard)
               ]
 
       threadDelay $ 500 * 1000 -- FIXME: changing this to 100 * make process freeze on exit

@@ -31,3 +31,10 @@ playMusic = do
           <> [f 3 en, d 3 en, c 3 en, d 3 en, f 3 en, d 3 en, f 3 qn]
           <> [f 3 en, d 3 en, c 3 en, d 3 en, f 3 en, d 3 en, f 3 qn]
   p $ tempo 0.75 <$> loykrathong
+
+-- https://github.com/igorski/VSTSID
+-- http://hackage.haskell.org/package/csound-expression-typed-0.2.2.0/docs/src/Csound.Typed.Plugins.Diode.html
+-- https://sites.google.com/site/fluidvolt/
+-- https://musical-artifacts.com/artifacts/185
+-- https://trisamples.com/free-soundfonts/
+-- http://drunk3nj3sus.blogspot.com/2015/04/c64-waveform-soundfonts.html

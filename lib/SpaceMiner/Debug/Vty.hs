@@ -7,27 +7,33 @@ import qualified Graphics.Vty as Vty
 import My.Extra
 import My.IO
 import My.Prelude
+import SpaceMiner.ConcurrentState
 import SpaceMiner.Types
 import SpaceMiner.Util
 
-forkDebugTerminal :: MVar (GameState, [Integer]) -> MVar [Integer] -> MVar [Integer] -> IO ThreadId
-forkDebugTerminal gameLoopDebugMVar renderLoopDebugMVar totalLoopDebugMVar = do
+forkDebugTerminal :: ConcurrentState -> IO ThreadId
+forkDebugTerminal ConcurrentState {..} = do
+  -- FIXME: cursor stays hidden after termination
   cfg <- Vty.standardIOConfig
   vty <- Vty.mkVty cfg
   flip forkFinally (\_ -> Vty.shutdown vty) $ do
-    flip iterateM_ (0, 0, 0) $ \(oldAvgGameLoopTime, oldAvgRenderLoopTime, oldAvgTotalLoopTime) -> do
-      (GameState {gsCursorPos, gsMainCharacterPosition, gsBoard, gsLastPlacement}, gameLoopTimes) <- modifyMVar gameLoopDebugMVar $ \v@(gs, _) -> pure ((gs, []), v)
-      renderLoopTimes <- modifyMVar renderLoopDebugMVar $ \t -> pure ([], t)
-      totalLoopTimes <- modifyMVar totalLoopDebugMVar $ \t -> pure ([], t)
-      let newAvgGameLoopTime = if not $ null gameLoopTimes then (/ 100) . int2Double . round @Double @Int $ 100 * 1 / (pico2second $ avg gameLoopTimes) else oldAvgGameLoopTime
-          newAvgRenderLoopTime = if not $ null renderLoopTimes then (/ 100) . int2Double . round @Double @Int $ 100 * 1 / (pico2second $ avg renderLoopTimes) else oldAvgRenderLoopTime
-          newAvgTotalLoopTime = if not $ null totalLoopTimes then (/ 100) . int2Double . round @Double @Int $ 100 * 1 / (pico2second $ avg totalLoopTimes) else oldAvgTotalLoopTime
+    flip iterateM_ (0, 0, 0, 0) $ \(oldAvgGameLoopTime, oldAvgTexturePlacementTime, oldAvgRenderLoopTime, oldAvgTotalLoopTime) -> do
+      GameState {..} <- readMVar csGameState
+      gameLoopTimes <- modifyMVar csGameLoopTime $ \t -> pure ([], t)
+      texturePlacementTimes <- modifyMVar csTexturePlacementTime $ \t -> pure ([], t)
+      renderLoopTimes <- modifyMVar csRenderLoopTime $ \t -> pure ([], t)
+      totalLoopTimes <- modifyMVar csTotalLoopTime $ \t -> pure ([], t)
+      let newAvgGameLoopTime = if not $ null gameLoopTimes then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> gameLoopTimes) else oldAvgGameLoopTime
+          newAvgTexturePlacementTime = if not $ null texturePlacementTimes then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> texturePlacementTimes) else oldAvgTexturePlacementTime
+          newAvgRenderLoopTime = if not $ null renderLoopTimes then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> renderLoopTimes) else oldAvgRenderLoopTime
+          newAvgTotalLoopTime = if not $ null totalLoopTimes then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> totalLoopTimes) else oldAvgTotalLoopTime
           Pos x y = gsCursorPos
           Pos x' y' = gsMainCharacterPosition
       Vty.update vty $ Vty.picForImage $ foldl1 (Vty.<->) $
         Vty.string (Vty.defAttr `Vty.withForeColor` Vty.white)
           <$> [ "fps: " <> show newAvgTotalLoopTime,
                 "1/renderLoopTime: " <> show newAvgRenderLoopTime,
+                "1/texturePlacementTime: " <> show newAvgTexturePlacementTime,
                 "1/gameLoopTime: " <> show newAvgGameLoopTime,
                 "opengl pos: " <> show (x, y),
                 "main char: " <> show (x', y'),
@@ -36,4 +42,4 @@ forkDebugTerminal gameLoopDebugMVar renderLoopDebugMVar totalLoopDebugMVar = do
               ]
 
       threadDelay $ 500 * 1000 -- FIXME: changing this to 100 * make process freeze on exit
-      pure (newAvgGameLoopTime, newAvgRenderLoopTime, newAvgTotalLoopTime)
+      pure (newAvgGameLoopTime, newAvgTexturePlacementTime, newAvgRenderLoopTime, newAvgTotalLoopTime)

@@ -1,62 +1,48 @@
 module SpaceMiner where
 
--- import Music
-
-import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
-import Data.IORef (atomicModifyIORef', newIORef)
+import Control.Concurrent.MVar (putMVar, takeMVar)
 import Game
 import Graphics
 import qualified "GLFW-b" Graphics.UI.GLFW as GLFW
+-- import Music
 import My.Extra
 import My.IO
 import My.Prelude
+import SpaceMiner.ConcurrentState
+import SpaceMiner.Debug
 import SpaceMiner.Debug.Vty
 import SpaceMiner.GL
 import SpaceMiner.GLFW
-import SpaceMiner.MutableState
 import SpaceMiner.Types
-import SpaceMiner.Util
 import System.Exit (exitSuccess)
 
 main :: IO ()
 main = do
+  -- basic configuration
+  let logicDim = Dimensions {width = 320, height = 240}
+  let scale = ScaleInt 3
+
+  -- initialization
+  igs <- makeInitialGameState logicDim <$> getSystemTime
+  cs@ConcurrentState {..} <- makeInitialConcurrentState igs
+
   --void $ forkIO $ forever $ playMusic
-  visualizationMVar <- newEmptyMVar
+  void $ forkDebugTerminal cs
 
-  let logicalDimensions = Dimensions {width = 320, height = 240}
-  let windowScale = ScaleInt 3
+  -- game state loop
+  void $ forkIO $ do
+    flip unfoldM_ igs $ \ogs -> do
+      events <- fetchEvents cs
+      ngs <- trackGameLoopTime cs $ foldl handleEvent ogs events
+      updateGameState cs ngs
+      putMVar csTexturePlacement =<< trackTexturePlacementTime cs (placeTextures ngs)
+      maybeExitGameLoop ngs
+    exitSuccess
 
-  withGLFW logicalDimensions windowScale "SpaceMiner" $ \window mutableState textures -> do
-    gs <- initialGameState logicalDimensions <$> getSystemTime
-    gameLoopDebugMVar <- newMVar (gs, [])
-    renderLoopDebugMVar <- newMVar []
-    totalLoopDebugMVar <- newMVar []
-
-    void $ forkIO $ do
-      flip unfoldM_ gs $ \oldGameState -> do
-        gameLoopStartTime <- getSystemTime
-        events <- fetchEvents mutableState
-        let newGameState = foldl handleEvent oldGameState events
-        visualization <- evaluate $ vizualizeGame textures newGameState
-        gameLoopEndTime <- getSystemTime
-        modifyMVar_ gameLoopDebugMVar $ \(_, times) -> pure (newGameState, timeDiffPico gameLoopStartTime gameLoopEndTime : times)
-        threadDelay $ 10 * 1000
-        putMVar visualizationMVar visualization
-        pure $ if gsExitGame newGameState then Nothing else Just newGameState
-      exitSuccess
-
-    renderLoopStartIORef <- newIORef =<< getSystemTime
-    void $ forkDebugTerminal gameLoopDebugMVar renderLoopDebugMVar totalLoopDebugMVar -- FIXME: cursor stays hidden after termination
-    forever $ do
-      GLFW.pollEvents
-      visualization <- takeMVar visualizationMVar
-      renderLoopStartTime <- getSystemTime
-      previousRenderLoopStart <- atomicModifyIORef' renderLoopStartIORef $ \v -> (renderLoopStartTime, v)
-      modifyMVar_ totalLoopDebugMVar $ pure . (timeDiffPico previousRenderLoopStart renderLoopStartTime :)
-      renderGame window logicalDimensions visualization
-      renderLoopEndTime <- getSystemTime
-      modifyMVar_ renderLoopDebugMVar $ pure . (timeDiffPico renderLoopStartTime renderLoopEndTime :)
-
---putStrLn . show =<< getSystemTime
-
--- GL.deleteObjectNames [tex]
+  -- open gl rendering loop
+  withGLFW logicDim scale "SpaceMiner" $ \window -> do
+    textures <- loadTextures
+    startCaptureEvents window logicDim cs
+    forever $ trackTotalLoopTime cs $ do
+      GLFW.pollEvents -- before takeMVar frees game loop for another run
+      takeMVar csTexturePlacement >>= trackRenderLoopTime cs . renderGame textures window logicDim

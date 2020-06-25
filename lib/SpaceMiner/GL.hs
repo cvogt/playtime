@@ -15,8 +15,8 @@ import My.Prelude
 import SpaceMiner.Textures
 import SpaceMiner.Types
 
-renderGame :: GLFW.Window -> Dimensions -> [Visualization] -> IO ()
-renderGame window Dimensions {width, height} visualizations = do
+renderGame :: (TextureId -> Texture) -> GLFW.Window -> Dimensions -> [TexturePlacements] -> IO ()
+renderGame textures window Dimensions {width, height} texturePlacements = do
   GL.matrixMode $= GL.Projection
   GL.loadIdentity
   GL.ortho 0 (fromIntegral width) (fromIntegral height) 0 0 1
@@ -32,7 +32,8 @@ renderGame window Dimensions {width, height} visualizations = do
   checkErrorsGLU "before"
 
   GL.texture GL.Texture2D $= GL.Enabled
-  for_ visualizations $ \(TexturePlacements (Texture (int2Double -> twidth, int2Double -> theight) texture) xs ys placements) -> do
+  for_ texturePlacements $ \(TexturePlacements textureId xs ys placements) -> do
+    let Texture (int2Double -> twidth, int2Double -> theight) texture = textures textureId
     GL.textureFilter GL.Texture2D $= ((GL.Nearest, Nothing), GL.Nearest)
     GL.textureBinding GL.Texture2D $= Just texture
     GL.renderPrimitive GL.Quads $ for_ placements $ \(Pos xd yd) -> do
@@ -44,7 +45,7 @@ renderGame window Dimensions {width, height} visualizations = do
 
   GLFW.swapBuffers window
   where
-    checkErrorsGLU msg = void $ error . ("GLU.errors " <>) . (msg <>) . (": " <>) . show <$> GL.get GLU.errors
+    checkErrorsGLU csg = void $ error . ("GLU.errors " <>) . (csg <>) . (": " <>) . show <$> GL.get GLU.errors
 
 loadTextures :: IO (TextureId -> Texture)
 loadTextures = do

@@ -21,6 +21,7 @@ dependencies:
 - bmp
 - bytestring
 - containers
+- deepseq
 - file-embed
 - filepath
 - integer-gmp

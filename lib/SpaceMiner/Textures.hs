@@ -10,7 +10,7 @@ data TextureId
   = MainCharacter
   | FloorPlate
   | TopWall
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Ord, Show, Generic, NFData)
 
 textureNameMap :: Map TextureId [Char]
 textureNameMap =

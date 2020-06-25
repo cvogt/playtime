@@ -10,8 +10,8 @@ import SpaceMiner.Textures
 import SpaceMiner.Types
 import SpaceMiner.Util
 
-initialGameState :: Dimensions -> SystemTime -> GameState
-initialGameState Dimensions {width, height} time =
+makeInitialGameState :: Dimensions -> SystemTime -> GameState
+makeInitialGameState Dimensions {width, height} time =
   GameState
     { gsBoard = mempty,
       gsPlacementMode = False,
@@ -26,6 +26,9 @@ initialGameState Dimensions {width, height} time =
       gsLastPlacement = Pos 0 0,
       gsLastLoopTime = time
     }
+
+maybeExitGameLoop :: Applicative m => GameState -> m (Maybe GameState)
+maybeExitGameLoop gs = pure $ if gsExitGame gs then Nothing else Just gs
 
 handleEvent :: GameState -> Event -> GameState
 handleEvent = \gs@GameState {..} -> \case

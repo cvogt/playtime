@@ -1,5 +1,6 @@
 module My.Prelude
   ( module Control.Applicative,
+    module Control.DeepSeq,
     module Control.Monad,
     module Data.Bifunctor,
     module Data.Bool,
@@ -31,8 +32,9 @@ module My.Prelude
   )
 where
 
-import Control.Applicative ((<*>), pure)
-import Control.Monad ((=<<), (>>=), fail, forever, unless, void, when)
+import Control.Applicative ((<*>), Applicative, pure)
+import Control.DeepSeq (NFData)
+import Control.Monad ((=<<), (>>=), Monad, fail, forever, mfilter, unless, void, when)
 import Data.Bifunctor (Bifunctor, bimap, first, second)
 import Data.Bool ((&&), Bool (False, True), not, otherwise, (||))
 import Data.Char (Char)

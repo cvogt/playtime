@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 module SpaceMiner.Types where
 
 import qualified Graphics.Rendering.OpenGL.GL as GL (TextureObject)
@@ -13,7 +15,7 @@ data Dimensions = Dimensions
 data ScaleInt = ScaleInt Int
 
 -- Event Types
-data Pos = Pos Double Double deriving (Eq, Ord, Show)
+data Pos = Pos Double Double deriving (Eq, Ord, Show, Generic, NFData)
 
 data MouseEvent = MouseEvent
   { meButton :: GLFW.MouseButton,
@@ -41,6 +43,8 @@ data Event
 
 -- Game State Types
 
+data GameStateStrict = GameStateStrict
+
 data GameState = GameState
   { gsBoard :: Map Pos TextureId,
     gsPlacementMode :: Bool,
@@ -55,11 +59,9 @@ data GameState = GameState
     gsLastPlacement :: Pos,
     gsLastLoopTime :: SystemTime
   }
+  deriving (Generic, NFData)
 
 -- Textures Types
+data Texture = Texture (Int, Int) GL.TextureObject deriving (Show, Eq)
 
-data Texture = Texture (Int, Int) GL.TextureObject
-  deriving (Show, Eq)
-
-data Visualization = TexturePlacements Texture Double Double (NonEmpty Pos)
-  deriving (Show, Eq)
+data TexturePlacements = TexturePlacements TextureId Double Double (NonEmpty Pos) deriving (Show, Eq, Generic, NFData)

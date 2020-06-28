@@ -24,7 +24,7 @@ main = do
 
   -- initialization
   igs <- makeInitialGameState logicDim <$> getSystemTime
-  cs@ConcurrentState {..} <- makeInitialConcurrentState igs
+  cs@ConcurrentState {csTexturePlacement} <- makeInitialConcurrentState igs
 
   --void $ forkIO $ forever $ playMusic
   void $ forkDebugTerminal cs
@@ -35,6 +35,7 @@ main = do
       events <- fetchEvents cs
       ngs <- trackGameLoopTime cs $ foldl handleEvent ogs events
       updateGameState cs ngs
+      -- putMVar here leads to about 1 frame input lag, because after the mvar becomes free the game loop runs immediately and then waits (not processing events) until the much slower rendering loop processed the frame
       putMVar csTexturePlacement =<< trackTexturePlacementTime cs (placeTextures ngs)
       maybeExitGameLoop ngs
     exitSuccess

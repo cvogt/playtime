@@ -1,6 +1,5 @@
 module SpaceMiner where
 
-import Control.Concurrent.MVar (putMVar, takeMVar)
 import Game
 import Graphics
 import qualified "GLFW-b" Graphics.UI.GLFW as GLFW
@@ -24,7 +23,7 @@ main = do
 
   -- initialization
   igs <- makeInitialGameState logicDim <$> getSystemTime
-  cs@ConcurrentState {csTexturePlacement} <- makeInitialConcurrentState igs
+  cs@ConcurrentState {csTotalLoopTime, csRenderLoopTime} <- makeInitialConcurrentState igs
 
   --void $ forkIO $ forever $ playMusic
   void $ forkDebugTerminal cs
@@ -33,17 +32,16 @@ main = do
   void $ forkIO $ do
     flip unfoldM_ igs $ \ogs -> do
       events <- fetchEvents cs
-      ngs <- trackGameLoopTime cs $ foldl handleEvent ogs events
-      updateGameState cs ngs
-      -- putMVar here leads to about 1 frame input lag, because after the mvar becomes free the game loop runs immediately and then waits (not processing events) until the much slower rendering loop processed the frame
-      putMVar csTexturePlacement =<< trackTexturePlacementTime cs (placeTextures ngs)
-      maybeExitGameLoop ngs
+      let ngs = foldl handleGameEvent ogs events
+      sendGameState cs ngs
+      sendSpritePlacements cs $ computeSpritePlacements ngs
+      pure $ if gsExitGame ngs then Nothing else Just ngs
     exitSuccess
 
   -- open gl rendering loop
   withGLFW logicDim scale "SpaceMiner" $ \window -> do
     textures <- loadTextures
     startCaptureEvents window logicDim cs
-    forever $ trackTotalLoopTime cs $ do
+    forever $ trackTime csTotalLoopTime $ do
       GLFW.pollEvents -- before takeMVar frees game loop for another run
-      takeMVar csTexturePlacement >>= trackRenderLoopTime cs . renderGame textures window logicDim
+      receiveSpritePlacements cs >>= trackTime csRenderLoopTime . renderGame textures window logicDim

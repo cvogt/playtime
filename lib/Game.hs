@@ -27,11 +27,8 @@ makeInitialGameState Dimensions {width, height} time =
       gsLastLoopTime = time
     }
 
-maybeExitGameLoop :: Applicative m => GameState -> m (Maybe GameState)
-maybeExitGameLoop gs = pure $ if gsExitGame gs then Nothing else Just gs
-
-handleEvent :: GameState -> Event -> GameState
-handleEvent = \gs@GameState {..} -> \case
+handleGameEvent :: GameState -> Event -> GameState
+handleGameEvent = \gs@GameState {..} -> \case
   MouseEvent' (MouseEvent MouseButton'1 MouseButtonState'Pressed _) -> gs {gsPlacementMode = True}
   MouseEvent' (MouseEvent MouseButton'1 MouseButtonState'Released _) -> gs {gsPlacementMode = False}
   MouseEvent' (MouseEvent MouseButton'2 MouseButtonState'Pressed _) -> gs {gsDeleteMode = True}

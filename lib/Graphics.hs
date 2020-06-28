@@ -5,8 +5,8 @@ import My.Prelude
 import SpaceMiner.Textures
 import SpaceMiner.Types
 
-placeTextures :: GameState -> [TexturePlacements]
-placeTextures GameState {..} =
+computeSpritePlacements :: GameState -> [TexturePlacements]
+computeSpritePlacements GameState {..} =
   tiles
     <> [ TexturePlacements MainCharacter 1 1 $ pure $ gsMainCharacterPosition,
          TexturePlacements MainCharacter 2 2 $ pure $ Pos 0 0,

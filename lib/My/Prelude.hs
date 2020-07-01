@@ -17,6 +17,7 @@ module My.Prelude
     module Data.Maybe,
     module Data.Monoid,
     module Data.Ord,
+    module Data.Semigroup,
     module Data.Set,
     module Data.Time.Clock.System,
     module Data.Traversable,
@@ -34,7 +35,7 @@ where
 
 import Control.Applicative ((<*>), Applicative, pure)
 import Control.DeepSeq (NFData)
-import Control.Monad ((=<<), (>>=), Monad, fail, forever, mfilter, unless, void, when)
+import Control.Monad ((<=<), (=<<), (>>=), Monad, fail, forever, mfilter, unless, void, when)
 import Data.Bifunctor (Bifunctor, bimap, first, second)
 import Data.Bool ((&&), Bool (False, True), not, otherwise, (||))
 import Data.Char (Char)
@@ -48,8 +49,9 @@ import Data.List (drop, foldl1, foldr1, reverse, take)
 import Data.List.NonEmpty (NonEmpty ((:|)), groupWith)
 import Data.Map (Map)
 import Data.Maybe (Maybe (Just, Nothing), catMaybes, fromMaybe, isJust, isNothing, maybe)
-import Data.Monoid ((<>), mempty)
+import Data.Monoid ((<>), Monoid, mempty)
 import Data.Ord (Ord ((<), (<=), (>), (>=)))
+import Data.Semigroup (Semigroup)
 import Data.Set (Set)
 import Data.Time.Clock.System (SystemTime)
 import Data.Traversable (for, forM, sequence)

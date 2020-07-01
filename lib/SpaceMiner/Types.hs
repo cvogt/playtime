@@ -2,6 +2,8 @@
 
 module SpaceMiner.Types where
 
+import Data.Aeson (FromJSON (parseJSON), ToJSON (toJSON))
+import Data.Map as Map
 import qualified Graphics.Rendering.OpenGL.GL as GL (TextureObject)
 import qualified "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.Prelude
@@ -15,7 +17,7 @@ data Dimensions = Dimensions
 data ScaleInt = ScaleInt Int
 
 -- Event Types
-data Pos = Pos Double Double deriving (Eq, Ord, Show, Generic, NFData)
+data Pos = Pos Double Double deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON)
 
 data MouseEvent = MouseEvent
   { meButton :: GLFW.MouseButton,
@@ -43,23 +45,48 @@ data Event
 
 -- Game State Types
 
-data GameStateStrict = GameStateStrict
-
 data GameState = GameState
-  { gsBoard :: Map Pos TextureId,
-    gsPlacementMode :: Bool,
-    gsDeleteMode :: Bool,
-    gsKeysPressed :: Set GLFW.Key,
-    gsMainCharacterPosition :: Pos,
-    gsActiveTile :: TextureId,
-    gsExitGame :: Bool,
-    gsTimes :: [Integer],
-    gsFps :: Double,
-    gsCursorPos :: Pos,
-    gsLastPlacement :: Pos,
-    gsLastLoopTime :: SystemTime
+  { gsGenericGameState :: GenericGameState,
+    gsTransientGameState :: TransientGameState,
+    gsPersistentGameState :: PersistentGameState
   }
   deriving (Generic, NFData)
+
+gameExitRequested :: GameState -> Bool
+gameExitRequested (GameState GenericGameState {gsRequestedExitGame} _ _) = gsRequestedExitGame
+
+data GenericGameState = GenericGameState
+  { gsCursorPos :: Pos,
+    gsFps :: Double,
+    gsKeysPressed :: Set GLFW.Key,
+    gsLastLoopTime :: SystemTime,
+    gsRequestedExitGame :: Bool,
+    gsRequestedLoadGame :: Bool,
+    gsRequestedResetGame :: Bool,
+    gsRequestedSaveGame :: Bool,
+    gsTimes :: [Integer]
+  }
+  deriving (Generic, NFData)
+
+data TransientGameState = TransientGameState
+  { gsDeleteMode :: Bool,
+    gsLastPlacement :: Pos,
+    gsPlacementMode :: Bool
+  }
+  deriving (Generic, NFData)
+
+newtype Board = Board {unBoard :: Map Pos TextureId} deriving newtype (Semigroup, Monoid, NFData)
+
+instance FromJSON Board where parseJSON = fmap (Board . Map.fromList) . parseJSON
+
+instance ToJSON Board where toJSON = toJSON . Map.toList . unBoard
+
+data PersistentGameState = PersistentGameState
+  { gsActiveTile :: TextureId,
+    gsBoard :: Board,
+    gsMainCharacterPosition :: Pos
+  }
+  deriving (Generic, NFData, ToJSON, FromJSON)
 
 -- Textures Types
 data Texture = Texture (Int, Int) GL.TextureObject deriving (Show, Eq)

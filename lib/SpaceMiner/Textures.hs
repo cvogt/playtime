@@ -1,5 +1,6 @@
 module SpaceMiner.Textures where
 
+import Data.Aeson (FromJSON, ToJSON)
 import Data.FileEmbed
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -10,7 +11,7 @@ data TextureId
   = MainCharacter
   | FloorPlate
   | TopWall
-  deriving (Eq, Ord, Show, Generic, NFData)
+  deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON)
 
 textureNameMap :: Map TextureId [Char]
 textureNameMap =

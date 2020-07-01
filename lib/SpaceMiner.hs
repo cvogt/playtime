@@ -1,5 +1,8 @@
 module SpaceMiner where
 
+import Data.Aeson (eitherDecode, encode)
+import qualified Data.ByteString.Lazy as BSL
+import Data.FileEmbed
 import Game
 import Graphics
 import qualified "GLFW-b" Graphics.UI.GLFW as GLFW
@@ -32,10 +35,12 @@ main = do
   void $ forkIO $ do
     flip unfoldM_ igs $ \ogs -> do
       events <- fetchEvents cs
-      let ngs = foldl handleGameEvent ogs events
+      let tgs = appleEventsToGameState events ogs
+      gsLoaded <- saveOrLoadIfRequested tgs
+      let ngs = fromMaybe tgs gsLoaded
       sendGameState cs ngs
       sendSpritePlacements cs $ computeSpritePlacements ngs
-      pure $ if gsExitGame ngs then Nothing else Just ngs
+      pure $ if gameExitRequested ngs then Nothing else Just ngs
     exitSuccess
 
   -- open gl rendering loop
@@ -45,3 +50,13 @@ main = do
     forever $ trackTime csTotalLoopTime $ do
       GLFW.pollEvents -- before takeMVar frees game loop for another run
       receiveSpritePlacements cs >>= trackTime csRenderLoopTime . renderGame textures window logicDim
+  where
+    saveLocation = $(makeRelativeToProject "savegame.json" >>= strToExp)
+    saveOrLoadIfRequested gameState@(GameState GenericGameState {gsRequestedSaveGame, gsRequestedLoadGame} _ persistentGameState) =
+      if gsRequestedLoadGame
+        then do
+          npgs <- either fail pure . eitherDecode . BSL.fromStrict =<< readFile saveLocation
+          pure $ Just gameState {gsPersistentGameState = npgs}
+        else do
+          when gsRequestedSaveGame $ writeFile saveLocation $ BSL.toStrict $ encode $ persistentGameState
+          pure Nothing

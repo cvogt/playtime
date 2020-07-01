@@ -18,7 +18,7 @@ forkDebugTerminal ConcurrentState {..} = do
   vty <- Vty.mkVty cfg
   flip forkFinally (\_ -> Vty.shutdown vty) $ do
     flip iterateM_ (0, 0, 0, 0) $ \(oldAvgGameLoopTime, oldAvgTexturePlacementTime, oldAvgRenderLoopTime, oldAvgTotalLoopTime) -> do
-      GameState {..} <- readMVar csGameState
+      GameState GenericGameState {..} TransientGameState {..} PersistentGameState {..} <- readMVar csGameState
       gameLoopTimes <- modifyMVar csGameLoopTime $ \t -> pure ([], t)
       texturePlacementTimes <- modifyMVar csTexturePlacementTime $ \t -> pure ([], t)
       renderLoopTimes <- modifyMVar csRenderLoopTime $ \t -> pure ([], t)
@@ -37,8 +37,9 @@ forkDebugTerminal ConcurrentState {..} = do
                 "1/gameLoopTime: " <> show newAvgGameLoopTime,
                 "opengl pos: " <> show (x, y),
                 "main char: " <> show (x', y'),
+                "keys: " <> show gsKeysPressed,
                 "last places sprite location: " <> show gsLastPlacement,
-                "sprite count: " <> show (Map.size gsBoard)
+                "sprite count: " <> show (Map.size $ unBoard gsBoard)
               ]
 
       threadDelay $ 500 * 1000 -- FIXME: changing this to 100 * make process freeze on exit

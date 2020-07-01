@@ -6,7 +6,7 @@ import SpaceMiner.Textures
 import SpaceMiner.Types
 
 computeSpritePlacements :: GameState -> [TexturePlacements]
-computeSpritePlacements GameState {..} =
+computeSpritePlacements (GameState GenericGameState {..} TransientGameState {..} PersistentGameState {..}) =
   tiles
     <> [ TexturePlacements MainCharacter 1 1 $ pure $ gsMainCharacterPosition,
          TexturePlacements MainCharacter 2 2 $ pure $ Pos 0 0,
@@ -14,4 +14,4 @@ computeSpritePlacements GameState {..} =
        ]
   where
     tiles =
-      (groupWith snd $ Map.toList $ gsBoard) <&> \ne@((_, t) :| _) -> TexturePlacements t 1 1 $ fst <$> ne
+      (groupWith snd $ Map.toList $ unBoard gsBoard) <&> \ne@((_, t) :| _) -> TexturePlacements t 1 1 $ fst <$> ne

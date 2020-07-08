@@ -33,14 +33,14 @@ main = do
 
   -- game state loop
   void $ forkIO $ do
-    flip unfoldM_ igs $ \ogs -> do
+    flip unfoldM_ igs $ \old_gs -> do
       events <- fetchEvents cs
-      let tgs = appleEventsToGameState events ogs
-      gsLoaded <- saveOrLoadIfRequested tgs
-      let ngs = fromMaybe tgs gsLoaded
-      sendGameState cs ngs
-      sendSpritePlacements cs $ computeSpritePlacements ngs
-      pure $ if gameExitRequested ngs then Nothing else Just ngs
+      let new_gs = appleEventsToGameState events old_gs
+      saveMay new_gs
+      final_gs <- fromMaybe t <$> loadMay new_gs
+      sendGameState cs final_gs
+      sendSpritePlacements cs $ computeSpritePlacements final_gs
+      pure $ if gameExitRequested final_gs then Nothing else Just final_gs
     exitSuccess
 
   -- open gl rendering loop
@@ -52,11 +52,14 @@ main = do
       receiveSpritePlacements cs >>= trackTime csRenderLoopTime . renderGame textures window logicDim
   where
     saveLocation = $(makeRelativeToProject "savegame.json" >>= strToExp)
-    saveOrLoadIfRequested gameState@(GameState GenericGameState {gsInputActions} _ persistentGameState) =
-      if OneTimeAction Load `setMember` gsInputActions
+
+    saveMay gameState@(GameState GenericGameState {gsActions} _ persistentGameState) =
+      when (OneTimeEffect Save `setMember` gsActions) $ writeFile saveLocation $ BSL.toStrict $ encode $ persistentGameState
+
+    loadMay gameState@(GameState GenericGameState {gsActions} _ persistentGameState) =
+      if OneTimeEffect Load `setMember` gsActions
         then do
           npgs <- either fail pure . eitherDecode . BSL.fromStrict =<< readFile saveLocation
           pure $ Just gameState {gsPersistentGameState = npgs}
-        else do
-          when (OneTimeAction Save `setMember` gsInputActions) $ writeFile saveLocation $ BSL.toStrict $ encode $ persistentGameState
-          pure Nothing
+      else
+        pure Nothing

@@ -36,38 +36,48 @@ data GameState = GameState
   deriving (Generic, NFData)
 
 gameExitRequested :: GameState -> Bool
-gameExitRequested (GameState GenericGameState {gsInputActions} _ _) = OneTimeAction Exit `elem` gsInputActions
+gameExitRequested (GameState GenericGameState {gsActions} _ _) = OneTimeEffect Exit `elem` gsActions
 
-data OneTimeAction' = Load | Save | Exit | Reset deriving (Eq, Ord, Generic, NFData)
+data OneTimeEffect' = Load | Save | Exit | Reset deriving (Eq, Ord, Generic, NFData)
 
 data MovementAction' = Up | Down | Left' | Right' deriving (Eq, Ord, Generic, NFData)
 
-data InputAction = OneTimeAction OneTimeAction' | MovementAction MovementAction' deriving (Eq, Ord, Generic, NFData)
+data Action = OneTimeEffect OneTimeEffect' | MovementAction MovementAction' deriving (Eq, Ord, Generic, NFData)
 
-oneTimeAction :: InputAction -> Maybe OneTimeAction'
-oneTimeAction (OneTimeAction v) = Just v
-oneTimeAction _ = Nothing
+outputEventMay :: Action -> Maybe OneTimeEffect'
+outputEventMay (OneTimeEffect v) = Just v
+outputEventMay _ = Nothing
 
-movementAction :: InputAction -> Maybe MovementAction'
+movementAction :: Action -> Maybe MovementAction'
 movementAction (MovementAction v) = Just v
 movementAction _ = Nothing
 
 data Mode = PlacementMode | DeleteMode deriving (Eq, Ord, Generic, NFData)
 
-class Has a b where get :: a -> b
+class Has a b where
+  get :: a -> b
+  set :: a -> b -> a
+  update :: a -> (b -> b) -> a
+  update a f = set a $ f $ get a
 
-instance Has GameState GenericGameState where get = gsGenericGameState
+instance Has GameState GenericGameState where
+  get = gsGenericGameState
+  set gs b = gs{ gsGenericGameState = b}
 
-instance Has GameState TransientGameState where get = gsTransientGameState
+instance Has GameState TransientGameState where
+  get = gsTransientGameState
+  set gs b = gs{ gsTransientGameState = b}
 
-instance Has GameState PersistentGameState where get = gsPersistentGameState
+instance Has GameState PersistentGameState where
+  get = gsPersistentGameState
+  set gs b = gs{ gsPersistentGameState = b}
 
 data GenericGameState = GenericGameState
   { gsCursorPos :: Pos,
     gsFps :: Double,
     gsKeysPressed :: Set GLFW.Key,
     gsLastLoopTime :: SystemTime,
-    gsInputActions :: Set InputAction,
+    gsActions :: Set Action,
     gsTimes :: [Integer]
   }
   deriving (Generic, NFData)

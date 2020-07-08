@@ -1,37 +1,4 @@
-module My.Prelude
-  ( module Control.Applicative,
-    module Control.DeepSeq,
-    module Control.Monad,
-    module Data.Bifunctor,
-    module Data.Bool,
-    module Data.Char,
-    module Data.Either,
-    module Data.Eq,
-    module Data.Foldable,
-    module Data.Function,
-    module Data.Functor,
-    module Data.Int,
-    module Data.List,
-    module Data.List.NonEmpty,
-    module Data.Map,
-    module Data.Maybe,
-    module Data.Monoid,
-    module Data.Ord,
-    module Data.Semigroup,
-    module Data.Set,
-    module Data.Time.Clock.System,
-    module Data.Traversable,
-    module Data.Tuple,
-    module Foreign,
-    module GHC.Float,
-    module GHC.Generics,
-    module GHC.Integer,
-    module GHC.Num,
-    module GHC.Show,
-    module My.Prelude,
-    module Safe,
-  )
-where
+module My.Prelude where
 
 import Control.Applicative ((<*>), Applicative, pure)
 import Control.DeepSeq (NFData)

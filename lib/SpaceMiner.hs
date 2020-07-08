@@ -52,11 +52,11 @@ main = do
       receiveSpritePlacements cs >>= trackTime csRenderLoopTime . renderGame textures window logicDim
   where
     saveLocation = $(makeRelativeToProject "savegame.json" >>= strToExp)
-    saveOrLoadIfRequested gameState@(GameState GenericGameState {gsRequestedSaveGame, gsRequestedLoadGame} _ persistentGameState) =
-      if gsRequestedLoadGame
+    saveOrLoadIfRequested gameState@(GameState GenericGameState {gsInputActions} _ persistentGameState) =
+      if OneTimeAction Load `setMember` gsInputActions
         then do
           npgs <- either fail pure . eitherDecode . BSL.fromStrict =<< readFile saveLocation
           pure $ Just gameState {gsPersistentGameState = npgs}
         else do
-          when gsRequestedSaveGame $ writeFile saveLocation $ BSL.toStrict $ encode $ persistentGameState
+          when (OneTimeAction Save `setMember` gsInputActions) $ writeFile saveLocation $ BSL.toStrict $ encode $ persistentGameState
           pure Nothing

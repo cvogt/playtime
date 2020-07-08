@@ -35,7 +35,7 @@ where
 
 import Control.Applicative ((<*>), Applicative, pure)
 import Control.DeepSeq (NFData)
-import Control.Monad ((<=<), (=<<), (>>=), Monad, fail, forever, mfilter, unless, void, when)
+import Control.Monad ((<=<), (=<<), (>>=), Monad, fail, forever, join, mfilter, unless, void, when)
 import Data.Bifunctor (Bifunctor, bimap, first, second)
 import Data.Bool ((&&), Bool (False, True), not, otherwise, (||))
 import Data.Char (Char)
@@ -45,14 +45,16 @@ import Data.Foldable (Foldable, elem, find, fold, foldl, forM_, for_, length, nu
 import Data.Function (($), (.), flip)
 import Data.Functor ((<$>), (<&>), fmap)
 import Data.Int (Int)
-import Data.List (drop, foldl1, foldr1, reverse, take)
-import Data.List.NonEmpty (NonEmpty ((:|)), groupWith)
+import Data.List (drop, filter, foldl1, foldr1, reverse, take)
+import Data.List.NonEmpty (NonEmpty ((:|)), groupAllWith, groupBy, groupWith)
 import Data.Map (Map)
+import qualified Data.Map as Map
 import Data.Maybe (Maybe (Just, Nothing), catMaybes, fromMaybe, isJust, isNothing, maybe)
 import Data.Monoid ((<>), Monoid, mempty)
 import Data.Ord (Ord ((<), (<=), (>), (>=)))
 import Data.Semigroup (Semigroup)
-import Data.Set (Set)
+import Data.Set (Set, difference, union)
+import qualified Data.Set as Set
 import Data.Time.Clock.System (SystemTime)
 import Data.Traversable (for, forM, sequence)
 import Data.Tuple (fst, snd, uncurry)
@@ -66,3 +68,30 @@ import Safe (headMay, lastMay)
 
 both :: Data.Bifunctor.Bifunctor p => (a -> d) -> p a a -> p d d
 both f = bimap f f
+
+mapDelete :: Ord k => k -> Map k a -> Map k a
+mapDelete = Map.delete
+
+mapFromList :: Ord k => [(k, a)] -> Map k a
+mapFromList = Map.fromList
+
+mapInsert :: Ord k => k -> a -> Map k a -> Map k a
+mapInsert = Map.insert
+
+mapLookup :: Ord k => k -> Map k a -> Maybe a
+mapLookup = Map.lookup
+
+mapToList :: Map k a -> [(k, a)]
+mapToList = Map.toList
+
+setDelete :: Ord a => a -> Set a -> Set a
+setDelete = Set.delete
+
+setFromList :: Ord a => [a] -> Set a
+setFromList = Set.fromList
+
+setInsert :: Ord a => a -> Set a -> Set a
+setInsert = Set.insert
+
+setMember :: Ord a => a -> Set a -> Bool
+setMember = Set.member

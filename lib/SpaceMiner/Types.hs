@@ -3,7 +3,6 @@
 module SpaceMiner.Types where
 
 import Data.Aeson (FromJSON (parseJSON), ToJSON (toJSON))
-import Data.Map as Map
 import qualified Graphics.Rendering.OpenGL.GL as GL (TextureObject)
 import qualified "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.Prelude
@@ -19,27 +18,11 @@ data ScaleInt = ScaleInt Int
 -- Event Types
 data Pos = Pos Double Double deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON)
 
-data MouseEvent = MouseEvent
-  { meButton :: GLFW.MouseButton,
-    meButtonState :: GLFW.MouseButtonState,
-    meModifierKeys :: GLFW.ModifierKeys
-  }
-  deriving (Show)
-
-data KeyEvent = KeyEvent
-  { keKey :: GLFW.Key,
-    keKeyState :: GLFW.KeyState,
-    keModifierKeys :: GLFW.ModifierKeys
-  }
-  deriving (Show)
-
-data CursorPosEvent = CursorPosEvent Pos deriving (Show)
-
 data Event
   = GameLoopEvent SystemTime
-  | MouseEvent' MouseEvent
-  | KeyEvent' KeyEvent
-  | CursorPosEvent' CursorPosEvent
+  | MouseEvent GLFW.MouseButton GLFW.MouseButtonState
+  | KeyEvent GLFW.Key GLFW.KeyState
+  | CursorPosEvent Pos
   | WindowCloseEvent
   deriving (Show)
 
@@ -53,33 +36,53 @@ data GameState = GameState
   deriving (Generic, NFData)
 
 gameExitRequested :: GameState -> Bool
-gameExitRequested (GameState GenericGameState {gsRequestedExitGame} _ _) = gsRequestedExitGame
+gameExitRequested (GameState GenericGameState {gsInputActions} _ _) = OneTimeAction Exit `elem` gsInputActions
+
+data OneTimeAction' = Load | Save | Exit | Reset deriving (Eq, Ord, Generic, NFData)
+
+data MovementAction' = Up | Down | Left' | Right' deriving (Eq, Ord, Generic, NFData)
+
+data InputAction = OneTimeAction OneTimeAction' | MovementAction MovementAction' deriving (Eq, Ord, Generic, NFData)
+
+oneTimeAction :: InputAction -> Maybe OneTimeAction'
+oneTimeAction (OneTimeAction v) = Just v
+oneTimeAction _ = Nothing
+
+movementAction :: InputAction -> Maybe MovementAction'
+movementAction (MovementAction v) = Just v
+movementAction _ = Nothing
+
+data Mode = PlacementMode | DeleteMode deriving (Eq, Ord, Generic, NFData)
+
+class Has a b where get :: a -> b
+
+instance Has GameState GenericGameState where get = gsGenericGameState
+
+instance Has GameState TransientGameState where get = gsTransientGameState
+
+instance Has GameState PersistentGameState where get = gsPersistentGameState
 
 data GenericGameState = GenericGameState
   { gsCursorPos :: Pos,
     gsFps :: Double,
     gsKeysPressed :: Set GLFW.Key,
     gsLastLoopTime :: SystemTime,
-    gsRequestedExitGame :: Bool,
-    gsRequestedLoadGame :: Bool,
-    gsRequestedResetGame :: Bool,
-    gsRequestedSaveGame :: Bool,
+    gsInputActions :: Set InputAction,
     gsTimes :: [Integer]
   }
   deriving (Generic, NFData)
 
 data TransientGameState = TransientGameState
-  { gsDeleteMode :: Bool,
-    gsLastPlacement :: Pos,
-    gsPlacementMode :: Bool
+  { gsLastPlacement :: Pos,
+    gsModes :: Set Mode
   }
   deriving (Generic, NFData)
 
 newtype Board = Board {unBoard :: Map Pos TextureId} deriving newtype (Semigroup, Monoid, NFData)
 
-instance FromJSON Board where parseJSON = fmap (Board . Map.fromList) . parseJSON
+instance FromJSON Board where parseJSON = fmap (Board . mapFromList) . parseJSON
 
-instance ToJSON Board where toJSON = toJSON . Map.toList . unBoard
+instance ToJSON Board where toJSON = toJSON . mapToList . unBoard
 
 data PersistentGameState = PersistentGameState
   { gsActiveTile :: TextureId,

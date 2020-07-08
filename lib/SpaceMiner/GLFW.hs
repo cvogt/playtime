@@ -29,10 +29,10 @@ withGLFW Dimensions {width, height} (ScaleInt windowScalingFactor) title glCode 
 
 startCaptureEvents :: GLFW.Window -> Dimensions -> ConcurrentState -> IO ()
 startCaptureEvents window Dimensions {width = logicWidth, height = logicHeight} ConcurrentState {csEvents} = do
-  GLFW.setMouseButtonCallback window $ Just $ \_ button state modifiers -> do
-    modifyMVar_ csEvents $ pure . ((MouseEvent' $ MouseEvent button state modifiers) :)
-  GLFW.setKeyCallback window $ Just $ \_ key _scancode keyState modifiers ->
-    modifyMVar_ csEvents $ pure . ((KeyEvent' $ KeyEvent key keyState modifiers) :)
+  GLFW.setMouseButtonCallback window $ Just $ \_ button state _modifiers -> do
+    modifyMVar_ csEvents $ pure . (MouseEvent button state :)
+  GLFW.setKeyCallback window $ Just $ \_ key _scancode keyState _modifiers ->
+    modifyMVar_ csEvents $ pure . (KeyEvent key keyState :)
   GLFW.setCursorPosCallback window $ Just $ \window' x y -> do
     -- this ratio calculation leads to proper relative scaling on window resize
     -- FIXME: we still get distortion if aspect ration of resized window is different
@@ -40,6 +40,6 @@ startCaptureEvents window Dimensions {width = logicWidth, height = logicHeight} 
     (actualWidth, actualHeight) <- GLFW.getWindowSize window'
     let w = int2Double actualWidth / int2Double logicWidth
         h = int2Double actualHeight / int2Double logicHeight
-    modifyMVar_ csEvents $ pure . ((CursorPosEvent' $ CursorPosEvent $ Pos (x / w) (y / h)) :)
+    modifyMVar_ csEvents $ pure . ((CursorPosEvent $ Pos (x / w) (y / h)) :)
   GLFW.setWindowCloseCallback window $ Just $ \_ ->
     modifyMVar_ csEvents $ pure . (WindowCloseEvent :)

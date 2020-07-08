@@ -1,7 +1,7 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 module Game where
 
-import qualified Data.Map as Map
-import qualified Data.Set as Set
 import GHC.Float (int2Double)
 import GHC.Real ((/), floor, fromIntegral)
 import "GLFW-b" Graphics.UI.GLFW
@@ -18,16 +18,12 @@ makeInitialGameState Dimensions {width, height} time =
         gsFps = 0,
         gsKeysPressed = mempty,
         gsLastLoopTime = time,
-        gsRequestedExitGame = False,
-        gsRequestedLoadGame = False,
-        gsRequestedResetGame = False,
-        gsRequestedSaveGame = False,
+        gsInputActions = mempty,
         gsTimes = []
       }
     TransientGameState
-      { gsDeleteMode = False,
-        gsPlacementMode = False,
-        gsLastPlacement = Pos 0 0
+      { gsLastPlacement = Pos 0 0,
+        gsModes = mempty
       }
     PersistentGameState
       { gsActiveTile = FloorPlate,
@@ -35,100 +31,115 @@ makeInitialGameState Dimensions {width, height} time =
         gsMainCharacterPosition = Pos (int2Double width / 2) (int2Double height / 2)
       }
 
+keyBindings :: Map Key [(Set Key, InputAction)]
+keyBindings = mapFromList $ groups <&> \l@(h :| _) -> (fst h, first setFromList <$> (join . toList $ snd <$> l))
+  where
+    groups :: [NonEmpty (Key, [([Key], InputAction)])]
+    groups = groupAllWith fst $ join $ keyBindingsRaw <&> (\b@(keys, _) -> (,[b]) <$> keys)
+    keyBindingsRaw :: [([Key], InputAction)]
+    keyBindingsRaw =
+      [ ([Key'LeftSuper, Key'Q], OneTimeAction Exit),
+        ([Key'Escape], OneTimeAction Exit),
+        ([Key'LeftSuper, Key'L], OneTimeAction Load),
+        ([Key'LeftSuper, Key'S], OneTimeAction Save),
+        ([Key'LeftSuper, Key'R], OneTimeAction Reset),
+        ([Key'W], MovementAction Up),
+        ([Key'S], MovementAction Down),
+        ([Key'A], MovementAction Left'),
+        ([Key'D], MovementAction Right')
+      ]
+
 appleEventsToGameState :: [Event] -> GameState -> GameState
 appleEventsToGameState events gameState =
-  foldl
-    handleGameEvent
-    gameState
-      { gsGenericGameState =
-          (gsGenericGameState gameState)
-            { gsRequestedSaveGame = False,
-              gsRequestedLoadGame = False,
-              gsRequestedExitGame = False
-            }
-      }
-    events
+  let ggs = gsGenericGameState gameState
+   in foldl
+        handleGameEvent
+        gameState {gsGenericGameState = (gsGenericGameState gameState) {gsInputActions = gsInputActions ggs `difference` (setFromList $ fmap OneTimeAction $ catMaybes $ fmap oneTimeAction $ toList $ gsInputActions ggs)}}
+        events
   where
-    handleGameEvent :: GameState -> Event -> GameState
-    handleGameEvent (GameState ggs@GenericGameState {..} tgs@TransientGameState {..} pgs@PersistentGameState {..}) event =
-      GameState newGeneric newTransient newPersistent
-      where
-        newGeneric =
-          let gs = ggs
-           in case event of
-                CursorPosEvent' (CursorPosEvent pos) -> gs {gsCursorPos = pos}
-                KeyEvent' keyEvent -> case keyEvent of
-                  KeyEvent key KeyState'Pressed ModifierKeys {modifierKeysSuper = True} -> case key of
-                    Key'L -> gs {gsRequestedLoadGame = True}
-                    Key'S -> gs {gsRequestedSaveGame = True}
-                    _ -> gs
-                  KeyEvent Key'Escape KeyState'Pressed _ -> gs {gsRequestedExitGame = True}
-                  KeyEvent key KeyState'Pressed _ ->
-                    gs {gsKeysPressed = Set.insert key gsKeysPressed}
-                  KeyEvent key KeyState'Released _ ->
-                    gs {gsKeysPressed = Set.delete key gsKeysPressed}
+    handleGameEvent :: (Has a GenericGameState, Has a TransientGameState, Has a PersistentGameState) => a -> Event -> GameState
+    handleGameEvent a event =
+      let ggs@GenericGameState {..} = get a
+          tgs@TransientGameState {..} = get a
+          pgs@PersistentGameState {..} = get a
+          newGeneric =
+            let gs = ggs
+             in case event of
+                  CursorPosEvent pos -> gs {gsCursorPos = pos}
+                  KeyEvent key KeyState'Pressed ->
+                    let pressed = setInsert key gsKeysPressed
+                        matchingBindings = fromMaybe [] $ mapLookup key keyBindings
+                        actions = setFromList $ take 1 $ snd <$> filter (null . (`difference` pressed) . fst) matchingBindings
+                     in gs {gsKeysPressed = pressed, gsInputActions = gsInputActions `union` actions}
+                  KeyEvent key KeyState'Released ->
+                    let pressed = setInsert key gsKeysPressed
+                        matchingBindings = fromMaybe [] $ mapLookup key keyBindings
+                        actions = setFromList $ take 1 $ snd <$> filter (null . (`difference` pressed) . fst) matchingBindings
+                     in gs {gsKeysPressed = setDelete key gsKeysPressed, gsInputActions = gsInputActions `difference` actions}
+                  WindowCloseEvent -> gs {gsInputActions = setFromList [OneTimeAction Exit, OneTimeAction Save] `union` gsInputActions}
+                  GameLoopEvent time ->
+                    let picosecs = timeDiffPico gsLastLoopTime time
+                        halfsec = 500 * 1000 * 1000 * 1000
+                     in gs
+                          { gsLastLoopTime = time,
+                            gsTimes = if sum gsTimes > halfsec then [] else picosecs : gsTimes,
+                            gsFps = if sum gsTimes > halfsec then avg gsTimes else gsFps
+                          }
                   _ -> gs
-                WindowCloseEvent -> gs {gsRequestedExitGame = True, gsRequestedSaveGame = True}
-                GameLoopEvent time ->
-                  let picosecs = timeDiffPico gsLastLoopTime time
-                      halfsec = 500 * 1000 * 1000 * 1000
-                   in gs
-                        { gsLastLoopTime = time,
-                          gsTimes = if sum gsTimes > halfsec then [] else picosecs : gsTimes,
-                          gsFps = if sum gsTimes > halfsec then avg gsTimes else gsFps
-                        }
-                _ -> gs
-        newTransient =
-          let gs = tgs
-           in case event of
-                MouseEvent' me -> case me of
-                  MouseEvent mb MouseButtonState'Pressed _ -> case mb of
-                    MouseButton'1 -> gs {gsPlacementMode = True}
-                    MouseButton'2 -> gs {gsDeleteMode = True}
+          newTransient =
+            let gs = tgs
+             in case event of
+                  MouseEvent mb MouseButtonState'Pressed -> case mb of
+                    MouseButton'1 -> gs {gsModes = setInsert PlacementMode gsModes}
+                    MouseButton'2 -> gs {gsModes = setInsert DeleteMode gsModes}
                     _ -> gs
-                  MouseEvent mb MouseButtonState'Released _ -> case mb of
-                    MouseButton'1 -> gs {gsPlacementMode = False}
-                    MouseButton'2 -> gs {gsDeleteMode = False}
+                  MouseEvent mb MouseButtonState'Released -> case mb of
+                    MouseButton'1 -> gs {gsModes = setDelete PlacementMode gsModes}
+                    MouseButton'2 -> gs {gsModes = setDelete DeleteMode gsModes}
                     _ -> gs
-                GameLoopEvent _ ->
-                  let gridsize :: Double
-                      gridsize = 12
-                      gridify :: Double -> Double
-                      gridify = (* gridsize) . int2Double . floor . (/ gridsize)
-                      placement = case gsCursorPos of Pos x' y' -> Pos (gridify x') (gridify y')
-                   in gs {gsLastPlacement = placement}
-                _ -> gs
-        newPersistent =
-          let gs = pgs
-           in case event of
-                KeyEvent' (KeyEvent key KeyState'Pressed _) ->
-                  gs
-                    { gsActiveTile = case key of
-                        Key'1 -> FloorPlate
-                        Key'2 -> TopWall
-                        _ -> gsActiveTile
-                    }
-                GameLoopEvent time ->
-                  let picosecs = timeDiffPico gsLastLoopTime time
-                      timePassed = int2Double (fromIntegral picosecs) / 1000 / 1000 / 1000 / 1000
-                      distancePerSec = 100
-                      d = timePassed * distancePerSec
-                      Pos x y = gsMainCharacterPosition
-                      newY = if elem Key'W gsKeysPressed then y - d else if elem Key'S gsKeysPressed then y + d else y
-                      newX = if elem Key'A gsKeysPressed then x - d else if elem Key'D gsKeysPressed then x + d else x
-                      gridsize :: Double
-                      gridsize = 12
-                      gridify :: Double -> Double
-                      gridify = (* gridsize) . int2Double . floor . (/ gridsize)
-                      placement = case gsCursorPos of Pos x' y' -> Pos (gridify x') (gridify y')
-                   in gs
-                        { gsMainCharacterPosition = Pos newX newY,
-                          gsBoard =
-                            if gsPlacementMode
-                              then Board $ Map.insert placement gsActiveTile (unBoard gsBoard)
-                              else
-                                if gsDeleteMode
-                                  then Board $ Map.delete placement (unBoard gsBoard)
-                                  else gsBoard
-                        }
-                _ -> gs
+                  GameLoopEvent _ ->
+                    let gridsize :: Double
+                        gridsize = 12
+                        gridify :: Double -> Double
+                        gridify = (* gridsize) . int2Double . floor . (/ gridsize)
+                        placement = case gsCursorPos of Pos x' y' -> Pos (gridify x') (gridify y')
+                     in gs {gsLastPlacement = placement}
+                  _ -> gs
+          newPersistent =
+            let gs = pgs
+             in case event of
+                  KeyEvent key KeyState'Pressed ->
+                    gs
+                      { gsActiveTile = case key of
+                          Key'1 -> FloorPlate
+                          Key'2 -> TopWall
+                          _ -> gsActiveTile
+                      }
+                  GameLoopEvent time ->
+                    if OneTimeAction Reset `setMember` gsInputActions
+                      then gs {gsBoard = mempty}
+                      else
+                        let picosecs = timeDiffPico gsLastLoopTime time
+                            timePassed = int2Double (fromIntegral picosecs) / 1000 / 1000 / 1000 / 1000
+                            distancePerSec = 100
+                            d = timePassed * distancePerSec
+                            Pos x y = gsMainCharacterPosition
+                            newY = if MovementAction Up `setMember` gsInputActions then y - d else if MovementAction Down `setMember` gsInputActions then y + d else y
+                            newX = if MovementAction Left' `setMember` gsInputActions then x - d else if MovementAction Right' `setMember` gsInputActions then x + d else x
+                            gridsize :: Double
+                            gridsize = 12
+                            gridify :: Double -> Double
+                            gridify = (* gridsize) . int2Double . floor . (/ gridsize)
+                            placement = case gsCursorPos of Pos x' y' -> Pos (gridify x') (gridify y')
+                         in gs
+                              { gsMainCharacterPosition = Pos newX newY,
+                                gsBoard =
+                                  if PlacementMode `setMember` gsModes
+                                    then Board $ mapInsert placement gsActiveTile (unBoard gsBoard)
+                                    else
+                                      if DeleteMode `setMember` gsModes
+                                        then Board $ mapDelete placement (unBoard gsBoard)
+                                        else gsBoard
+                              }
+                  _ -> gs
+       in GameState newGeneric newTransient newPersistent

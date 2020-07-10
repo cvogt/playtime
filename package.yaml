@@ -37,6 +37,7 @@ dependencies:
 - extra
 - monad-extras
 - monad-loops
+- universum
 
 # formatting
 - ormolu
@@ -56,6 +57,7 @@ default-extensions:
 - DeriveAnyClass
 - DeriveGeneric
 - DerivingStrategies
+- FlexibleContexts
 - FlexibleInstances
 - GeneralizedNewtypeDeriving
 - LambdaCase
@@ -76,7 +78,10 @@ default-extensions:
 library:
   source-dirs: lib
 
-ghc-options: -O0 -j -Wall -Werror -optP-Wno-nonportable-include-path
+ghc-options:
+  -O0 -j
+  -Wall -Werror
+  -optP-Wno-nonportable-include-path
 
 executables:
   spaceminer:

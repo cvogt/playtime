@@ -1,4 +1,39 @@
-module My.Prelude where
+module My.Prelude
+  ( module Control.Applicative,
+    module Control.DeepSeq,
+    module Control.Monad,
+    module Data.Bifunctor,
+    module Data.Bool,
+    module Data.Char,
+    module Data.Either,
+    module Data.Eq,
+    module Data.Foldable,
+    module Data.Function,
+    module Data.Functor,
+    module Data.Int,
+    module Data.List,
+    module Data.List.NonEmpty,
+    module Data.Map,
+    module Data.Maybe,
+    module Data.Monoid,
+    module Data.Ord,
+    module Data.Semigroup,
+    module Data.Set,
+    module Data.Time.Clock.System,
+    module Data.Traversable,
+    module Data.Tuple,
+    module Foreign,
+    module GHC.Float,
+    module GHC.Generics,
+    module GHC.Integer,
+    module GHC.Num,
+    module GHC.Show,
+    module My.Prelude,
+    module Safe,
+    module Safe.Foldable,
+    module Universum,
+  )
+where
 
 import Control.Applicative ((<*>), Applicative, pure)
 import Control.DeepSeq (NFData)
@@ -10,9 +45,9 @@ import Data.Either (Either (Left, Right), either)
 import Data.Eq (Eq ((==)))
 import Data.Foldable (Foldable, elem, find, fold, foldl, forM_, for_, length, null, sum, toList)
 import Data.Function (($), (.), flip, id)
-import Data.Functor ((<$>), (<&>), fmap)
+import Data.Functor ((<$>), (<&>), Functor, fmap)
 import Data.Int (Int)
-import Data.List (drop, filter, foldl1, foldr1, reverse, take)
+import Data.List (drop, filter, reverse, take) -- UNSAFE, DO NOT IMPORT: foldl1, foldr1
 import Data.List.NonEmpty (NonEmpty ((:|)), groupAllWith, groupBy, groupWith)
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -32,9 +67,8 @@ import GHC.Integer (Integer)
 import GHC.Num ((*), (+), (-), subtract)
 import GHC.Show (Show (show))
 import Safe (headMay, lastMay)
-
-both :: Data.Bifunctor.Bifunctor p => (a -> d) -> p a a -> p d d
-both f = bimap f f
+import Safe.Foldable (foldl1Safe, foldr1Safe)
+import Universum (foldl1, foldr1)
 
 mapDelete :: Ord k => k -> Map k a -> Map k a
 mapDelete = Map.delete
@@ -62,3 +96,15 @@ setInsert = Set.insert
 
 setMember :: Ord a => a -> Set a -> Bool
 setMember = Set.member
+
+-- similar to both in lens
+both :: Data.Bifunctor.Bifunctor p => (a -> d) -> p a a -> p d d
+both f = bimap f f
+
+-- similar to (??) in lens
+(??) :: Functor f => f (a -> b) -> a -> f b
+(??) ff x = (\f -> f x) <$> ff
+
+-- named version of (??), name inspired by relude
+flap :: Functor f => f (a -> b) -> a -> f b
+flap = (??)

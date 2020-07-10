@@ -1,5 +1,3 @@
-{-# LANGUAGE FlexibleContexts #-}
-
 module Game where
 
 import GHC.Float (int2Double)
@@ -51,19 +49,16 @@ keyBindings = mapFromList $ groups <&> \l@(h :| _) -> (fst h, first setFromList 
 
 applyEventsToGameState :: [Event] -> GameState -> GameState
 applyEventsToGameState events gameState =
-  let ggs = gsGenericGameState gameState
-   in foldl
-        (\gs event -> (foldl (.) id $ ($ event) <$> [applyToGenericGameState, applyToTransientGameState, applyToPersistentGameState]) gs)
-        -- (update gameState $ \ggs -> ggs{ gsActions =
-        --   gsActions ggs `difference`
-        --     (setFromList $ fmap OneTimeEffect $ catMaybes $ fmap oneTimeEffectMay $ toList $ gsActions ggs) })
-        gameState
-          { gsGenericGameState =
-              (gsGenericGameState gameState)
-                { gsActions = gsActions ggs `difference` (setFromList $ fmap OneTimeEffect $ catMaybes $ fmap oneTimeEffectMay $ toList $ gsActions ggs)
-                }
+  foldl
+    (flip $ foldl (.) id . flap [applyToGenericGameState, applyToTransientGameState, applyToPersistentGameState])
+    ( update gameState $ \ggs ->
+        ggs
+          { gsActions =
+              gsActions ggs
+                `difference` (setFromList $ fmap OneTimeEffect $ catMaybes $ fmap oneTimeEffectMay $ toList $ gsActions ggs)
           }
-        events
+    )
+    events
   where
     applyToGenericGameState :: (Has a GenericGameState) => Event -> a -> a
     applyToGenericGameState event a =

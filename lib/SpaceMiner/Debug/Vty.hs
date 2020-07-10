@@ -31,16 +31,17 @@ forkDebugTerminal ConcurrentState {..} = do
           Pos x' y' = gsMainCharacterPosition
       Vty.update vty $ Vty.picForImage $ foldl1 (Vty.<->) $
         Vty.string (Vty.defAttr `Vty.withForeColor` Vty.white)
-          <$> [ "fps: " <> show newAvgTotalLoopTime,
-                "1/renderLoopTime: " <> show newAvgRenderLoopTime,
-                "1/texturePlacementTime: " <> show newAvgTexturePlacementTime,
-                "1/gameLoopTime: " <> show newAvgGameLoopTime,
-                "opengl pos: " <> show (x, y),
-                "main char: " <> show (x', y'),
-                "keys: " <> show gsKeysPressed,
-                "last places sprite location: " <> show gsLastPlacement,
-                "sprite count: " <> show (Map.size $ unBoard gsBoard)
-              ]
+          <$> ( "fps: " <> show newAvgTotalLoopTime
+                  :| [ "1/renderLoopTime: " <> show newAvgRenderLoopTime,
+                       "1/texturePlacementTime: " <> show newAvgTexturePlacementTime,
+                       "1/gameLoopTime: " <> show newAvgGameLoopTime,
+                       "opengl pos: " <> show (x, y),
+                       "main char: " <> show (x', y'),
+                       "keys: " <> show gsKeysPressed,
+                       "last places sprite location: " <> show gsLastPlacement,
+                       "sprite count: " <> show (Map.size $ unBoard gsBoard)
+                     ]
+              )
 
       threadDelay $ 500 * 1000 -- FIXME: changing this to 100 * make process freeze on exit
       pure (newAvgGameLoopTime, newAvgTexturePlacementTime, newAvgRenderLoopTime, newAvgTotalLoopTime)

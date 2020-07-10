@@ -11,9 +11,18 @@ computeSpritePlacements (GameState GenericGameState {..} TransientGameState {..}
     <> [ TexturePlacements MainCharacter 1 $ pure gsMainCharacterPosition,
          TexturePlacements MainCharacter 2 $ pure 0,
          TexturePlacements MainCharacter 2 $ pure 50,
-         TexturePlacements RedResource 1 $ pure 80,
          Rectangle 90 24 $ RGBA 255 0 0 255
        ]
+    <> inventory
   where
-    tiles =
-      (groupWith snd $ Map.toList $ unBoard gsBoard) <&> \ne@((_, t) :| _) -> TexturePlacements t 1 $ fst <$> ne
+    tiles = (groupWith snd $ Map.toList $ unBoard gsBoard) <&> \ne@((_, t) :| _) -> TexturePlacements t 1 $ fst <$> ne
+    inventory =
+      translate (Pos 200 100)
+        <$> [ TexturePlacements Inventory 1 $ pure 0,
+              TexturePlacements RedResource 1 $ pure 18,
+              TexturePlacements MainCharacter 1 $ pure 3
+            ]
+
+translate :: Pos -> TexturePlacements -> TexturePlacements
+translate (Pos xd yd) (TexturePlacements t s poss) = TexturePlacements t s $ poss <&> \(Pos x y) -> Pos (x + xd) (y + yd)
+translate (Pos xd yd) (Rectangle (Pos x y) s c) = Rectangle (Pos (x + xd) (y + yd)) s c

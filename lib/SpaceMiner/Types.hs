@@ -100,11 +100,12 @@ data PersistentGameState = PersistentGameState
 -- Textures Types
 data Texture = Texture Dimensions GL.TextureObject deriving (Show, Eq)
 
+data FillType = Solid | Border Float deriving (Show, Eq, Generic, NFData)
+
 data TexturePlacements
-  = Rectangle Pos Dimensions Color
+  = Rectangle FillType Pos Dimensions Color
   | TexturePlacements TextureId Scale (NonEmpty Pos)
   deriving (Show, Eq, Generic, NFData)
-
 
 data Pos = Pos Double Double deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON)
 

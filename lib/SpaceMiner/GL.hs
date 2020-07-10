@@ -32,11 +32,16 @@ renderGame textures window Dimensions {width, height} texturePlacements = do
   checkErrorsGLU "before"
 
   for_ texturePlacements $ \case
-    (Rectangle (Pos xd yd) (Dimensions (int2Double -> w) (int2Double -> h)) (RGBA r g b a)) -> do
+    (Rectangle fillType (Pos xd yd) (Dimensions (int2Double -> w) (int2Double -> h)) (RGBA r g b a)) -> do
       GL.texture GL.Texture2D $= GL.Disabled
       GL.currentColor $= GL.Color4 (int2Float r / 255) (int2Float g / 255) (int2Float b / 255) (int2Float a / 255)
-      GL.renderPrimitive GL.Quads $ do
-        forM_ [(0, 0), (0, 1), (1, 1), (1, 0)] $ \(x, y) -> do
+      mode <- case fillType of
+        Solid -> pure GL.Quads
+        Border l -> do
+          GL.lineWidth $= l
+          pure GL.Lines
+      GL.renderPrimitive mode $ do
+        forM_ [(0, 0), (0, 1), (0, 1), (1, 1), (1, 1), (1, 0), (1, 0), (0, 0)] $ \(x, y) -> do
           GL.vertex $ GL.Vertex2 (double2Float $ xd + (x * w)) (double2Float $ yd + (y * h))
       pure ()
     (TexturePlacements textureId (Scale xs ys) placements) -> do

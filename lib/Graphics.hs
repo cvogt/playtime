@@ -11,7 +11,8 @@ computeSpritePlacements (GameState GenericGameState {..} TransientGameState {..}
     <> [ TexturePlacements MainCharacter 1 $ pure gsMainCharacterPosition,
          TexturePlacements MainCharacter 2 $ pure 0,
          TexturePlacements MainCharacter 2 $ pure 50,
-         Rectangle 90 24 $ RGBA 255 0 0 255
+         Rectangle (Border 3) 90 24 $ RGBA 255 0 0 255,
+         Rectangle Solid (Pos 90 114) 24 $ RGBA 255 0 0 255
        ]
     <> inventory
   where
@@ -25,4 +26,4 @@ computeSpritePlacements (GameState GenericGameState {..} TransientGameState {..}
 
 translate :: Pos -> TexturePlacements -> TexturePlacements
 translate (Pos xd yd) (TexturePlacements t s poss) = TexturePlacements t s $ poss <&> \(Pos x y) -> Pos (x + xd) (y + yd)
-translate (Pos xd yd) (Rectangle (Pos x y) s c) = Rectangle (Pos (x + xd) (y + yd)) s c
+translate (Pos xd yd) (Rectangle mode (Pos x y) s c) = Rectangle mode (Pos (x + xd) (y + yd)) s c

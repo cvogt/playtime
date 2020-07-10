@@ -47,7 +47,7 @@ import Data.Either (Either (Left, Right), either)
 import Data.Eq (Eq ((==)))
 import Data.Foldable (Foldable, elem, find, fold, foldl, forM_, for_, length, null, sum, toList)
 import Data.Function (($), (.), flip, id)
-import Data.Functor ((<$>), (<&>), Functor, fmap)
+import Data.Functor (($>), (<$), (<$>), (<&>), Functor, fmap)
 import Data.Int (Int)
 import Data.List (drop, filter, reverse, take) -- UNSAFE, DO NOT IMPORT: foldl1, foldr1
 import Data.List.NonEmpty (NonEmpty ((:|)), groupAllWith, groupBy, groupWith)

@@ -15,8 +15,8 @@ import My.Prelude
 import SpaceMiner.Textures
 import SpaceMiner.Types
 
-renderGame :: (TextureId -> Texture) -> GLFW.Window -> Dimensions -> [TexturePlacements] -> IO ()
-renderGame textures window Dimensions {width, height} texturePlacements = do
+renderGL :: (TextureId -> Texture) -> GLFW.Window -> Dimensions -> [TexturePlacements] -> IO ()
+renderGL textures window Dimensions {width, height} texturePlacements = do
   GL.matrixMode $= GL.Projection
   GL.loadIdentity
   GL.ortho 0 (fromIntegral width) (fromIntegral height) 0 0 1

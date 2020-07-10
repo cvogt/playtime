@@ -4,8 +4,10 @@ import Data.Aeson (eitherDecode, encode)
 import qualified Data.ByteString.Lazy as BSL
 import Data.FileEmbed
 import Game
-import qualified "GLFW-b" Graphics.UI.GLFW as GLFW
 -- import Music
+
+import Graphics
+import qualified "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.Extra
 import My.IO
 import My.Prelude
@@ -15,7 +17,6 @@ import SpaceMiner.Debug.Vty
 import SpaceMiner.GL
 import SpaceMiner.GLFW
 import SpaceMiner.Types
-import System.Exit (exitSuccess)
 
 main :: IO ()
 main = do
@@ -25,36 +26,36 @@ main = do
 
   -- initialization
   igs <- makeInitialGameState logicDim <$> getSystemTime
-  cs@ConcurrentState {csTotalLoopTime, csRenderLoopTime} <- makeInitialConcurrentState igs
+  cs@ConcurrentState {csTotalLoopTime, csRenderLoopTime, csSpritePlacementTime} <- makeInitialConcurrentState igs
 
   --void $ forkIO $ forever $ playMusic
   void $ forkDebugTerminal cs
 
-  -- game state loop
-  void $ forkIO $ do
-    flip unfoldM_ igs $ \old_gs -> do
-      events <- fetchEvents cs
-      let new_gs = applyEventsToGameState events old_gs
-      saveMay new_gs
-      final_gs <- fromMaybe new_gs <$> loadMay new_gs
-      sendGameState cs final_gs
-      pure $ if gameExitRequested final_gs then Nothing else Just final_gs
-    exitSuccess
-
   -- open gl rendering loop
   withGLFW logicDim scale "SpaceMiner" $ \window -> do
     textures <- loadTextures
-    startCaptureEvents window logicDim cs
-    forever $ trackTime csTotalLoopTime $ do
-      GLFW.pollEvents -- before takeMVar frees game loop for another run
-      receiveSpritePlacements cs >>= trackTime csRenderLoopTime . renderGame textures window logicDim
+    setEventCallback window logicDim $ void . handleEvent cs
+    whileM $ trackTime csTotalLoopTime $ do
+      GLFW.pollEvents
+      gs <- handleEvent cs . RenderEvent =<< getSystemTime
+      pure gs
+        >>= trackTime csSpritePlacementTime . pure . computeSpritePlacements
+        >>= trackTime csRenderLoopTime . renderGL textures window logicDim
+      pure $ not $ gameExitRequested gs
   where
-    saveLocation = $(makeRelativeToProject "savegame.json" >>= strToExp)
-    saveMay (GameState GenericGameState {gsActions} _ persistentGameState) =
-      when (OneTimeEffect Save `setMember` gsActions) $ writeFile saveLocation $ BSL.toStrict $ encode $ persistentGameState
-    loadMay gameState@(GameState GenericGameState {gsActions} _ _) =
-      if OneTimeEffect Load `setMember` gsActions
-        then do
-          npgs <- either fail pure . eitherDecode . BSL.fromStrict =<< readFile saveLocation
-          pure $ Just gameState {gsPersistentGameState = npgs}
-        else pure Nothing
+    handleEvent :: ConcurrentState -> Event -> IO GameState
+    handleEvent ConcurrentState {csGameState, csGameLoopTime} event = do
+      modifyMVar csGameState $ \oldGameState -> do
+        new_gs <- trackTime csGameLoopTime $ pure $ applyEventToGameState event oldGameState
+        saveMay new_gs
+        dupe . fromMaybe new_gs <$> loadMay new_gs
+      where
+        saveLocation = $(makeRelativeToProject "savegame.json" >>= strToExp)
+        saveMay (GameState GenericGameState {gsActions} _ persistentGameState) =
+          when (OneTimeEffect Save `setMember` gsActions) $ writeFile saveLocation $ BSL.toStrict $ encode $ persistentGameState
+        loadMay gameState@(GameState GenericGameState {gsActions} _ _) =
+          if OneTimeEffect Load `setMember` gsActions
+            then do
+              npgs <- either fail pure . eitherDecode . BSL.fromStrict =<< readFile saveLocation
+              pure $ Just gameState {gsPersistentGameState = npgs}
+            else pure Nothing

@@ -15,7 +15,7 @@ data ScaleInt = ScaleInt Int
 data Color = RGBA Int Int Int Int deriving (Eq, Ord, Show, Generic, NFData)
 
 data Event
-  = GameLoopEvent SystemTime
+  = RenderEvent SystemTime
   | MouseEvent GLFW.MouseButton GLFW.MouseButtonState
   | KeyEvent GLFW.Key GLFW.KeyState
   | CursorPosEvent Pos
@@ -29,16 +29,16 @@ data GameState = GameState
     gsTransientGameState :: TransientGameState,
     gsPersistentGameState :: PersistentGameState
   }
-  deriving (Generic, NFData)
+  deriving (Show, Generic, NFData)
 
 gameExitRequested :: GameState -> Bool
-gameExitRequested (GameState GenericGameState {gsActions} _ _) = OneTimeEffect Exit `elem` gsActions
+gameExitRequested (GameState GenericGameState {gsActions} _ _) = Exit `elem` gsActions
 
-data OneTimeEffect' = Load | Save | Exit | Reset deriving (Eq, Ord, Generic, NFData)
+data OneTimeEffect' = Load | Save | Reset deriving (Eq, Ord, Show, Generic, NFData)
 
-data MovementAction' = Up | Down | Left' | Right' deriving (Eq, Ord, Generic, NFData)
+data MovementAction' = Up | Down | Left' | Right' deriving (Eq, Ord, Show, Generic, NFData)
 
-data Action = OneTimeEffect OneTimeEffect' | MovementAction MovementAction' deriving (Eq, Ord, Generic, NFData)
+data Action = OneTimeEffect OneTimeEffect' | Exit | MovementAction MovementAction' deriving (Eq, Ord, Show, Generic, NFData)
 
 oneTimeEffectMay :: Action -> Maybe OneTimeEffect'
 oneTimeEffectMay (OneTimeEffect v) = Just v
@@ -48,7 +48,7 @@ movementAction :: Action -> Maybe MovementAction'
 movementAction (MovementAction v) = Just v
 movementAction _ = Nothing
 
-data Mode = PlacementMode | DeleteMode deriving (Eq, Ord, Generic, NFData)
+data Mode = PlacementMode | DeleteMode deriving (Eq, Ord, Show, Generic, NFData)
 
 class Has a b where
   get :: a -> b
@@ -76,15 +76,15 @@ data GenericGameState = GenericGameState
     gsActions :: Set Action,
     gsTimes :: [Integer]
   }
-  deriving (Generic, NFData)
+  deriving (Show, Generic, NFData)
 
 data TransientGameState = TransientGameState
   { gsLastPlacement :: Pos,
     gsModes :: Set Mode
   }
-  deriving (Generic, NFData)
+  deriving (Show, Generic, NFData)
 
-newtype Board = Board {unBoard :: Map Pos TextureId} deriving newtype (Semigroup, Monoid, NFData)
+newtype Board = Board {unBoard :: Map Pos TextureId} deriving newtype (Show, Semigroup, Monoid, NFData)
 
 instance FromJSON Board where parseJSON = fmap (Board . mapFromList) . parseJSON
 
@@ -95,7 +95,7 @@ data PersistentGameState = PersistentGameState
     gsBoard :: Board,
     gsMainCharacterPosition :: Pos
   }
-  deriving (Generic, NFData, ToJSON, FromJSON)
+  deriving (Show, Generic, NFData, ToJSON, FromJSON)
 
 -- Textures Types
 data Texture = Texture Dimensions GL.TextureObject deriving (Show, Eq)
@@ -109,9 +109,9 @@ data TexturePlacements
 
 data Pos = Pos Double Double deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON)
 
-data Scale = Scale Double Double deriving (Show, Eq, Ord, Generic, NFData)
+data Scale = Scale Double Double deriving (Eq, Ord, Show, Generic, NFData)
 
-data Dimensions = Dimensions {width :: Int, height :: Int} deriving (Show, Eq, Ord, Generic, NFData)
+data Dimensions = Dimensions {width :: Int, height :: Int} deriving (Eq, Ord, Show, Generic, NFData)
 
 instance Num Scale where
   (Scale lx ly) + (Scale rx ry) = Scale (lx + rx) (ly + ry)

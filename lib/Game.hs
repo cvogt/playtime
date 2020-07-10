@@ -36,8 +36,8 @@ keyBindings = mapFromList $ groups <&> \l@(h :| _) -> (fst h, first setFromList 
     groups = groupAllWith fst $ join $ keyBindingsRaw <&> (\b@(keys, _) -> (,[b]) <$> keys)
     keyBindingsRaw :: [([Key], Action)]
     keyBindingsRaw =
-      [ ([Key'LeftSuper, Key'Q], OneTimeEffect Exit),
-        ([Key'Escape], OneTimeEffect Exit),
+      [ ([Key'LeftSuper, Key'Q], Exit),
+        ([Key'Escape], Exit),
         ([Key'LeftSuper, Key'L], OneTimeEffect Load),
         ([Key'LeftSuper, Key'S], OneTimeEffect Save),
         ([Key'LeftSuper, Key'R], OneTimeEffect Reset),
@@ -47,18 +47,16 @@ keyBindings = mapFromList $ groups <&> \l@(h :| _) -> (fst h, first setFromList 
         ([Key'D], MovementAction Right')
       ]
 
-applyEventsToGameState :: [Event] -> GameState -> GameState
-applyEventsToGameState events gameState =
-  foldl
-    (flip $ foldl (.) id . flap [applyToGenericGameState, applyToTransientGameState, applyToPersistentGameState])
-    ( update gameState $ \ggs ->
-        ggs
-          { gsActions =
-              gsActions ggs
-                `difference` (setFromList $ fmap OneTimeEffect $ catMaybes $ fmap oneTimeEffectMay $ toList $ gsActions ggs)
-          }
-    )
-    events
+applyEventToGameState :: Event -> GameState -> GameState
+applyEventToGameState event' gameState =
+  foldl (.) id (flap [applyToGenericGameState, applyToTransientGameState, applyToPersistentGameState] event')
+    $ update gameState
+    $ \ggs ->
+      ggs
+        { gsActions =
+            gsActions ggs
+              `difference` (setFromList $ fmap OneTimeEffect $ catMaybes $ fmap oneTimeEffectMay $ toList $ gsActions ggs)
+        }
   where
     applyToGenericGameState :: (Has a GenericGameState) => Event -> a -> a
     applyToGenericGameState event a =
@@ -74,8 +72,8 @@ applyEventsToGameState events gameState =
               matchingBindings = fromMaybe [] $ mapLookup key keyBindings
               actions = setFromList $ take 1 $ snd <$> filter (null . (`difference` pressed) . fst) matchingBindings
            in gs {gsKeysPressed = setDelete key gsKeysPressed, gsActions = gsActions `difference` actions}
-        WindowCloseEvent -> gs {gsActions = setFromList [OneTimeEffect Exit, OneTimeEffect Save] `union` gsActions}
-        GameLoopEvent time ->
+        WindowCloseEvent -> gs {gsActions = setFromList [Exit, OneTimeEffect Save] `union` gsActions}
+        RenderEvent time ->
           let picosecs = timeDiffPico gsLastLoopTime time
               halfsec = 500 * 1000 * 1000 * 1000
            in gs
@@ -96,7 +94,7 @@ applyEventsToGameState events gameState =
               MouseButton'1 -> gs {gsModes = setDelete PlacementMode gsModes}
               MouseButton'2 -> gs {gsModes = setDelete DeleteMode gsModes}
               _ -> gs
-            GameLoopEvent _ ->
+            RenderEvent _ ->
               let gridsize :: Double
                   gridsize = 12
                   gridify :: Double -> Double
@@ -116,7 +114,7 @@ applyEventsToGameState events gameState =
                     Key'2 -> TopWall
                     _ -> gsActiveTile
                 }
-            GameLoopEvent time ->
+            RenderEvent time ->
               if OneTimeEffect Reset `setMember` gsActions
                 then gs {gsBoard = mempty}
                 else

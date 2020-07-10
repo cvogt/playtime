@@ -20,7 +20,7 @@ forkDebugTerminal ConcurrentState {..} = do
     flip iterateM_ (0, 0, 0, 0) $ \(oldAvgGameLoopTime, oldAvgTexturePlacementTime, oldAvgRenderLoopTime, oldAvgTotalLoopTime) -> do
       GameState GenericGameState {..} TransientGameState {..} PersistentGameState {..} <- readMVar csGameState
       gameLoopTimes <- modifyMVar csGameLoopTime $ \t -> pure ([], t)
-      texturePlacementTimes <- modifyMVar csTexturePlacementTime $ \t -> pure ([], t)
+      texturePlacementTimes <- modifyMVar csSpritePlacementTime $ \t -> pure ([], t)
       renderLoopTimes <- modifyMVar csRenderLoopTime $ \t -> pure ([], t)
       totalLoopTimes <- modifyMVar csTotalLoopTime $ \t -> pure ([], t)
       let newAvgGameLoopTime = if not $ null gameLoopTimes then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> gameLoopTimes) else oldAvgGameLoopTime

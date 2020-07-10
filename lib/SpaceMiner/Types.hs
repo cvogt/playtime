@@ -44,9 +44,9 @@ data MovementAction' = Up | Down | Left' | Right' deriving (Eq, Ord, Generic, NF
 
 data Action = OneTimeEffect OneTimeEffect' | MovementAction MovementAction' deriving (Eq, Ord, Generic, NFData)
 
-outputEventMay :: Action -> Maybe OneTimeEffect'
-outputEventMay (OneTimeEffect v) = Just v
-outputEventMay _ = Nothing
+oneTimeEffectMay :: Action -> Maybe OneTimeEffect'
+oneTimeEffectMay (OneTimeEffect v) = Just v
+oneTimeEffectMay _ = Nothing
 
 movementAction :: Action -> Maybe MovementAction'
 movementAction (MovementAction v) = Just v
@@ -62,15 +62,15 @@ class Has a b where
 
 instance Has GameState GenericGameState where
   get = gsGenericGameState
-  set gs b = gs{ gsGenericGameState = b}
+  set gs b = gs {gsGenericGameState = b}
 
 instance Has GameState TransientGameState where
   get = gsTransientGameState
-  set gs b = gs{ gsTransientGameState = b}
+  set gs b = gs {gsTransientGameState = b}
 
 instance Has GameState PersistentGameState where
   get = gsPersistentGameState
-  set gs b = gs{ gsPersistentGameState = b}
+  set gs b = gs {gsPersistentGameState = b}
 
 data GenericGameState = GenericGameState
   { gsCursorPos :: Pos,

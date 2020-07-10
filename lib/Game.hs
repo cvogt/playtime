@@ -49,15 +49,20 @@ keyBindings = mapFromList $ groups <&> \l@(h :| _) -> (fst h, first setFromList 
         ([Key'D], MovementAction Right')
       ]
 
-appleEventsToGameState :: [Event] -> GameState -> GameState
-appleEventsToGameState events gameState =
+applyEventsToGameState :: [Event] -> GameState -> GameState
+applyEventsToGameState events gameState =
   let ggs = gsGenericGameState gameState
    in foldl
-        (\gs event -> fold $ map ($ event) [applyToGenericGameState,applyToTransientGameState,applyToPersistentGameState])
-        update gameState $ \ggs -> ggs{ gsActions =
-          gsActions ggs `difference`
-            (setFromList $ fmap OneTimeEffect $ catMaybes $ fmap outputEventMay $ toList $ gsActions ggs) }
-        gameState {gsGenericGameState = (gsGenericGameState gameState) {gsActions = gsActions ggs `difference` (setFromList $ fmap OneTimeEffect $ catMaybes $ fmap oneTimeAction $ toList $ gsInputActions ggs)}}
+        (\gs event -> (foldl (.) id $ ($ event) <$> [applyToGenericGameState, applyToTransientGameState, applyToPersistentGameState]) gs)
+        -- (update gameState $ \ggs -> ggs{ gsActions =
+        --   gsActions ggs `difference`
+        --     (setFromList $ fmap OneTimeEffect $ catMaybes $ fmap oneTimeEffectMay $ toList $ gsActions ggs) })
+        gameState
+          { gsGenericGameState =
+              (gsGenericGameState gameState)
+                { gsActions = gsActions ggs `difference` (setFromList $ fmap OneTimeEffect $ catMaybes $ fmap oneTimeEffectMay $ toList $ gsActions ggs)
+                }
+          }
         events
   where
     applyToGenericGameState :: (Has a GenericGameState) => Event -> a -> a
@@ -84,62 +89,62 @@ appleEventsToGameState events gameState =
                   gsFps = if sum gsTimes > halfsec then avg gsTimes else gsFps
                 }
         _ -> gs
-
-    applyToTransientGameState :: (Has a TransientGameState) => Event -> a -> a
+    applyToTransientGameState :: (Has a GenericGameState, Has a TransientGameState) => Event -> a -> a
     applyToTransientGameState event a =
-      update a $ \(gs@TransientGameState {..}) -> case event of
-        MouseEvent mb MouseButtonState'Pressed -> case mb of
-          MouseButton'1 -> gs {gsModes = setInsert PlacementMode gsModes}
-          MouseButton'2 -> gs {gsModes = setInsert DeleteMode gsModes}
-          _ -> gs
-        MouseEvent mb MouseButtonState'Released -> case mb of
-          MouseButton'1 -> gs {gsModes = setDelete PlacementMode gsModes}
-          MouseButton'2 -> gs {gsModes = setDelete DeleteMode gsModes}
-          _ -> gs
-        GameLoopEvent _ ->
-          let gridsize :: Double
-              gridsize = 12
-              gridify :: Double -> Double
-              gridify = (* gridsize) . int2Double . floor . (/ gridsize)
-              placement = case gsCursorPos of Pos x' y' -> Pos (gridify x') (gridify y')
-           in gs {gsLastPlacement = placement}
-        _ -> gs
-
-    applyToPersistentGameState :: (Has a PersistentGameState, Has a TransientGameState) => Event -> a -> a
-    applyToPersistentGameState event a =
-      let TransientGameState{..} = get a
-      in update a $ \(gs@PersistentGameState {..}) -> case event of
-        KeyEvent key KeyState'Pressed ->
-          gs
-            { gsActiveTile = case key of
-                Key'1 -> FloorPlate
-                Key'2 -> TopWall
-                _ -> gsActiveTile
-            }
-        GameLoopEvent time ->
-          if OneTimeEffect Reset `setMember` gsActions
-            then gs {gsBoard = mempty}
-            else
-              let picosecs = timeDiffPico gsLastLoopTime time
-                  timePassed = int2Double (fromIntegral picosecs) / 1000 / 1000 / 1000 / 1000
-                  distancePerSec = 100
-                  d = timePassed * distancePerSec
-                  Pos x y = gsMainCharacterPosition
-                  newY = if MovementAction Up `setMember` gsActions then y - d else if MovementAction Down `setMember` gsActions then y + d else y
-                  newX = if MovementAction Left' `setMember` gsActions then x - d else if MovementAction Right' `setMember` gsActions then x + d else x
-                  gridsize :: Double
+      let GenericGameState {..} = get a
+       in update a $ \(gs@TransientGameState {..}) -> case event of
+            MouseEvent mb MouseButtonState'Pressed -> case mb of
+              MouseButton'1 -> gs {gsModes = setInsert PlacementMode gsModes}
+              MouseButton'2 -> gs {gsModes = setInsert DeleteMode gsModes}
+              _ -> gs
+            MouseEvent mb MouseButtonState'Released -> case mb of
+              MouseButton'1 -> gs {gsModes = setDelete PlacementMode gsModes}
+              MouseButton'2 -> gs {gsModes = setDelete DeleteMode gsModes}
+              _ -> gs
+            GameLoopEvent _ ->
+              let gridsize :: Double
                   gridsize = 12
                   gridify :: Double -> Double
                   gridify = (* gridsize) . int2Double . floor . (/ gridsize)
                   placement = case gsCursorPos of Pos x' y' -> Pos (gridify x') (gridify y')
-               in gs
-                    { gsMainCharacterPosition = Pos newX newY,
-                      gsBoard =
-                        if PlacementMode `setMember` gsModes
-                          then Board $ mapInsert placement gsActiveTile (unBoard gsBoard)
-                          else
-                            if DeleteMode `setMember` gsModes
-                              then Board $ mapDelete placement (unBoard gsBoard)
-                              else gsBoard
-                    }
-        _ -> gs
+               in gs {gsLastPlacement = placement}
+            _ -> gs
+    applyToPersistentGameState :: (Has a GenericGameState, Has a TransientGameState, Has a PersistentGameState) => Event -> a -> a
+    applyToPersistentGameState event a =
+      let TransientGameState {..} = get a
+          GenericGameState {..} = get a
+       in update a $ \(gs@PersistentGameState {..}) -> case event of
+            KeyEvent key KeyState'Pressed ->
+              gs
+                { gsActiveTile = case key of
+                    Key'1 -> FloorPlate
+                    Key'2 -> TopWall
+                    _ -> gsActiveTile
+                }
+            GameLoopEvent time ->
+              if OneTimeEffect Reset `setMember` gsActions
+                then gs {gsBoard = mempty}
+                else
+                  let picosecs = timeDiffPico gsLastLoopTime time
+                      timePassed = int2Double (fromIntegral picosecs) / 1000 / 1000 / 1000 / 1000
+                      distancePerSec = 100
+                      d = timePassed * distancePerSec
+                      Pos x y = gsMainCharacterPosition
+                      newY = if MovementAction Up `setMember` gsActions then y - d else if MovementAction Down `setMember` gsActions then y + d else y
+                      newX = if MovementAction Left' `setMember` gsActions then x - d else if MovementAction Right' `setMember` gsActions then x + d else x
+                      gridsize :: Double
+                      gridsize = 12
+                      gridify :: Double -> Double
+                      gridify = (* gridsize) . int2Double . floor . (/ gridsize)
+                      placement = case gsCursorPos of Pos x' y' -> Pos (gridify x') (gridify y')
+                   in gs
+                        { gsMainCharacterPosition = Pos newX newY,
+                          gsBoard =
+                            if PlacementMode `setMember` gsModes
+                              then Board $ mapInsert placement gsActiveTile (unBoard gsBoard)
+                              else
+                                if DeleteMode `setMember` gsModes
+                                  then Board $ mapDelete placement (unBoard gsBoard)
+                                  else gsBoard
+                        }
+            _ -> gs

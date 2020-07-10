@@ -8,8 +8,9 @@ import My.Prelude
 import System.IO (FilePath)
 
 data TextureId
-  = MainCharacter
-  | FloorPlate
+  = FloorPlate
+  | MainCharacter
+  | RedResource
   | TopWall
   deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON)
 
@@ -18,6 +19,7 @@ textureNameMap =
   Map.fromList
     [ (FloorPlate, "floor_plate"),
       (MainCharacter, "main_character"),
+      (RedResource, "red_resource"),
       (TopWall, "top_wall")
     ]
 

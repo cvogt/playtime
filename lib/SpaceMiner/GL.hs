@@ -4,8 +4,8 @@ import Codec.Picture (DynamicImage (ImageRGBA8), Image (Image), readPng)
 import qualified Data.Map as Map (lookup)
 import Data.Vector.Storable (unsafeWith)
 import GHC.Err (error)
-import GHC.Float (double2Float, int2Double)
-import GHC.Real (fromIntegral)
+import GHC.Float (double2Float, int2Double, int2Float)
+import GHC.Real ((/), fromIntegral)
 import Graphics.Rendering.OpenGL (($=))
 import qualified Graphics.Rendering.OpenGL.GL as GL
 import qualified Graphics.Rendering.OpenGL.GLU.Errors as GLU
@@ -31,15 +31,24 @@ renderGame textures window Dimensions {width, height} texturePlacements = do
 
   checkErrorsGLU "before"
 
-  GL.texture GL.Texture2D $= GL.Enabled
-  for_ texturePlacements $ \(TexturePlacements textureId xs ys placements) -> do
-    let Texture (int2Double -> twidth, int2Double -> theight) texture = textures textureId
-    GL.textureFilter GL.Texture2D $= ((GL.Nearest, Nothing), GL.Nearest)
-    GL.textureBinding GL.Texture2D $= Just texture
-    GL.renderPrimitive GL.Quads $ for_ placements $ \(Pos xd yd) -> do
-      forM_ [(0, 0), (0, 1), (1, 1), (1, 0)] $ \(x, y) -> do
-        GL.texCoord $ GL.TexCoord2 (double2Float x) (double2Float y) -- remember 1 makes this match the size of the vertex/quad
-        GL.vertex $ GL.Vertex2 (double2Float $ (x * xs * twidth) + xd) (double2Float $ (y * ys * theight) + yd)
+  for_ texturePlacements $ \case
+    (Rectangle (Pos xd yd) (Dimensions (int2Double -> w) (int2Double -> h)) (RGBA r g b a)) -> do
+      GL.texture GL.Texture2D $= GL.Disabled
+      GL.currentColor $= GL.Color4 (int2Float r / 255) (int2Float g / 255) (int2Float b / 255) (int2Float a / 255)
+      GL.renderPrimitive GL.Quads $ do
+        forM_ [(0, 0), (0, 1), (1, 1), (1, 0)] $ \(x, y) -> do
+          GL.vertex $ GL.Vertex2 (double2Float $ xd + (x * w)) (double2Float $ yd + (y * h))
+      pure ()
+    (TexturePlacements textureId (Scale xs ys) placements) -> do
+      let Texture (Dimensions (int2Double -> twidth) (int2Double -> theight)) texture = textures textureId
+      GL.currentColor $= GL.Color4 @Float 255 255 255 1
+      GL.texture GL.Texture2D $= GL.Enabled
+      GL.textureFilter GL.Texture2D $= ((GL.Nearest, Nothing), GL.Nearest)
+      GL.textureBinding GL.Texture2D $= Just texture
+      GL.renderPrimitive GL.Quads $ for_ placements $ \(Pos xd yd) -> do
+        forM_ [(0, 0), (0, 1), (1, 1), (1, 0)] $ \(x, y) -> do
+          GL.texCoord $ GL.TexCoord2 (double2Float x) (double2Float y) -- remember 1 makes this match the size of the vertex/quad
+          GL.vertex $ GL.Vertex2 (double2Float $ (x * xs * twidth) + xd) (double2Float $ (y * ys * theight) + yd)
 
   checkErrorsGLU "after"
 
@@ -60,5 +69,6 @@ loadTextures = do
           [texture] <- GL.genObjectNames 1
           GL.textureBinding GL.Texture2D $= Just texture
           GL.texImage2D GL.Texture2D GL.NoProxy 0 GL.RGBA8 txSize 0 $ GL.PixelData GL.RGBA GL.UnsignedByte ptr
-          pure $ Texture (width, height) texture
+          pure $ Texture (Dimensions width height) texture
+        Left msg -> error $ "loadIntoOpenGL error: " <> msg
         _ -> error "loadIntoOpenGL error: We currently only support png graphic files JuicyPixles reads as ImageRGBA8."

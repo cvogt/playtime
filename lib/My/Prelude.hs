@@ -5,6 +5,7 @@ module My.Prelude
     module Data.Bifunctor,
     module Data.Bool,
     module Data.Char,
+    module Data.Data,
     module Data.Either,
     module Data.Eq,
     module Data.Foldable,
@@ -41,6 +42,7 @@ import Control.Monad ((<=<), (=<<), (>>=), Monad, fail, forever, join, mfilter, 
 import Data.Bifunctor (Bifunctor, bimap, first, second)
 import Data.Bool ((&&), Bool (False, True), not, otherwise, (||))
 import Data.Char (Char)
+import Data.Data (toConstr)
 import Data.Either (Either (Left, Right), either)
 import Data.Eq (Eq ((==)))
 import Data.Foldable (Foldable, elem, find, fold, foldl, forM_, for_, length, null, sum, toList)
@@ -64,7 +66,7 @@ import Foreign (ForeignPtr)
 import GHC.Float (Double, Float)
 import GHC.Generics (Generic)
 import GHC.Integer (Integer)
-import GHC.Num ((*), (+), (-), subtract)
+import GHC.Num ((*), (+), (-), Num, subtract)
 import GHC.Show (Show (show))
 import Safe (headMay, lastMay)
 import Safe.Foldable (foldl1Safe, foldr1Safe)

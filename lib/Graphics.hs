@@ -9,8 +9,7 @@ computeSpritePlacements :: GameState -> [TexturePlacements]
 computeSpritePlacements (GameState GenericGameState {..} TransientGameState {..} PersistentGameState {..}) =
   tiles
     <> [ TexturePlacements MainCharacter 1 $ pure gsMainCharacterPosition,
-         TexturePlacements MainCharacter 2 $ pure 0,
-         TexturePlacements MainCharacter 2 $ pure 50,
+         TexturePlacements MainCharacter 2 $ 0 :| [50],
          Rectangle (Border 3) 90 24 $ RGBA 255 0 0 255,
          Rectangle Solid (Pos 90 114) 24 $ RGBA 255 0 0 255
        ]

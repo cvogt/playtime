@@ -1,9 +1,7 @@
 module SpaceMiner.ConcurrentState where
 
-import Graphics
 import My.IO
 import My.Prelude
-import SpaceMiner.Debug
 import SpaceMiner.Types
 
 data ConcurrentState = ConcurrentState
@@ -22,9 +20,3 @@ makeInitialConcurrentState gameState = do
   csRenderLoopTime <- newMVar []
   csTotalLoopTime <- newMVar []
   pure $ ConcurrentState {..}
-
-receiveSpritePlacements :: ConcurrentState -> GameState -> IO [TexturePlacements]
-receiveSpritePlacements ConcurrentState {csSpritePlacementTime} gs = do
-  let texturePlacements = computeSpritePlacements gs
-  void $ trackTime csSpritePlacementTime $ pure texturePlacements
-  pure texturePlacements

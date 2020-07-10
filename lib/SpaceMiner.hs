@@ -4,7 +4,6 @@ import Data.Aeson (eitherDecode, encode)
 import qualified Data.ByteString.Lazy as BSL
 import Data.FileEmbed
 import Game
-import Graphics
 import qualified "GLFW-b" Graphics.UI.GLFW as GLFW
 -- import Music
 import My.Extra
@@ -39,7 +38,6 @@ main = do
       saveMay new_gs
       final_gs <- fromMaybe new_gs <$> loadMay new_gs
       sendGameState cs final_gs
-      sendSpritePlacements cs $ computeSpritePlacements final_gs
       pure $ if gameExitRequested final_gs then Nothing else Just final_gs
     exitSuccess
 

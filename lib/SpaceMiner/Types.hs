@@ -111,6 +111,9 @@ data Scale = Scale {sx :: Double, sy :: Double} deriving (Eq, Ord, Show, Generic
 
 data Dimensions = Dimensions {width :: Double, height :: Double} deriving (Eq, Ord, Show, Generic, NFData)
 
+(|*|) :: Scale -> Dimensions -> Dimensions
+(|*|) Scale {sx, sy} Dimensions {width, height} = Dimensions {width = width * sx, height = height * sy}
+
 instance Num Scale where
   (Scale lx ly) + (Scale rx ry) = Scale (lx + rx) (ly + ry)
   (Scale lx ly) - (Scale rx ry) = Scale (lx - rx) (ly - ry)

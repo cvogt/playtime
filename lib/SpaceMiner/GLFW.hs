@@ -13,13 +13,13 @@ import My.IO
 import My.Prelude
 import SpaceMiner.Types
 
-withGLFW :: Dimensions -> Scale -> [Char] -> (GLFW.Window -> IO ()) -> IO ()
-withGLFW Dimensions {width, height} Scale {sx, sy} title glCode = do
+withGLFW :: Dimensions -> [Char] -> (GLFW.Window -> IO ()) -> IO ()
+withGLFW Dimensions {width, height} title glCode = do
   GLFW.setErrorCallback $ Just $ \e -> error . ("GLFW:" <>) . (show e <>)
   whenM GLFW.init $ flip finally GLFW.terminate $ do
     Just _mon <- GLFW.getPrimaryMonitor
     let fullscreen = Nothing -- Just mon
-    GLFW.createWindow (double2Int $ width * sx) (double2Int $ height * sy) title fullscreen Nothing >>= \case
+    GLFW.createWindow (double2Int width) (double2Int height) title fullscreen Nothing >>= \case
       Just window -> flip finally (GLFW.destroyWindow window) $ do
         GLFW.makeContextCurrent $ Just window
         -- setCursorInputMode win CursorInputMode'Hidden

@@ -22,7 +22,6 @@ main :: IO ()
 main = do
   -- basic configuration
   let logicDim = Dimensions {width = 320, height = 240}
-  let scale = 3 :: Scale
 
   -- initialization
   igs <- makeInitialGameState logicDim <$> getSystemTime
@@ -32,7 +31,7 @@ main = do
   void $ forkDebugTerminal cs
 
   -- open gl rendering loop
-  withGLFW logicDim scale "SpaceMiner" $ \window -> do
+  withGLFW (3 |*| logicDim) "SpaceMiner" $ \window -> do
     textures <- loadTextures
     setEventCallback window logicDim $ void . handleEvent cs
     whileM $ trackTime csTotalLoopTime $ do

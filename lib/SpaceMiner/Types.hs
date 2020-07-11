@@ -47,8 +47,6 @@ movementAction :: Action -> Maybe MovementAction'
 movementAction (MovementAction v) = Just v
 movementAction _ = Nothing
 
-data Mode = PlacementMode | DeleteMode deriving (Eq, Ord, Show, Generic, NFData)
-
 class Has a b where
   get :: a -> b
   set :: a -> b -> a
@@ -71,6 +69,7 @@ data GenericGameState = GenericGameState
   { gsCursorPos :: Pos,
     gsFps :: Double,
     gsKeysPressed :: Set GLFW.Key,
+    gsMousePressed :: Set GLFW.MouseButton,
     gsLastLoopTime :: SystemTime,
     gsActions :: Set Action,
     gsTimes :: [Integer]
@@ -78,9 +77,7 @@ data GenericGameState = GenericGameState
   deriving (Show, Generic, NFData)
 
 data TransientGameState = TransientGameState
-  { gsLastPlacement :: Pos,
-    gsModes :: Set Mode
-  }
+  {gsLastPlacement :: Pos}
   deriving (Show, Generic, NFData)
 
 newtype Board = Board {unBoard :: Map Pos TextureId} deriving newtype (Show, Semigroup, Monoid, NFData)

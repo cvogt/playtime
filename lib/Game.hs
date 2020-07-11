@@ -15,14 +15,12 @@ makeInitialGameState Dimensions {width, height} time =
       { gsCursorPos = Pos 0 0,
         gsFps = 0,
         gsKeysPressed = mempty,
+        gsMousePressed = mempty,
         gsLastLoopTime = time,
         gsActions = mempty,
         gsTimes = []
       }
-    TransientGameState
-      { gsLastPlacement = Pos 0 0,
-        gsModes = mempty
-      }
+    TransientGameState {gsLastPlacement = Pos 0 0}
     PersistentGameState
       { gsUIMode = TexturePlacementMode FloorPlate,
         gsBoard = mempty,
@@ -72,6 +70,8 @@ applyEventToGameState event' gameState =
               matchingBindings = fromMaybe [] $ mapLookup key keyBindings
               actions = setFromList $ take 1 $ snd <$> filter (null . (`difference` pressed) . fst) matchingBindings
            in gs {gsKeysPressed = setDelete key gsKeysPressed, gsActions = gsActions `difference` actions}
+        MouseEvent mb MouseButtonState'Pressed -> gs {gsMousePressed = setInsert mb gsMousePressed}
+        MouseEvent mb MouseButtonState'Released -> gs {gsMousePressed = setDelete mb gsMousePressed}
         WindowCloseEvent -> gs {gsActions = setFromList [Exit, OneTimeEffect Save] `union` gsActions}
         RenderEvent time ->
           let picosecs = timeDiffPico gsLastLoopTime time
@@ -86,14 +86,6 @@ applyEventToGameState event' gameState =
     applyToTransientGameState event a =
       let GenericGameState {..} = get a
        in update a $ \(gs@TransientGameState {..}) -> case event of
-            MouseEvent mb MouseButtonState'Pressed -> case mb of
-              MouseButton'1 -> gs {gsModes = setInsert PlacementMode gsModes}
-              MouseButton'2 -> gs {gsModes = setInsert DeleteMode gsModes}
-              _ -> gs
-            MouseEvent mb MouseButtonState'Released -> case mb of
-              MouseButton'1 -> gs {gsModes = setDelete PlacementMode gsModes}
-              MouseButton'2 -> gs {gsModes = setDelete DeleteMode gsModes}
-              _ -> gs
             RenderEvent _ ->
               let gridsize :: Double
                   gridsize = 12
@@ -117,12 +109,10 @@ applyEventToGameState event' gameState =
                     { gsBoard =
                         case gsUIMode of
                           TexturePlacementMode texture ->
-                            if PlacementMode `setMember` gsModes
-                              then Board $ mapInsert placement texture (unBoard gsBoard)
-                              else
-                                if DeleteMode `setMember` gsModes
-                                  then Board $ mapDelete placement (unBoard gsBoard)
-                                  else gsBoard
+                            case (`setMember` gsMousePressed) of
+                              f | f MouseButton'1 -> Board $ mapInsert placement texture (unBoard gsBoard)
+                              f | f MouseButton'2 -> Board $ mapDelete placement (unBoard gsBoard)
+                              _ -> gsBoard
                           TextureMoveMode -> gsBoard
                     }
             KeyEvent key KeyState'Pressed ->

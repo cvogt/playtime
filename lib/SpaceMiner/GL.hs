@@ -19,7 +19,7 @@ renderGL :: (TextureId -> Texture) -> GLFW.Window -> Dimensions -> [TexturePlace
 renderGL textures window Dimensions {width, height} texturePlacements = do
   GL.matrixMode $= GL.Projection
   GL.loadIdentity
-  GL.ortho 0 (fromIntegral width) (fromIntegral height) 0 0 1
+  GL.ortho 0 width height 0 0 1
   GL.clear [GL.ColorBuffer, GL.DepthBuffer]
 
   GL.matrixMode $= GL.Modelview 0
@@ -32,7 +32,7 @@ renderGL textures window Dimensions {width, height} texturePlacements = do
   checkErrorsGLU "before"
 
   for_ texturePlacements $ \case
-    (Rectangle fillType (Pos xd yd) (Dimensions (int2Double -> w) (int2Double -> h)) (RGBA r g b a)) -> do
+    (Rectangle fillType (Pos xd yd) (Dimensions w h) (RGBA r g b a)) -> do
       GL.texture GL.Texture2D $= GL.Disabled
       GL.currentColor $= GL.Color4 (int2Float r / 255) (int2Float g / 255) (int2Float b / 255) (int2Float a / 255)
       mode <- case fillType of
@@ -45,7 +45,7 @@ renderGL textures window Dimensions {width, height} texturePlacements = do
           GL.vertex $ GL.Vertex2 (double2Float $ xd + (x * w)) (double2Float $ yd + (y * h))
       pure ()
     (TexturePlacements textureId (Scale xs ys) placements) -> do
-      let Texture (Dimensions (int2Double -> twidth) (int2Double -> theight)) texture = textures textureId
+      let Texture (Dimensions twidth theight) texture = textures textureId
       GL.currentColor $= GL.Color4 @Float 255 255 255 1
       GL.texture GL.Texture2D $= GL.Enabled
       GL.textureFilter GL.Texture2D $= ((GL.Nearest, Nothing), GL.Nearest)
@@ -74,6 +74,6 @@ loadTextures = do
           [texture] <- GL.genObjectNames 1
           GL.textureBinding GL.Texture2D $= Just texture
           GL.texImage2D GL.Texture2D GL.NoProxy 0 GL.RGBA8 txSize 0 $ GL.PixelData GL.RGBA GL.UnsignedByte ptr
-          pure $ Texture (Dimensions width height) texture
+          pure $ Texture (Dimensions (int2Double width) (int2Double height)) texture
         Left msg -> error $ "loadIntoOpenGL error: " <> msg
         _ -> error "loadIntoOpenGL error: We currently only support png graphic files JuicyPixles reads as ImageRGBA8."

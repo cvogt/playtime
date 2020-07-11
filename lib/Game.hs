@@ -26,7 +26,7 @@ makeInitialGameState Dimensions {width, height} time =
     PersistentGameState
       { gsActiveTile = FloorPlate,
         gsBoard = mempty,
-        gsMainCharacterPosition = Pos (int2Double width / 2) (int2Double height / 2)
+        gsMainCharacterPosition = Pos (width / 2) (height / 2)
       }
 
 keyBindings :: Map Key [(Set Key, Action)]

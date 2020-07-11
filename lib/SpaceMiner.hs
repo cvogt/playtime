@@ -22,7 +22,7 @@ main :: IO ()
 main = do
   -- basic configuration
   let logicDim = Dimensions {width = 320, height = 240}
-  let scale = ScaleInt 3
+  let scale = 3 :: Scale
 
   -- initialization
   igs <- makeInitialGameState logicDim <$> getSystemTime

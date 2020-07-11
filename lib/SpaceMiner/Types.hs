@@ -9,8 +9,6 @@ import qualified "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.Prelude
 import SpaceMiner.Textures
 
-data ScaleInt = ScaleInt Int
-
 -- Event Types
 data Color = RGBA Int Int Int Int deriving (Eq, Ord, Show, Generic, NFData)
 
@@ -107,11 +105,11 @@ data TexturePlacements
   | TexturePlacements TextureId Scale (NonEmpty Pos)
   deriving (Show, Eq, Generic, NFData)
 
-data Pos = Pos Double Double deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON)
+data Pos = Pos {x :: Double, y :: Double} deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON)
 
-data Scale = Scale Double Double deriving (Eq, Ord, Show, Generic, NFData)
+data Scale = Scale {sx :: Double, sy :: Double} deriving (Eq, Ord, Show, Generic, NFData)
 
-data Dimensions = Dimensions {width :: Int, height :: Int} deriving (Eq, Ord, Show, Generic, NFData)
+data Dimensions = Dimensions {width :: Double, height :: Double} deriving (Eq, Ord, Show, Generic, NFData)
 
 instance Num Scale where
   (Scale lx ly) + (Scale rx ry) = Scale (lx + rx) (ly + ry)

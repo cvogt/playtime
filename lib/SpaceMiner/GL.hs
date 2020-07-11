@@ -58,7 +58,6 @@ renderGL textures window Dimensions {width, height} texturePlacements = do
           GL.vertex $ GL.Vertex2 (double2Float $ (x * twidth) + xd) (double2Float $ (y * theight) + yd)
 
   checkErrorsGLU "after"
-
   GLFW.swapBuffers window
   where
     checkErrorsGLU csg = void $ error . ("GLU.errors " <>) . (csg <>) . (": " <>) . show <$> GL.get GLU.errors

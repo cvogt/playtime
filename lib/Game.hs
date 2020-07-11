@@ -24,7 +24,7 @@ makeInitialGameState Dimensions {width, height} time =
         gsModes = mempty
       }
     PersistentGameState
-      { gsActiveTile = FloorPlate,
+      { gsUIMode = TexturePlacementMode FloorPlate,
         gsBoard = mempty,
         gsMainCharacterPosition = Pos (width / 2) (height / 2)
       }
@@ -107,12 +107,31 @@ applyEventToGameState event' gameState =
       let TransientGameState {..} = get a
           GenericGameState {..} = get a
        in update a $ \(gs@PersistentGameState {..}) -> case event of
+            CursorPosEvent (Pos x y) ->
+              let gridsize :: Double
+                  gridsize = 12
+                  gridify :: Double -> Double
+                  gridify = (* gridsize) . int2Double . floor . (/ gridsize)
+                  placement = Pos (gridify x) (gridify y)
+               in gs
+                    { gsBoard =
+                        case gsUIMode of
+                          TexturePlacementMode texture ->
+                            if PlacementMode `setMember` gsModes
+                              then Board $ mapInsert placement texture (unBoard gsBoard)
+                              else
+                                if DeleteMode `setMember` gsModes
+                                  then Board $ mapDelete placement (unBoard gsBoard)
+                                  else gsBoard
+                          TextureMoveMode -> gsBoard
+                    }
             KeyEvent key KeyState'Pressed ->
               gs
-                { gsActiveTile = case key of
-                    Key'1 -> FloorPlate
-                    Key'2 -> TopWall
-                    _ -> gsActiveTile
+                { gsUIMode = case key of
+                    Key'1 -> TexturePlacementMode FloorPlate
+                    Key'2 -> TexturePlacementMode TopWall
+                    Key'3 -> TextureMoveMode
+                    _ -> gsUIMode
                 }
             RenderEvent time ->
               if OneTimeEffect Reset `setMember` gsActions
@@ -125,19 +144,5 @@ applyEventToGameState event' gameState =
                       Pos x y = gsMainCharacterPosition
                       newY = if MovementAction Up `setMember` gsActions then y - d else if MovementAction Down `setMember` gsActions then y + d else y
                       newX = if MovementAction Left' `setMember` gsActions then x - d else if MovementAction Right' `setMember` gsActions then x + d else x
-                      gridsize :: Double
-                      gridsize = 12
-                      gridify :: Double -> Double
-                      gridify = (* gridsize) . int2Double . floor . (/ gridsize)
-                      placement = case gsCursorPos of Pos x' y' -> Pos (gridify x') (gridify y')
-                   in gs
-                        { gsMainCharacterPosition = Pos newX newY,
-                          gsBoard =
-                            if PlacementMode `setMember` gsModes
-                              then Board $ mapInsert placement gsActiveTile (unBoard gsBoard)
-                              else
-                                if DeleteMode `setMember` gsModes
-                                  then Board $ mapDelete placement (unBoard gsBoard)
-                                  else gsBoard
-                        }
+                   in gs {gsMainCharacterPosition = Pos newX newY}
             _ -> gs

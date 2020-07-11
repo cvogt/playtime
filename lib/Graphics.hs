@@ -25,7 +25,8 @@ computeSpritePlacements textures (GameState GenericGameState {..} TransientGameS
       Nothing -> []
       Just (TexturePlacements textureId scale pos) ->
         let Texture dim _ _ = textures textureId in [Rectangle (Border 3) (pos -2) ((scale |*| dim) + 4) $ RGBA 0 255 0 255]
-      Just (Rectangle _ pos dim _) -> [Rectangle (Border 3) (pos -2) (dim + 4) $ RGBA 0 255 0 255]
+      Just (Rectangle Solid pos dim _) -> [Rectangle (Border 3) (pos -2) (dim + 4) $ RGBA 0 255 0 255]
+      Just Rectangle {} -> []
     findMouseOver =
       flip find (reverse sprites) $ \case
         TexturePlacements textureId scale pos ->

@@ -89,8 +89,10 @@ instance FromJSON Board where parseJSON = fmap (Board . mapFromList) . parseJSON
 
 instance ToJSON Board where toJSON = toJSON . mapToList . unBoard
 
+data UIMode = TexturePlacementMode TextureId | TextureMoveMode deriving (Show, Generic, NFData, ToJSON, FromJSON)
+
 data PersistentGameState = PersistentGameState
-  { gsActiveTile :: TextureId,
+  { gsUIMode :: UIMode,
     gsBoard :: Board,
     gsMainCharacterPosition :: Pos
   }

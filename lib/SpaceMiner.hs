@@ -38,7 +38,7 @@ main = do
       GLFW.pollEvents
       gs <- handleEvent cs . RenderEvent =<< getSystemTime
       pure gs
-        >>= trackTime csSpritePlacementTime . pure . computeSpritePlacements
+        >>= trackTime csSpritePlacementTime . pure . computeSpritePlacements textures
         >>= trackTime csRenderLoopTime . renderGL textures window logicDim
       pure $ not $ gameExitRequested gs
   where

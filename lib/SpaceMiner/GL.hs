@@ -44,15 +44,16 @@ renderGL textures window Dimensions {width, height} texturePlacements = do
         forM_ [(0, 0), (0, 1), (0, 1), (1, 1), (1, 1), (1, 0), (1, 0), (0, 0)] $ \(x, y) -> do
           GL.vertex $ GL.Vertex2 (double2Float $ xd + (x * w)) (double2Float $ yd + (y * h))
       pure ()
-    (TexturePlacements textureId scale placements) -> do
-      let Texture dim texture = textures textureId
+    (TexturePlacements textureId scale (Pos xd yd)) -> do
+      let Texture dim texture _ = textures textureId
           Dimensions twidth theight = scale |*| dim
       GL.currentColor $= GL.Color4 @Float 255 255 255 1
       GL.texture GL.Texture2D $= GL.Enabled
       GL.textureFilter GL.Texture2D $= ((GL.Nearest, Nothing), GL.Nearest)
       GL.textureBinding GL.Texture2D $= Just texture
-      GL.renderPrimitive GL.Quads $ for_ placements $ \(Pos xd yd) -> do
-        forM_ [(0, 0), (0, 1), (1, 1), (1, 0)] $ \(x, y) -> do
+      GL.renderPrimitive GL.Quads
+        $ forM_ [(0, 0), (0, 1), (1, 1), (1, 0)]
+        $ \(x, y) -> do
           GL.texCoord $ GL.TexCoord2 (double2Float x) (double2Float y) -- remember 1 makes this match the size of the vertex/quad
           GL.vertex $ GL.Vertex2 (double2Float $ (x * twidth) + xd) (double2Float $ (y * theight) + yd)
 
@@ -70,11 +71,11 @@ loadTextures = do
     loadIntoOpenGL :: FilePath -> IO Texture
     loadIntoOpenGL name = do
       readPng (assetsDir </> name <> ".png") >>= \case
-        Right (ImageRGBA8 (Image width height dat)) -> unsafeWith dat $ \ptr -> do
+        Right (ImageRGBA8 img@(Image width height dat)) -> unsafeWith dat $ \ptr -> do
           let txSize = GL.TextureSize2D (fromIntegral width) (fromIntegral height)
           [texture] <- GL.genObjectNames 1
           GL.textureBinding GL.Texture2D $= Just texture
           GL.texImage2D GL.Texture2D GL.NoProxy 0 GL.RGBA8 txSize 0 $ GL.PixelData GL.RGBA GL.UnsignedByte ptr
-          pure $ Texture (Dimensions (int2Double width) (int2Double height)) texture
+          pure $ Texture (Dimensions (int2Double width) (int2Double height)) texture img
         Left msg -> error $ "loadIntoOpenGL error: " <> msg
         _ -> error "loadIntoOpenGL error: We currently only support png graphic files JuicyPixles reads as ImageRGBA8."

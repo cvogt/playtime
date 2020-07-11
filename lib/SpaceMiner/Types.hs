@@ -2,6 +2,7 @@
 
 module SpaceMiner.Types where
 
+import Codec.Picture.Types (Image, PixelRGBA8)
 import Data.Aeson (FromJSON (parseJSON), ToJSON (toJSON))
 import GHC.Num
 import qualified Graphics.Rendering.OpenGL.GL as GL (TextureObject)
@@ -96,13 +97,13 @@ data PersistentGameState = PersistentGameState
   deriving (Show, Generic, NFData, ToJSON, FromJSON)
 
 -- Textures Types
-data Texture = Texture Dimensions GL.TextureObject deriving (Show, Eq)
+data Texture = Texture Dimensions GL.TextureObject (Image PixelRGBA8) deriving (Eq)
 
 data FillType = Solid | Border Float deriving (Show, Eq, Generic, NFData)
 
 data TexturePlacements
   = Rectangle FillType Pos Dimensions Color
-  | TexturePlacements TextureId Scale (NonEmpty Pos)
+  | TexturePlacements TextureId Scale Pos
   deriving (Show, Eq, Generic, NFData)
 
 data Pos = Pos {x :: Double, y :: Double} deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON)

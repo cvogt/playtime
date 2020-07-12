@@ -22,7 +22,6 @@ computeSpritePlacements textures gs =
              rectangle Solid (Pos 90 114) 24 $ RGBA 255 255 0 255
            ]
         <> inventory
-
     texturePlacements :: TextureId -> Scale -> Pos -> TexturePlacements
     texturePlacements textureId scale pos =
       let Texture dim _ _ = textures textureId in TexturePlacements textureId $ Area (pos) $ scale |*| dim

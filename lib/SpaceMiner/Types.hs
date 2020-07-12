@@ -78,7 +78,8 @@ data UIMode = TexturePlacementMode TextureId | TextureMoveMode deriving (Show, G
 
 data PersistentGameState = PersistentGameState
   { gsUIMode :: UIMode,
-    gsBoard :: Board,
+    gsFloor :: Board,
+    gsRoom :: Board,
     gsLastPlacement :: Pos,
     gsMainCharacterPosition :: Pos
   }

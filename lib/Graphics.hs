@@ -14,7 +14,7 @@ computeSpritePlacements textures gs =
     GenericGameState {..} = get gs
     PersistentGameState {..} = get gs
     sprites =
-      tiles
+      floor <> room
         <> [ TexturePlacements MainCharacter 1 gsMainCharacterPosition,
              TexturePlacements MainCharacter 2 0,
              TexturePlacements MainCharacter 2 50,
@@ -42,9 +42,9 @@ computeSpritePlacements textures gs =
         Rectangle _ pos dim _ -> isMouseOver dim pos
     isMouseOver :: Dimensions -> Pos -> Bool
     isMouseOver (Dimensions width height) (Pos x y) = x < cx && y < cy && (x + width) > cx && (y + height) > cy
-    tiles =
-      (Map.toList $ unBoard gsBoard) <&> \(pos, t) -> TexturePlacements t 1 pos
-    -- backup of grouping logic as reminder if needed: (groupWith snd $ Map.toList $ unBoard gsBoard) <&> \ne@((_, t) :| _) ->
+    floor = (Map.toList $ unBoard gsFloor) <&> \(pos, t) -> TexturePlacements t 1 pos
+    room = (Map.toList $ unBoard gsRoom) <&> \(pos, t) -> TexturePlacements t 1 pos
+    -- backup of grouping logic as reminder if needed: (groupWith snd $ Map.toList $ unBoard gsFloor) <&> \ne@((_, t) :| _) ->
     inventory =
       translate (Pos 200 100)
         <$> [ TexturePlacements Inventory 1 0,

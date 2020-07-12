@@ -23,7 +23,8 @@ makeInitialGameState scale dim@Dimensions {width, height} time =
       },
     PersistentGameState
       { gsUIMode = TexturePlacementMode FloorPlate,
-        gsBoard = mempty,
+        gsFloor = mempty,
+        gsRoom = mempty,
         gsLastPlacement = Pos 0 0,
         gsMainCharacterPosition = Pos (width / 2) (height / 2)
       }
@@ -106,14 +107,22 @@ applyEventToGameState event' gameState =
                   placement = Pos (gridify x) (gridify y)
                in gs
                     { gsLastPlacement = placement,
-                      gsBoard =
+                      gsFloor =
                         case gsUIMode of
                           TexturePlacementMode texture ->
                             case (`setMember` gsMousePressed) of
-                              f | f MouseButton'1 -> Board $ mapInsert placement texture (unBoard gsBoard)
-                              f | f MouseButton'2 -> Board $ mapDelete placement (unBoard gsBoard)
-                              _ -> gsBoard
-                          TextureMoveMode -> gsBoard
+                              f | f MouseButton'1 && texture == FloorPlate -> Board $ mapInsert placement texture (unBoard gsFloor)
+                              f | f MouseButton'2 -> Board $ mapDelete placement (unBoard gsFloor)
+                              _ -> gsFloor
+                          TextureMoveMode -> gsFloor,
+                      gsRoom =
+                        case gsUIMode of
+                          TexturePlacementMode texture ->
+                            case (`setMember` gsMousePressed) of
+                              f | f MouseButton'1 && texture /= FloorPlate -> Board $ mapInsert placement texture (unBoard gsRoom)
+                              f | f MouseButton'2 -> Board $ mapDelete placement (unBoard gsRoom)
+                              _ -> gsRoom
+                          TextureMoveMode -> gsRoom
                     }
             KeyEvent key KeyState'Pressed ->
               gs
@@ -125,7 +134,7 @@ applyEventToGameState event' gameState =
                 }
             RenderEvent time ->
               if OneTimeEffect Reset `setMember` gsActions
-                then gs {gsBoard = mempty}
+                then gs {gsFloor = mempty, gsRoom = mempty}
                 else
                   let picosecs = timeDiffPico gsLastLoopTime time
                       timePassed = int2Double (fromIntegral picosecs) / 1000 / 1000 / 1000 / 1000

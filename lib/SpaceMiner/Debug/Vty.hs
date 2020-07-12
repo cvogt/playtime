@@ -41,7 +41,8 @@ forkDebugTerminal ConcurrentState {..} = do
                        "main char: " <> show (x', y'),
                        "keys: " <> show gsKeysPressed,
                        "last places sprite location: " <> show gsLastPlacement,
-                       "sprite count: " <> show (Map.size $ unBoard gsBoard)
+                       "sprite count floor: " <> show (Map.size $ unBoard gsFloor),
+                       "sprite count room: " <> show (Map.size $ unBoard gsRoom)
                      ]
               )
 

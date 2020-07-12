@@ -41,7 +41,7 @@ renderGL textures window (Dimensions {width, height}, texturePlacements) = do
           GL.lineWidth $= l
           pure GL.Lines
       GL.renderPrimitive mode $ do
-        let (c1, c2, c3, c4) = corners area
+        let (c1, c2, c3, c4) = cornersGL area
         forM_ [c1, c2, c2, c3, c3, c4, c4, c1] vertex
     (TexturePlacements textureId area) -> do
       let Texture _ glObject _ = textures textureId
@@ -51,7 +51,7 @@ renderGL textures window (Dimensions {width, height}, texturePlacements) = do
       GL.textureBinding GL.Texture2D $= Just glObject
       GL.renderPrimitive GL.Quads $ do
         let (s1, s2, s3, s4) = cornerScales
-            (c1, c2, c3, c4) = corners area
+            (c1, c2, c3, c4) = cornersGL area
         forM_ [(s1, c1), (s2, c2), (s3, c3), (s4, c4)] $ \(s, c) -> do
           texCoord s
           vertex c

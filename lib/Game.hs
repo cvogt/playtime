@@ -23,6 +23,7 @@ makeInitialGameState scale dim@Dimensions {width, height} time =
       },
     PersistentGameState
       { gsUIMode = TexturePlacementMode FloorPlate,
+        gsCollisions = (Nothing, Nothing, Nothing, Nothing),
         gsFloor = mempty,
         gsRoom = mempty,
         gsLastPlacement = Pos 0 0,
@@ -139,13 +140,26 @@ applyEventToGameState event' gameState =
                   let picosecs = timeDiffPico gsLastLoopTime time
                       timePassed = int2Double (fromIntegral picosecs) / 1000 / 1000 / 1000 / 1000
                       distancePerSec = 100
+                      charSize = gridsize
                       d = timePassed * distancePerSec
                       Pos x y = gsMainCharacterPosition
                       newY = if MovementAction Up `setMember` gsActions then y - d else if MovementAction Down `setMember` gsActions then y + d else y
                       newX = if MovementAction Left' `setMember` gsActions then x - d else if MovementAction Right' `setMember` gsActions then x + d else x
                       newPos = Pos newX newY
-                      tileArea pos = Area pos gridsize
-                      collision =
-                        any (tileArea newPos `collidesWith`) $ tileArea <$> (keys $ unBoard gsRoom)
-                   in gs {gsMainCharacterPosition = if not collision then newPos else gsMainCharacterPosition}
+                      tileArea pos = Area pos charSize
+                      newArea = tileArea newPos
+                      collisions = filter (newArea `collidesWith`) $ tileArea <$> (keys $ unBoard gsRoom)
+                      (nw, sw, se, ne) = corners newArea
+                      nwCollision = find (nw `isWithin`) collisions
+                      swCollision = find (sw `isWithin`) collisions
+                      seCollision = find (se `isWithin`) collisions
+                      neCollision = find (ne `isWithin`) collisions
+                      fixedPos = case (nwCollision, swCollision, seCollision, neCollision) of
+                        (Just _, Just (Area (Pos cX _) (Dimensions cW _)), Nothing, Nothing) -> Pos (cX + cW) newY
+                        (Nothing, Nothing, Just (Area (Pos cX _) _), Just _) -> Pos (cX - width charSize) newY
+                        (Nothing, Just _, Just (Area (Pos _ cY) _), Nothing) -> Pos newX (cY - height charSize)
+                        (Just _, Nothing, Nothing, Just (Area (Pos _ cY) (Dimensions _ cH))) -> Pos newX (cY + cH)
+                        (Nothing, Nothing, Nothing, Nothing) -> newPos
+                        _ -> gsMainCharacterPosition
+                   in gs {gsCollisions = (nwCollision, swCollision, seCollision, neCollision), gsMainCharacterPosition = fixedPos}
             _ -> gs

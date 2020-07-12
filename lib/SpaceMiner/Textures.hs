@@ -10,6 +10,7 @@ import System.IO (FilePath)
 data TextureId
   = FloorPlate
   | Inventory
+  | GermanFlag
   | MainCharacter
   | RedResource
   | TopWall
@@ -20,6 +21,7 @@ textureNameMap =
   Map.fromList
     [ (FloorPlate, "floor_plate"),
       (Inventory, "inventory"),
+      (GermanFlag, "german_flag"),
       (MainCharacter, "main_character"),
       (RedResource, "red_resource"),
       (TopWall, "top_wall")

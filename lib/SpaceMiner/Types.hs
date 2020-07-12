@@ -78,6 +78,7 @@ data UIMode = TexturePlacementMode TextureId | TextureMoveMode deriving (Show, G
 
 data PersistentGameState = PersistentGameState
   { gsUIMode :: UIMode,
+    gsCollisions :: (Maybe Area, Maybe Area, Maybe Area, Maybe Area),
     gsFloor :: Board,
     gsRoom :: Board,
     gsLastPlacement :: Pos,
@@ -101,11 +102,11 @@ data TexturePlacements
 
 data Pos = Pos {x :: Double, y :: Double} deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON)
 
-data Scale = Scale {sx :: Double, sy :: Double} deriving (Eq, Ord, Show, Generic, NFData)
+data Scale = Scale {sx :: Double, sy :: Double} deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON)
 
-data Dimensions = Dimensions {width :: Double, height :: Double} deriving (Eq, Ord, Show, Generic, NFData)
+data Dimensions = Dimensions {width :: Double, height :: Double} deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON)
 
-data Area = Area Pos Dimensions deriving (Eq, Ord, Show, Generic, NFData)
+data Area = Area Pos Dimensions deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON)
 
 (|*|) :: Scale -> Dimensions -> Dimensions
 (|*|) Scale {sx, sy} Dimensions {width, height} = Dimensions {width = width * sx, height = height * sy}
@@ -117,7 +118,7 @@ data Area = Area Pos Dimensions deriving (Eq, Ord, Show, Generic, NFData)
 (|/|) Dimensions {width = w1, height = h1} Dimensions {width = w2, height = h2} = Scale {sx = w1 `divideDouble` w2, sy = h1 `divideDouble` h2}
 
 isWithin :: Pos -> Area -> Bool
-isWithin (Pos cx cy) (Area (Pos x y) (Dimensions width height)) = x < cx && y < cy && (x + width) > cx && (y + height) > cy
+isWithin (Pos cx cy) (Area (Pos x y) (Dimensions width height)) = x <= cx && y <= cy && cx < (x + width) && cy < (y + height)
 
 collidesWith :: Area -> Area -> Bool
 collidesWith area1 area2 = any (`isWithin` area2) $ cornersList area1
@@ -127,6 +128,11 @@ cornerScales = (Scale 0 0, Scale 0 1, Scale 1 1, Scale 1 0)
 
 corners :: Area -> (Pos, Pos, Pos, Pos)
 corners (Area pos dim) = case cornerScales of (c1, c2, c3, c4) -> (f c1, f c2, f c3, f c4)
+  where
+    f scale = pos |+| (scale |*| (dim -1))
+
+cornersGL :: Area -> (Pos, Pos, Pos, Pos)
+cornersGL (Area pos dim) = case cornerScales of (c1, c2, c3, c4) -> (f c1, f c2, f c3, f c4)
   where
     f scale = pos |+| (scale |*| dim)
 

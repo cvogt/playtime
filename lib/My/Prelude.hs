@@ -20,6 +20,7 @@ module My.Prelude
     module Data.Ord,
     module Data.Semigroup,
     module Data.Set,
+    module Data.Text,
     module Data.Time.Clock.System,
     module Data.Traversable,
     module Data.Tuple,
@@ -59,6 +60,7 @@ import Data.Ord (Ord ((<), (<=), (>), (>=)))
 import Data.Semigroup (Semigroup)
 import Data.Set (Set, difference, union)
 import qualified Data.Set as Set
+import Data.Text (Text)
 import Data.Time.Clock.System (SystemTime)
 import Data.Traversable (for, forM, sequence)
 import Data.Tuple (fst, snd, uncurry)

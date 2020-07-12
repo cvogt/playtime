@@ -40,6 +40,7 @@ forkDebugTerminal ConcurrentState {..} = do
                        "opengl pos: " <> show (x, y),
                        "main char: " <> show (x', y'),
                        "keys: " <> show gsKeysPressed,
+                       "collisions: " <> show gsCollisions,
                        "last places sprite location: " <> show gsLastPlacement,
                        "sprite count floor: " <> show (Map.size $ unBoard gsFloor),
                        "sprite count room: " <> show (Map.size $ unBoard gsRoom)

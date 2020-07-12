@@ -17,7 +17,8 @@ data Event
   = RenderEvent SystemTime
   | MouseEvent GLFW.MouseButton GLFW.MouseButtonState
   | KeyEvent GLFW.Key GLFW.KeyState
-  | CursorPosEvent Pos
+  | CursorPosEvent Double Double
+  | WindowSizeEvent Int Int
   | WindowCloseEvent
   deriving (Show)
 
@@ -57,11 +58,13 @@ instance Has GameState PersistentGameState where get = snd; set (a, _) b = (a, b
 data GenericGameState = GenericGameState
   { gsCursorPos :: Pos,
     gsFps :: Double,
+    gsLogicalDimensions :: Dimensions,
     gsKeysPressed :: Set GLFW.Key,
     gsMousePressed :: Set GLFW.MouseButton,
     gsLastLoopTime :: SystemTime,
     gsActions :: Set Action,
-    gsTimes :: [Integer]
+    gsTimes :: [Integer],
+    gsWindowSize :: Dimensions
   }
   deriving (Show, Generic, NFData)
 
@@ -99,6 +102,9 @@ data Dimensions = Dimensions {width :: Double, height :: Double} deriving (Eq, O
 
 (|*|) :: Scale -> Dimensions -> Dimensions
 (|*|) Scale {sx, sy} Dimensions {width, height} = Dimensions {width = width * sx, height = height * sy}
+
+(|/|) :: Dimensions -> Dimensions -> Scale
+(|/|) Dimensions {width = w1, height = h1} Dimensions {width = w2, height = h2} = Scale {sx = w1 `divideDouble` w2, sy = h1 `divideDouble` h2}
 
 instance Num Scale where
   (Scale lx ly) + (Scale rx ry) = Scale (lx + rx) (ly + ry)

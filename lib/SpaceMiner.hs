@@ -21,25 +21,26 @@ import SpaceMiner.Types
 main :: IO ()
 main = do
   -- basic configuration
-  let logicDim = Dimensions {width = 320, height = 240}
+  let dim = Dimensions {width = 320, height = 240} -- logical pixel resolution
+  let scale = 3 -- scale up to screen resolution
 
   -- initialization
-  igs <- makeInitialGameState logicDim <$> getSystemTime
+  igs <- makeInitialGameState scale dim <$> getSystemTime
   cs@ConcurrentState {csTotalLoopTime, csRenderLoopTime, csSpritePlacementTime} <- makeInitialConcurrentState igs
 
   --void $ forkIO $ forever $ playMusic
   void $ forkDebugTerminal cs
 
   -- open gl rendering loop
-  withGLFW (3 |*| logicDim) "SpaceMiner" $ \window -> do
+  withGLFW (gsWindowSize $ fst igs) "SpaceMiner" $ \window -> do
     textures <- loadTextures
-    setEventCallback window logicDim $ void . handleEvent cs
+    setEventCallback window $ void . handleEvent cs
     whileM $ trackTime csTotalLoopTime $ do
       GLFW.pollEvents
       gs <- handleEvent cs . RenderEvent =<< getSystemTime
       pure gs
         >>= trackTime csSpritePlacementTime . pure . computeSpritePlacements textures
-        >>= trackTime csRenderLoopTime . renderGL textures window logicDim
+        >>= trackTime csRenderLoopTime . renderGL textures window
       pure $ not $ gameExitRequested gs
   where
     handleEvent :: ConcurrentState -> Event -> IO GameState

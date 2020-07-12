@@ -8,16 +8,18 @@ import SpaceMiner.Textures
 import SpaceMiner.Types
 import SpaceMiner.Util
 
-makeInitialGameState :: Dimensions -> SystemTime -> GameState
-makeInitialGameState Dimensions {width, height} time =
+makeInitialGameState :: Scale -> Dimensions -> SystemTime -> GameState
+makeInitialGameState scale dim@Dimensions {width, height} time =
   ( GenericGameState
       { gsCursorPos = Pos 0 0,
         gsFps = 0,
         gsKeysPressed = mempty,
         gsMousePressed = mempty,
         gsLastLoopTime = time,
+        gsLogicalDimensions = dim,
         gsActions = mempty,
-        gsTimes = []
+        gsTimes = [],
+        gsWindowSize = scale |*| dim
       },
     PersistentGameState
       { gsUIMode = TexturePlacementMode FloorPlate,
@@ -59,7 +61,16 @@ applyEventToGameState event' gameState =
     applyToGenericGameState :: (Has a GenericGameState) => Event -> a -> a
     applyToGenericGameState event a =
       update a $ \(gs@GenericGameState {..}) -> case event of
-        CursorPosEvent pos -> gs {gsCursorPos = pos}
+        WindowSizeEvent width height -> gs {gsWindowSize = Dimensions (int2Double width) (int2Double height)}
+        CursorPosEvent x y ->
+          gs
+            { gsCursorPos =
+                -- this ratio calculation leads to proper relative scaling on window resize
+                -- FIXME: we still get distortion if aspect ration of resized window is different
+                --        we should be able to fix that by adding black borders as needed
+                let Scale {sx, sy} = gsLogicalDimensions |/| gsWindowSize
+                 in Pos (sx * x) (sy * y)
+            }
         KeyEvent key KeyState'Pressed ->
           let pressed = setInsert key gsKeysPressed
               matchingBindings = fromMaybe [] $ mapLookup key keyBindings
@@ -86,8 +97,9 @@ applyEventToGameState event' gameState =
     applyToPersistentGameState event a =
       let GenericGameState {..} = get a
        in update a $ \(gs@PersistentGameState {..}) -> case event of
-            CursorPosEvent (Pos x y) ->
-              let gridsize :: Double
+            CursorPosEvent _ _ ->
+              let Pos x y = gsCursorPos
+                  gridsize :: Double
                   gridsize = 12
                   gridify :: Double -> Double
                   gridify = (* gridsize) . int2Double . floor . (/ gridsize)

@@ -34,7 +34,7 @@ keyBindings :: Map Key [(Set Key, Action)]
 keyBindings = mapFromList $ groups <&> \l@(h :| _) -> (fst h, first setFromList <$> (join . toList $ snd <$> l))
   where
     groups :: [NonEmpty (Key, [([Key], Action)])]
-    groups = groupAllWith fst $ join $ keyBindingsRaw <&> (\b@(keys, _) -> (,[b]) <$> keys)
+    groups = groupAllWith fst $ join $ keyBindingsRaw <&> (\b@(keys', _) -> (,[b]) <$> keys')
     keyBindingsRaw :: [([Key], Action)]
     keyBindingsRaw =
       [ ([Key'LeftSuper, Key'Q], Exit),
@@ -94,14 +94,14 @@ applyEventToGameState event' gameState =
                   gsFps = if sum gsTimes > halfsec then avg gsTimes else gsFps
                 }
         _ -> gs
+    gridsize :: Num n => n
+    gridsize = 12
     applyToPersistentGameState :: (Has a GenericGameState, Has a PersistentGameState) => Event -> a -> a
     applyToPersistentGameState event a =
       let GenericGameState {..} = get a
        in update a $ \(gs@PersistentGameState {..}) -> case event of
             CursorPosEvent _ _ ->
               let Pos x y = gsCursorPos
-                  gridsize :: Double
-                  gridsize = 12
                   gridify :: Double -> Double
                   gridify = (* gridsize) . int2Double . floor . (/ gridsize)
                   placement = Pos (gridify x) (gridify y)
@@ -143,5 +143,9 @@ applyEventToGameState event' gameState =
                       Pos x y = gsMainCharacterPosition
                       newY = if MovementAction Up `setMember` gsActions then y - d else if MovementAction Down `setMember` gsActions then y + d else y
                       newX = if MovementAction Left' `setMember` gsActions then x - d else if MovementAction Right' `setMember` gsActions then x + d else x
-                   in gs {gsMainCharacterPosition = Pos newX newY}
+                      newPos = Pos newX newY
+                      tileArea pos = Area pos gridsize
+                      collision =
+                        any (tileArea newPos `collidesWith`) $ tileArea <$> (keys $ unBoard gsRoom)
+                   in gs {gsMainCharacterPosition = if not collision then newPos else gsMainCharacterPosition}
             _ -> gs

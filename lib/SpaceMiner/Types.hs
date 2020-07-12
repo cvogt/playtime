@@ -119,6 +119,9 @@ data Area = Area Pos Dimensions deriving (Eq, Ord, Show, Generic, NFData)
 isWithin :: Pos -> Area -> Bool
 isWithin (Pos cx cy) (Area (Pos x y) (Dimensions width height)) = x < cx && y < cy && (x + width) > cx && (y + height) > cy
 
+collidesWith :: Area -> Area -> Bool
+collidesWith area1 area2 = any (`isWithin` area2) $ cornersList area1
+
 cornerScales :: (Scale, Scale, Scale, Scale)
 cornerScales = (Scale 0 0, Scale 0 1, Scale 1 1, Scale 1 0)
 
@@ -126,6 +129,9 @@ corners :: Area -> (Pos, Pos, Pos, Pos)
 corners (Area pos dim) = case cornerScales of (c1, c2, c3, c4) -> (f c1, f c2, f c3, f c4)
   where
     f scale = pos |+| (scale |*| dim)
+
+cornersList :: Area -> [Pos]
+cornersList area = case corners area of (c1, c2, c3, c4) -> [c1, c2, c3, c4]
 
 instance Num Scale where
   (Scale lx ly) + (Scale rx ry) = Scale (lx + rx) (ly + ry)

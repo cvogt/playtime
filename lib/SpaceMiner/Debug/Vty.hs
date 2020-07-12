@@ -18,7 +18,9 @@ forkDebugTerminal ConcurrentState {..} = do
   vty <- Vty.mkVty cfg
   flip forkFinally (\_ -> Vty.shutdown vty) $ do
     flip iterateM_ (0, 0, 0, 0) $ \(oldAvgGameLoopTime, oldAvgTexturePlacementTime, oldAvgRenderLoopTime, oldAvgTotalLoopTime) -> do
-      GameState GenericGameState {..} TransientGameState {..} PersistentGameState {..} <- readMVar csGameState
+      gs <- readMVar csGameState
+      let GenericGameState {..} = get gs
+          PersistentGameState {..} = get gs
       gameLoopTimes <- modifyMVar csGameLoopTime $ \t -> pure ([], t)
       texturePlacementTimes <- modifyMVar csSpritePlacementTime $ \t -> pure ([], t)
       renderLoopTimes <- modifyMVar csRenderLoopTime $ \t -> pure ([], t)

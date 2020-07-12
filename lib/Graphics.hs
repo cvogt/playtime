@@ -7,10 +7,12 @@ import My.Prelude
 import SpaceMiner.Textures
 import SpaceMiner.Types
 
-computeSpritePlacements :: (TextureId -> Texture) -> GameState -> [TexturePlacements]
-computeSpritePlacements textures (GameState GenericGameState {..} TransientGameState {..} PersistentGameState {..}) =
+computeSpritePlacements :: (Has gs GenericGameState, Has gs PersistentGameState) => (TextureId -> Texture) -> gs -> [TexturePlacements]
+computeSpritePlacements textures gs =
   sprites <> highlightMouserOver
   where
+    GenericGameState {..} = get gs
+    PersistentGameState {..} = get gs
     sprites =
       tiles
         <> [ TexturePlacements MainCharacter 1 gsMainCharacterPosition,

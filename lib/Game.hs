@@ -10,8 +10,7 @@ import SpaceMiner.Util
 
 makeInitialGameState :: Dimensions -> SystemTime -> GameState
 makeInitialGameState Dimensions {width, height} time =
-  GameState
-    GenericGameState
+  ( GenericGameState
       { gsCursorPos = Pos 0 0,
         gsFps = 0,
         gsKeysPressed = mempty,
@@ -19,13 +18,14 @@ makeInitialGameState Dimensions {width, height} time =
         gsLastLoopTime = time,
         gsActions = mempty,
         gsTimes = []
-      }
-    TransientGameState {gsLastPlacement = Pos 0 0}
+      },
     PersistentGameState
       { gsUIMode = TexturePlacementMode FloorPlate,
         gsBoard = mempty,
+        gsLastPlacement = Pos 0 0,
         gsMainCharacterPosition = Pos (width / 2) (height / 2)
       }
+  )
 
 keyBindings :: Map Key [(Set Key, Action)]
 keyBindings = mapFromList $ groups <&> \l@(h :| _) -> (fst h, first setFromList <$> (join . toList $ snd <$> l))
@@ -47,7 +47,7 @@ keyBindings = mapFromList $ groups <&> \l@(h :| _) -> (fst h, first setFromList 
 
 applyEventToGameState :: Event -> GameState -> GameState
 applyEventToGameState event' gameState =
-  foldl (.) id (flap [applyToGenericGameState, applyToTransientGameState, applyToPersistentGameState] event')
+  foldl (.) id (flap [applyToGenericGameState, applyToPersistentGameState] event')
     $ update gameState
     $ \ggs ->
       ggs
@@ -82,22 +82,9 @@ applyEventToGameState event' gameState =
                   gsFps = if sum gsTimes > halfsec then avg gsTimes else gsFps
                 }
         _ -> gs
-    applyToTransientGameState :: (Has a GenericGameState, Has a TransientGameState) => Event -> a -> a
-    applyToTransientGameState event a =
-      let GenericGameState {..} = get a
-       in update a $ \(gs@TransientGameState {..}) -> case event of
-            RenderEvent _ ->
-              let gridsize :: Double
-                  gridsize = 12
-                  gridify :: Double -> Double
-                  gridify = (* gridsize) . int2Double . floor . (/ gridsize)
-                  placement = case gsCursorPos of Pos x' y' -> Pos (gridify x') (gridify y')
-               in gs {gsLastPlacement = placement}
-            _ -> gs
-    applyToPersistentGameState :: (Has a GenericGameState, Has a TransientGameState, Has a PersistentGameState) => Event -> a -> a
+    applyToPersistentGameState :: (Has a GenericGameState, Has a PersistentGameState) => Event -> a -> a
     applyToPersistentGameState event a =
-      let TransientGameState {..} = get a
-          GenericGameState {..} = get a
+      let GenericGameState {..} = get a
        in update a $ \(gs@PersistentGameState {..}) -> case event of
             CursorPosEvent (Pos x y) ->
               let gridsize :: Double
@@ -106,7 +93,8 @@ applyEventToGameState event' gameState =
                   gridify = (* gridsize) . int2Double . floor . (/ gridsize)
                   placement = Pos (gridify x) (gridify y)
                in gs
-                    { gsBoard =
+                    { gsLastPlacement = placement,
+                      gsBoard =
                         case gsUIMode of
                           TexturePlacementMode texture ->
                             case (`setMember` gsMousePressed) of

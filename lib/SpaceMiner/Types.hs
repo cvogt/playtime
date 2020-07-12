@@ -23,15 +23,10 @@ data Event
 
 -- Game State Types
 
-data GameState = GameState
-  { gsGenericGameState :: GenericGameState,
-    gsTransientGameState :: TransientGameState,
-    gsPersistentGameState :: PersistentGameState
-  }
-  deriving (Show, Generic, NFData)
+type GameState = (GenericGameState, PersistentGameState)
 
-gameExitRequested :: GameState -> Bool
-gameExitRequested (GameState GenericGameState {gsActions} _ _) = Exit `elem` gsActions
+gameExitRequested :: (Has a GenericGameState) => a -> Bool
+gameExitRequested gs = Exit `elem` (gsActions $ get gs)
 
 data OneTimeEffect' = Load | Save | Reset deriving (Eq, Ord, Show, Generic, NFData)
 
@@ -54,16 +49,10 @@ class Has a b where
   update a f = set a $ f $ get a
 
 instance Has GameState GenericGameState where
-  get = gsGenericGameState
-  set gs b = gs {gsGenericGameState = b}
+  get = fst
+  set (_, b) a = (a, b)
 
-instance Has GameState TransientGameState where
-  get = gsTransientGameState
-  set gs b = gs {gsTransientGameState = b}
-
-instance Has GameState PersistentGameState where
-  get = gsPersistentGameState
-  set gs b = gs {gsPersistentGameState = b}
+instance Has GameState PersistentGameState where get = snd; set (a, _) b = (a, b)
 
 data GenericGameState = GenericGameState
   { gsCursorPos :: Pos,
@@ -74,10 +63,6 @@ data GenericGameState = GenericGameState
     gsActions :: Set Action,
     gsTimes :: [Integer]
   }
-  deriving (Show, Generic, NFData)
-
-data TransientGameState = TransientGameState
-  {gsLastPlacement :: Pos}
   deriving (Show, Generic, NFData)
 
 newtype Board = Board {unBoard :: Map Pos TextureId} deriving newtype (Show, Semigroup, Monoid, NFData)
@@ -91,6 +76,7 @@ data UIMode = TexturePlacementMode TextureId | TextureMoveMode deriving (Show, G
 data PersistentGameState = PersistentGameState
   { gsUIMode :: UIMode,
     gsBoard :: Board,
+    gsLastPlacement :: Pos,
     gsMainCharacterPosition :: Pos
   }
   deriving (Show, Generic, NFData, ToJSON, FromJSON)

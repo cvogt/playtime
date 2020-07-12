@@ -50,11 +50,14 @@ main = do
         dupe . fromMaybe new_gs <$> loadMay new_gs
       where
         saveLocation = $(makeRelativeToProject "savegame.json" >>= strToExp)
-        saveMay (GameState GenericGameState {gsActions} _ persistentGameState) =
+        saveMay gameState = do
+          let GenericGameState {gsActions} = get gameState
+              (persistentGameState@PersistentGameState {}) = get gameState
           when (OneTimeEffect Save `setMember` gsActions) $ writeFile saveLocation $ BSL.toStrict $ encode $ persistentGameState
-        loadMay gameState@(GameState GenericGameState {gsActions} _ _) =
+        loadMay gameState = do
+          let GenericGameState {gsActions} = get gameState
           if OneTimeEffect Load `setMember` gsActions
             then do
-              npgs <- either fail pure . eitherDecode . BSL.fromStrict =<< readFile saveLocation
-              pure $ Just gameState {gsPersistentGameState = npgs}
+              npgs@PersistentGameState {} <- either fail pure . eitherDecode . BSL.fromStrict =<< readFile saveLocation
+              pure $ Just $ update gameState $ \_ -> npgs
             else pure Nothing

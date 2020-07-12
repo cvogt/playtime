@@ -86,13 +86,17 @@ data PersistentGameState = PersistentGameState
   deriving (Show, Generic, NFData, ToJSON, FromJSON)
 
 -- Textures Types
-data Texture = Texture Dimensions GL.TextureObject (Image PixelRGBA8) deriving (Eq)
+data Texture = Texture
+  { tDimensions :: Dimensions,
+    tGLObject :: GL.TextureObject,
+    tImage :: Image PixelRGBA8
+  }
 
 data FillType = Solid | Border Float deriving (Show, Eq, Generic, NFData)
 
 data TexturePlacements
-  = Rectangle FillType Pos Dimensions Color
-  | TexturePlacements TextureId Scale Pos
+  = Rectangle FillType Area Color
+  | TexturePlacements TextureId Area
   deriving (Show, Eq, Generic, NFData)
 
 data Pos = Pos {x :: Double, y :: Double} deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON)
@@ -101,11 +105,27 @@ data Scale = Scale {sx :: Double, sy :: Double} deriving (Eq, Ord, Show, Generic
 
 data Dimensions = Dimensions {width :: Double, height :: Double} deriving (Eq, Ord, Show, Generic, NFData)
 
+data Area = Area Pos Dimensions deriving (Eq, Ord, Show, Generic, NFData)
+
 (|*|) :: Scale -> Dimensions -> Dimensions
 (|*|) Scale {sx, sy} Dimensions {width, height} = Dimensions {width = width * sx, height = height * sy}
 
+(|+|) :: Pos -> Dimensions -> Pos
+(|+|) Pos {x, y} Dimensions {width, height} = Pos {x = x + width, y = y + height}
+
 (|/|) :: Dimensions -> Dimensions -> Scale
 (|/|) Dimensions {width = w1, height = h1} Dimensions {width = w2, height = h2} = Scale {sx = w1 `divideDouble` w2, sy = h1 `divideDouble` h2}
+
+isWithin :: Pos -> Area -> Bool
+isWithin (Pos cx cy) (Area (Pos x y) (Dimensions width height)) = x < cx && y < cy && (x + width) > cx && (y + height) > cy
+
+cornerScales :: (Scale, Scale, Scale, Scale)
+cornerScales = (Scale 0 0, Scale 0 1, Scale 1 1, Scale 1 0)
+
+corners :: Area -> (Pos, Pos, Pos, Pos)
+corners (Area pos dim) = case cornerScales of (c1, c2, c3, c4) -> (f c1, f c2, f c3, f c4)
+  where
+    f scale = pos |+| (scale |*| dim)
 
 instance Num Scale where
   (Scale lx ly) + (Scale rx ry) = Scale (lx + rx) (ly + ry)

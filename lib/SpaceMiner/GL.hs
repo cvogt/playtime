@@ -32,7 +32,7 @@ renderGL textures window (Dimensions {width, height}, texturePlacements) = do
   checkErrorsGLU "before"
 
   for_ texturePlacements $ \case
-    (Rectangle fillType (Pos xd yd) (Dimensions w h) (RGBA r g b a)) -> do
+    (Rectangle fillType area (RGBA r g b a)) -> do
       GL.texture GL.Texture2D $= GL.Disabled
       GL.currentColor $= GL.Color4 (int2Float r / 255) (int2Float g / 255) (int2Float b / 255) (int2Float a / 255)
       mode <- case fillType of
@@ -41,25 +41,26 @@ renderGL textures window (Dimensions {width, height}, texturePlacements) = do
           GL.lineWidth $= l
           pure GL.Lines
       GL.renderPrimitive mode $ do
-        forM_ [(0, 0), (0, 1), (0, 1), (1, 1), (1, 1), (1, 0), (1, 0), (0, 0)] $ \(x, y) -> do
-          GL.vertex $ GL.Vertex2 (double2Float $ xd + (x * w)) (double2Float $ yd + (y * h))
-      pure ()
-    (TexturePlacements textureId scale (Pos xd yd)) -> do
-      let Texture dim texture _ = textures textureId
-          Dimensions twidth theight = scale |*| dim
+        let (c1, c2, c3, c4) = corners area
+        forM_ [c1, c2, c2, c3, c3, c4, c4, c1] vertex
+    (TexturePlacements textureId area) -> do
+      let Texture _ glObject _ = textures textureId
       GL.currentColor $= GL.Color4 @Float 255 255 255 1
       GL.texture GL.Texture2D $= GL.Enabled
       GL.textureFilter GL.Texture2D $= ((GL.Nearest, Nothing), GL.Nearest)
-      GL.textureBinding GL.Texture2D $= Just texture
-      GL.renderPrimitive GL.Quads
-        $ forM_ [(0, 0), (0, 1), (1, 1), (1, 0)]
-        $ \(x, y) -> do
-          GL.texCoord $ GL.TexCoord2 (double2Float x) (double2Float y) -- remember 1 makes this match the size of the vertex/quad
-          GL.vertex $ GL.Vertex2 (double2Float $ (x * twidth) + xd) (double2Float $ (y * theight) + yd)
+      GL.textureBinding GL.Texture2D $= Just glObject
+      GL.renderPrimitive GL.Quads $ do
+        let (s1, s2, s3, s4) = cornerScales
+            (c1, c2, c3, c4) = corners area
+        forM_ [(s1, c1), (s2, c2), (s3, c3), (s4, c4)] $ \(s, c) -> do
+          texCoord s
+          vertex c
 
   checkErrorsGLU "after"
   GLFW.swapBuffers window
   where
+    texCoord (Scale sx sy) = GL.texCoord $ GL.TexCoord2 (double2Float sx) (double2Float sy) -- remember 1 makes this match the size of the vertex/quad
+    vertex (Pos x y) = GL.vertex $ GL.Vertex2 (double2Float x) (double2Float y)
     checkErrorsGLU csg = void $ error . ("GLU.errors " <>) . (csg <>) . (": " <>) . show <$> GL.get GLU.errors
 
 loadTextures :: IO (TextureId -> Texture)

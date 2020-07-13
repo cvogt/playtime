@@ -1,4 +1,4 @@
-module SpaceMiner.GLFW
+module Playtime.GLFW
   ( withGLFW,
     setEventCallback,
   )
@@ -10,7 +10,7 @@ import qualified "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.Extra
 import My.IO
 import My.Prelude
-import SpaceMiner.Types
+import Playtime.Types
 
 withGLFW :: Dimensions -> [Char] -> (GLFW.Window -> IO ()) -> IO ()
 withGLFW Dimensions {width, height} title glCode = do

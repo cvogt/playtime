@@ -1,4 +1,4 @@
-module SpaceMiner.Textures where
+module Playtime.Textures where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.FileEmbed

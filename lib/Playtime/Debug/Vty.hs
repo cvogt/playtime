@@ -1,4 +1,4 @@
-module SpaceMiner.Debug.Vty where
+module Playtime.Debug.Vty where
 
 import GHC.Float (int2Double)
 import GHC.Real ((/), round)
@@ -6,9 +6,9 @@ import qualified Graphics.Vty as Vty
 import My.Extra
 import My.IO
 import My.Prelude
-import SpaceMiner.ConcurrentState
-import SpaceMiner.Types
-import SpaceMiner.Util
+import Playtime.ConcurrentState
+import Playtime.Types
+import Playtime.Util
 
 forkDebugTerminal :: ConcurrentState gameState -> (gameState -> [[Char]]) -> IO ThreadId
 forkDebugTerminal ConcurrentState {..} gameDebugInfo = do

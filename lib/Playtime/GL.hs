@@ -1,4 +1,4 @@
-module SpaceMiner.GL where
+module Playtime.GL where
 
 import Codec.Picture (DynamicImage (ImageRGBA8), Image (Image), readPng)
 import qualified Data.Map as Map (lookup)
@@ -12,8 +12,8 @@ import qualified Graphics.Rendering.OpenGL.GLU.Errors as GLU
 import qualified "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.IO
 import My.Prelude
-import SpaceMiner.Textures
-import SpaceMiner.Types
+import Playtime.Textures
+import Playtime.Types
 
 renderGL :: (TextureId -> Texture) -> GLFW.Window -> (Dimensions, [TexturePlacements]) -> IO ()
 renderGL textures window (Dimensions {width, height}, texturePlacements) = do

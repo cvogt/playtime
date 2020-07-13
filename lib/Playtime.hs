@@ -1,24 +1,22 @@
-module SpaceMiner where
+module Playtime where
 
 import Data.Aeson (FromJSON, ToJSON, eitherDecode, encode)
 import qualified Data.ByteString.Lazy as BSL
 import Data.FileEmbed
 -- import Music
 
-import qualified Data.Map as Map
 import Game
-import Graphics
 import qualified "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.Extra
 import My.IO
 import My.Prelude
-import SpaceMiner.ConcurrentState
-import SpaceMiner.Debug
-import SpaceMiner.Debug.Vty
-import SpaceMiner.GL
-import SpaceMiner.GLFW
-import SpaceMiner.Textures
-import SpaceMiner.Types
+import Playtime.ConcurrentState
+import Playtime.Debug
+import Playtime.Debug.Vty
+import Playtime.GL
+import Playtime.GLFW
+import Playtime.Textures
+import Playtime.Types
 
 data EngineConfig gameState = EngineConfig
   { initialGameState :: gameState,
@@ -28,22 +26,8 @@ data EngineConfig gameState = EngineConfig
     gameDebugInfo :: gameState -> [[Char]]
   }
 
-main :: IO ()
-main =
-  let igs = makeInitialGameState dim
-      dim = Dimensions {width = 320, height = 240} -- logical pixel resolution
-   in engineMain $ EngineConfig igs dim stepGameState' computeSpritePlacements $ \gs ->
-        let GameState {..} = gs
-            Pos x' y' = gsMainCharacterPosition
-         in [ "collisions: " <> show gsCollisions,
-              "main char: " <> show (x', y'),
-              "last places sprite location: " <> show gsLastPlacement,
-              "sprite count floor: " <> show (Map.size $ unBoard gsFloor),
-              "sprite count room: " <> show (Map.size $ unBoard gsRoom)
-            ]
-
-engineMain :: forall a. (FromJSON a, ToJSON a, NFData a) => EngineConfig a -> IO ()
-engineMain EngineConfig {initialGameState, gameDebugInfo, dim, stepGameState, computeSpritePlacements'} = do
+playtime :: forall a. (FromJSON a, ToJSON a, NFData a) => EngineConfig a -> IO ()
+playtime EngineConfig {initialGameState, gameDebugInfo, dim, stepGameState, computeSpritePlacements'} = do
   -- basic configuration
   let scale = 3 -- scale up to screen resolution
 
@@ -56,7 +40,7 @@ engineMain EngineConfig {initialGameState, gameDebugInfo, dim, stepGameState, co
   void $ forkDebugTerminal cs gameDebugInfo
 
   -- open gl rendering loop
-  withGLFW (gsWindowSize $ fst igs) "SpaceMiner" $ \window -> do
+  withGLFW (gsWindowSize $ fst igs) "Playtime" $ \window -> do
     textures <- loadTextures
     setEventCallback window $ void . handleEvent cs
     whileM $ trackTime csTotalLoopTime $ do

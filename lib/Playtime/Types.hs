@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module SpaceMiner.Types where
+module Playtime.Types where
 
 import Codec.Picture.Types (Image, PixelRGBA8)
 import Data.Aeson (FromJSON (parseJSON), ToJSON (toJSON))
@@ -8,7 +8,7 @@ import GHC.Num
 import qualified Graphics.Rendering.OpenGL.GL as GL (TextureObject)
 import qualified "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.Prelude
-import SpaceMiner.Textures
+import Playtime.Textures
 
 -- Event Types
 data Color = RGBA Int Int Int Int deriving (Eq, Ord, Show, Generic, NFData)

@@ -4,9 +4,9 @@ import GHC.Float (int2Double)
 import GHC.Real ((/), floor, fromIntegral)
 import "GLFW-b" Graphics.UI.GLFW
 import My.Prelude
-import SpaceMiner.Textures
-import SpaceMiner.Types
-import SpaceMiner.Util
+import Playtime.Textures
+import Playtime.Types
+import Playtime.Util
 
 makeInitialEngineState :: Scale -> Dimensions -> SystemTime -> EngineState
 makeInitialEngineState scale dim time =

@@ -1,7 +1,7 @@
 import GHC.Err (error)
 import My.IO
 import My.Prelude
-import SpaceMiner.Types
+import Playtime.Types
 
 main :: IO ()
 main = do

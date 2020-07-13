@@ -1,4 +1,4 @@
-module SpaceMiner.Debug where
+module Playtime.Debug where
 
 import Control.DeepSeq (rnf)
 import My.IO

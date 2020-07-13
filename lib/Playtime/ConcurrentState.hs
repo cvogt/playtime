@@ -1,8 +1,8 @@
-module SpaceMiner.ConcurrentState where
+module Playtime.ConcurrentState where
 
 import My.IO
 import My.Prelude
-import SpaceMiner.Types
+import Playtime.Types
 
 data ConcurrentState gameState = ConcurrentState
   { csSpritePlacementTime :: MVar [(SystemTime, SystemTime)],

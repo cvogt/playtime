@@ -1,4 +1,4 @@
-module SpaceMiner.Util where
+module Playtime.Util where
 
 import Data.Time.Clock
 import Data.Time.Clock.System

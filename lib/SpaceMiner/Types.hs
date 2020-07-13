@@ -24,10 +24,8 @@ data Event
 
 -- Game State Types
 
-type GameState = (GenericGameState, PersistentGameState)
-
-gameExitRequested :: (Has a GenericGameState) => a -> Bool
-gameExitRequested gs = Exit `elem` (gsActions $ get gs)
+gameExitRequested :: EngineState -> Bool
+gameExitRequested es = Exit `elem` (gsActions es)
 
 data OneTimeEffect' = Load | Save | Reset deriving (Eq, Ord, Show, Generic, NFData)
 
@@ -43,19 +41,7 @@ movementAction :: Action -> Maybe MovementAction'
 movementAction (MovementAction v) = Just v
 movementAction _ = Nothing
 
-class Has a b where
-  get :: a -> b
-  set :: a -> b -> a
-  update :: a -> (b -> b) -> a
-  update a f = set a $ f $ get a
-
-instance Has GameState GenericGameState where
-  get = fst
-  set (_, b) a = (a, b)
-
-instance Has GameState PersistentGameState where get = snd; set (a, _) b = (a, b)
-
-data GenericGameState = GenericGameState
+data EngineState = EngineState
   { gsCursorPos :: Pos,
     gsFps :: Double,
     gsLogicalDimensions :: Dimensions,
@@ -76,7 +62,7 @@ instance ToJSON Board where toJSON = toJSON . mapToList . unBoard
 
 data UIMode = TexturePlacementMode TextureId | TextureMoveMode deriving (Show, Generic, NFData, ToJSON, FromJSON)
 
-data PersistentGameState = PersistentGameState
+data GameState = GameState
   { gsUIMode :: UIMode,
     gsCollisions :: (Maybe Area, Maybe Area, Maybe Area, Maybe Area),
     gsFloor :: Board,

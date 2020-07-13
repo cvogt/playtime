@@ -1,11 +1,12 @@
 module SpaceMiner where
 
-import Data.Aeson (eitherDecode, encode)
+import Data.Aeson (FromJSON, ToJSON, eitherDecode, encode)
 import qualified Data.ByteString.Lazy as BSL
 import Data.FileEmbed
-import Game
 -- import Music
 
+import qualified Data.Map as Map
+import Game
 import Graphics
 import qualified "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.Extra
@@ -16,20 +17,43 @@ import SpaceMiner.Debug
 import SpaceMiner.Debug.Vty
 import SpaceMiner.GL
 import SpaceMiner.GLFW
+import SpaceMiner.Textures
 import SpaceMiner.Types
 
+data EngineConfig gameState = EngineConfig
+  { initialGameState :: gameState,
+    dim :: Dimensions,
+    stepGameState :: EngineState -> gameState -> Event -> gameState,
+    computeSpritePlacements' :: (TextureId -> Texture) -> (EngineState, gameState) -> (Dimensions, [TexturePlacements]),
+    gameDebugInfo :: gameState -> [[Char]]
+  }
+
 main :: IO ()
-main = do
+main =
+  let igs = makeInitialGameState dim
+      dim = Dimensions {width = 320, height = 240} -- logical pixel resolution
+   in engineMain $ EngineConfig igs dim stepGameState' computeSpritePlacements $ \gs ->
+        let GameState {..} = gs
+            Pos x' y' = gsMainCharacterPosition
+         in [ "collisions: " <> show gsCollisions,
+              "main char: " <> show (x', y'),
+              "last places sprite location: " <> show gsLastPlacement,
+              "sprite count floor: " <> show (Map.size $ unBoard gsFloor),
+              "sprite count room: " <> show (Map.size $ unBoard gsRoom)
+            ]
+
+engineMain :: forall a. (FromJSON a, ToJSON a, NFData a) => EngineConfig a -> IO ()
+engineMain EngineConfig {initialGameState, gameDebugInfo, dim, stepGameState, computeSpritePlacements'} = do
   -- basic configuration
-  let dim = Dimensions {width = 320, height = 240} -- logical pixel resolution
   let scale = 3 -- scale up to screen resolution
 
   -- initialization
-  igs <- makeInitialGameState scale dim <$> getSystemTime
+  ies <- makeInitialEngineState scale dim <$> getSystemTime
+  let igs = (ies, initialGameState)
   cs@ConcurrentState {csTotalLoopTime, csRenderLoopTime, csSpritePlacementTime} <- makeInitialConcurrentState igs
 
   --void $ forkIO $ forever $ playMusic
-  void $ forkDebugTerminal cs
+  void $ forkDebugTerminal cs gameDebugInfo
 
   -- open gl rendering loop
   withGLFW (gsWindowSize $ fst igs) "SpaceMiner" $ \window -> do
@@ -37,28 +61,29 @@ main = do
     setEventCallback window $ void . handleEvent cs
     whileM $ trackTime csTotalLoopTime $ do
       GLFW.pollEvents
-      gs <- handleEvent cs . RenderEvent =<< getSystemTime
+      gs@(es, _) <- handleEvent cs . RenderEvent =<< getSystemTime
       pure gs
-        >>= trackTime csSpritePlacementTime . pure . computeSpritePlacements textures
+        >>= trackTime csSpritePlacementTime . pure . computeSpritePlacements' textures
         >>= trackTime csRenderLoopTime . renderGL textures window
-      pure $ not $ gameExitRequested gs
+      pure $ not $ gameExitRequested es
   where
-    handleEvent :: ConcurrentState -> Event -> IO GameState
-    handleEvent ConcurrentState {csGameState, csGameLoopTime} event = do
-      modifyMVar csGameState $ \oldGameState -> do
-        new_gs <- trackTime csGameLoopTime $ pure $ applyEventToGameState event oldGameState
-        saveMay new_gs
-        dupe . fromMaybe new_gs <$> loadMay new_gs
+    handleEvent :: ConcurrentState a -> Event -> IO (EngineState, a)
+    handleEvent ConcurrentState {csGameState, csEngineStateTime, csGameStateTime} event = do
+      modifyMVar csGameState $ \(old_es, old_gs) -> do
+        new_es <- trackTime csEngineStateTime $ pure $ stepEngineState old_es event
+        new_gs <- trackTime csGameStateTime $ pure $ stepGameState old_es old_gs event
+        saveMay new_es new_gs
+        dupe . (new_es,) . fromMaybe new_gs <$> loadMay new_es
       where
         saveLocation = $(makeRelativeToProject "savegame.json" >>= strToExp)
-        saveMay gameState = do
-          let GenericGameState {gsActions} = get gameState
-              (persistentGameState@PersistentGameState {}) = get gameState
-          when (OneTimeEffect Save `setMember` gsActions) $ writeFile saveLocation $ BSL.toStrict $ encode $ persistentGameState
-        loadMay gameState = do
-          let GenericGameState {gsActions} = get gameState
+        saveMay :: EngineState -> a -> IO ()
+        saveMay es gs = do
+          let EngineState {gsActions} = es
+          when (OneTimeEffect Save `setMember` gsActions) $ writeFile saveLocation $ BSL.toStrict $ encode gs
+        loadMay :: EngineState -> IO (Maybe a)
+        loadMay es = do
+          let EngineState {gsActions} = es
           if OneTimeEffect Load `setMember` gsActions
             then do
-              npgs@PersistentGameState {} <- either fail pure . eitherDecode . BSL.fromStrict =<< readFile saveLocation
-              pure $ Just $ update gameState $ \_ -> npgs
+              either fail pure . eitherDecode . BSL.fromStrict =<< readFile saveLocation
             else pure Nothing

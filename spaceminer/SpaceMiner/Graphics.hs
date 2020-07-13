@@ -1,4 +1,4 @@
-module Graphics where
+module SpaceMiner.Graphics where
 
 import Codec.Picture.Types (PixelRGBA8 (PixelRGBA8), pixelAt)
 import qualified Data.Map as Map
@@ -6,6 +6,8 @@ import GHC.Float (double2Int)
 import My.Prelude
 import Playtime.Textures
 import Playtime.Types
+import Playtime.Util
+import SpaceMiner.GameState
 
 computeSpritePlacements :: (TextureId -> Texture) -> (EngineState, GameState) -> (Dimensions, [TexturePlacements])
 computeSpritePlacements textures (EngineState {..}, GameState {..}) =
@@ -52,7 +54,3 @@ computeSpritePlacements textures (EngineState {..}, GameState {..}) =
               texturePlacements RedResource 1 18,
               texturePlacements MainCharacter 1 3
             ]
-
-translate :: Pos -> TexturePlacements -> TexturePlacements
-translate (Pos xd yd) (TexturePlacements t (Area (Pos x y) dim)) = TexturePlacements t $ Area (Pos (x + xd) (y + yd)) dim
-translate (Pos xd yd) (Rectangle mode (Area (Pos x y) dim) c) = Rectangle mode (Area (Pos (x + xd) (y + yd)) dim) c

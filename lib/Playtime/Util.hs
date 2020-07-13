@@ -7,6 +7,7 @@ import GHC.Float (int2Double)
 import GHC.Num (fromInteger)
 import GHC.Real ((/))
 import My.Prelude
+import Playtime.Types
 
 timeDiffPico :: SystemTime -> SystemTime -> Integer
 timeDiffPico before after = diffTimeToPicoseconds $ diffAbsoluteTime (systemToTAITime after) (systemToTAITime before)
@@ -16,3 +17,7 @@ pico2second picosecs = picosecs / 1000 / 1000 / 1000 / 1000
 
 avg :: Foldable t => t Integer -> Double
 avg xs = (fromInteger @Double $ sum xs) / (int2Double $ length xs)
+
+translate :: Pos -> TexturePlacements -> TexturePlacements
+translate (Pos xd yd) (TexturePlacements t (Area (Pos x y) dim)) = TexturePlacements t $ Area (Pos (x + xd) (y + yd)) dim
+translate (Pos xd yd) (Rectangle mode (Area (Pos x y) dim) c) = Rectangle mode (Area (Pos (x + xd) (y + yd)) dim) c

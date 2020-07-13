@@ -1,12 +1,12 @@
 module Main where
 
 import qualified Data.Map as Map
-import Game
-import Graphics
 import My.IO
 import My.Prelude
 import Playtime
 import Playtime.Types
+import SpaceMiner.GameState
+import SpaceMiner.Graphics
 
 --   foldl (.) id (flap [applyToEngineState, applyToGameState] event')
 main :: IO ()

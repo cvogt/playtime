@@ -3,7 +3,7 @@
 module Playtime.Types where
 
 import Codec.Picture.Types (Image, PixelRGBA8)
-import Data.Aeson (FromJSON (parseJSON), ToJSON (toJSON))
+import Data.Aeson (FromJSON, ToJSON)
 import GHC.Num
 import qualified Graphics.Rendering.OpenGL.GL as GL (TextureObject)
 import qualified "GLFW-b" Graphics.UI.GLFW as GLFW
@@ -53,24 +53,6 @@ data EngineState = EngineState
     gsWindowSize :: Dimensions
   }
   deriving (Show, Generic, NFData)
-
-newtype Board = Board {unBoard :: Map Pos TextureId} deriving newtype (Show, Semigroup, Monoid, NFData)
-
-instance FromJSON Board where parseJSON = fmap (Board . mapFromList) . parseJSON
-
-instance ToJSON Board where toJSON = toJSON . mapToList . unBoard
-
-data UIMode = TexturePlacementMode TextureId | TextureMoveMode deriving (Show, Generic, NFData, ToJSON, FromJSON)
-
-data GameState = GameState
-  { gsUIMode :: UIMode,
-    gsCollisions :: (Maybe Area, Maybe Area, Maybe Area, Maybe Area),
-    gsFloor :: Board,
-    gsRoom :: Board,
-    gsLastPlacement :: Pos,
-    gsMainCharacterPosition :: Pos
-  }
-  deriving (Show, Generic, NFData, ToJSON, FromJSON)
 
 -- Textures Types
 data Texture = Texture

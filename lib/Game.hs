@@ -1,10 +1,8 @@
 module Game where
 
 import GHC.Float (int2Double)
-import GHC.Real ((/), floor, fromIntegral)
 import "GLFW-b" Graphics.UI.GLFW
 import My.Prelude
-import Playtime.Textures
 import Playtime.Types
 import Playtime.Util
 
@@ -22,34 +20,24 @@ makeInitialEngineState scale dim time =
       gsWindowSize = scale |*| dim
     }
 
-makeInitialGameState :: Dimensions -> GameState
-makeInitialGameState Dimensions {width, height} =
-  GameState
-    { gsUIMode = TexturePlacementMode FloorPlate,
-      gsCollisions = (Nothing, Nothing, Nothing, Nothing),
-      gsFloor = mempty,
-      gsRoom = mempty,
-      gsLastPlacement = Pos 0 0,
-      gsMainCharacterPosition = Pos (width / 2) (height / 2)
-    }
-
-keyBindings :: Map Key [(Set Key, Action)]
-keyBindings = mapFromList $ groups <&> \l@(h :| _) -> (fst h, first setFromList <$> (join . toList $ snd <$> l))
+groupKeyBindings :: [([Key], Action)] -> Map Key [(Set Key, Action)]
+groupKeyBindings keyBindingsRaw = mapFromList $ groups <&> \l@(h :| _) -> (fst h, first setFromList <$> (join . toList $ snd <$> l))
   where
     groups :: [NonEmpty (Key, [([Key], Action)])]
     groups = groupAllWith fst $ join $ keyBindingsRaw <&> (\b@(keys', _) -> (,[b]) <$> keys')
-    keyBindingsRaw :: [([Key], Action)]
-    keyBindingsRaw =
-      [ ([Key'LeftSuper, Key'Q], Exit),
-        ([Key'Escape], Exit),
-        ([Key'LeftSuper, Key'L], OneTimeEffect Load),
-        ([Key'LeftSuper, Key'S], OneTimeEffect Save),
-        ([Key'LeftSuper, Key'R], OneTimeEffect Reset),
-        ([Key'W], MovementAction Up),
-        ([Key'S], MovementAction Down),
-        ([Key'A], MovementAction Left'),
-        ([Key'D], MovementAction Right')
-      ]
+
+keyBindings :: [([Key], Action)]
+keyBindings =
+  [ ([Key'LeftSuper, Key'Q], Exit),
+    ([Key'Escape], Exit),
+    ([Key'LeftSuper, Key'L], OneTimeEffect Load),
+    ([Key'LeftSuper, Key'S], OneTimeEffect Save),
+    ([Key'LeftSuper, Key'R], OneTimeEffect Reset),
+    ([Key'W], MovementAction Up),
+    ([Key'S], MovementAction Down),
+    ([Key'A], MovementAction Left'),
+    ([Key'D], MovementAction Right')
+  ]
 
 clearOneTimeEffects :: EngineState -> EngineState
 clearOneTimeEffects es =
@@ -73,12 +61,12 @@ stepEngineState (clearOneTimeEffects -> gs@EngineState {..}) = \case
       }
   KeyEvent key KeyState'Pressed ->
     let pressed = setInsert key gsKeysPressed
-        matchingBindings = fromMaybe [] $ mapLookup key keyBindings
+        matchingBindings = fromMaybe [] $ mapLookup key $ groupKeyBindings keyBindings
         actions = setFromList $ take 1 $ snd <$> filter (null . (`difference` pressed) . fst) matchingBindings
      in gs {gsKeysPressed = pressed, gsActions = gsActions `union` actions}
   KeyEvent key KeyState'Released ->
     let pressed = setInsert key gsKeysPressed
-        matchingBindings = fromMaybe [] $ mapLookup key keyBindings
+        matchingBindings = fromMaybe [] $ mapLookup key $ groupKeyBindings keyBindings
         actions = setFromList $ take 1 $ snd <$> filter (null . (`difference` pressed) . fst) matchingBindings
      in gs {gsKeysPressed = setDelete key gsKeysPressed, gsActions = gsActions `difference` actions}
   MouseEvent mb MouseButtonState'Pressed -> gs {gsMousePressed = setInsert mb gsMousePressed}
@@ -92,72 +80,4 @@ stepEngineState (clearOneTimeEffects -> gs@EngineState {..}) = \case
             gsTimes = if sum gsTimes > halfsec then [] else picosecs : gsTimes,
             gsFps = if sum gsTimes > halfsec then avg gsTimes else gsFps
           }
-  _ -> gs
-
-gridsize :: Num n => n
-gridsize = 12
-
-stepGameState' :: EngineState -> GameState -> Event -> GameState
-stepGameState' EngineState {..} gs@GameState {..} = \case
-  CursorPosEvent _ _ ->
-    let Pos x y = gsCursorPos
-        gridify :: Double -> Double
-        gridify = (* gridsize) . int2Double . floor . (/ gridsize)
-        placement = Pos (gridify x) (gridify y)
-     in gs
-          { gsLastPlacement = placement,
-            gsFloor =
-              case gsUIMode of
-                TexturePlacementMode texture ->
-                  case (`setMember` gsMousePressed) of
-                    f | f MouseButton'1 && texture == FloorPlate -> Board $ mapInsert placement texture (unBoard gsFloor)
-                    f | f MouseButton'2 -> Board $ mapDelete placement (unBoard gsFloor)
-                    _ -> gsFloor
-                TextureMoveMode -> gsFloor,
-            gsRoom =
-              case gsUIMode of
-                TexturePlacementMode texture ->
-                  case (`setMember` gsMousePressed) of
-                    f | f MouseButton'1 && texture /= FloorPlate -> Board $ mapInsert placement texture (unBoard gsRoom)
-                    f | f MouseButton'2 -> Board $ mapDelete placement (unBoard gsRoom)
-                    _ -> gsRoom
-                TextureMoveMode -> gsRoom
-          }
-  KeyEvent key KeyState'Pressed ->
-    gs
-      { gsUIMode = case key of
-          Key'1 -> TexturePlacementMode FloorPlate
-          Key'2 -> TexturePlacementMode TopWall
-          Key'3 -> TextureMoveMode
-          _ -> gsUIMode
-      }
-  RenderEvent time ->
-    if OneTimeEffect Reset `setMember` gsActions
-      then gs {gsFloor = mempty, gsRoom = mempty}
-      else
-        let picosecs = timeDiffPico gsLastLoopTime time
-            timePassed = int2Double (fromIntegral picosecs) / 1000 / 1000 / 1000 / 1000
-            distancePerSec = 100
-            charSize = gridsize
-            d = timePassed * distancePerSec
-            Pos x y = gsMainCharacterPosition
-            newY = if MovementAction Up `setMember` gsActions then y - d else if MovementAction Down `setMember` gsActions then y + d else y
-            newX = if MovementAction Left' `setMember` gsActions then x - d else if MovementAction Right' `setMember` gsActions then x + d else x
-            newPos = Pos newX newY
-            tileArea pos = Area pos charSize
-            newArea = tileArea newPos
-            collisions = filter (newArea `collidesWith`) $ tileArea <$> (keys $ unBoard gsRoom)
-            (nw, sw, se, ne) = corners newArea
-            nwCollision = find (nw `isWithin`) collisions
-            swCollision = find (sw `isWithin`) collisions
-            seCollision = find (se `isWithin`) collisions
-            neCollision = find (ne `isWithin`) collisions
-            fixedPos = case (nwCollision, swCollision, seCollision, neCollision) of
-              (Just _, Just (Area (Pos cX _) (Dimensions cW _)), Nothing, Nothing) -> Pos (cX + cW) newY
-              (Nothing, Nothing, Just (Area (Pos cX _) _), Just _) -> Pos (cX - width charSize) newY
-              (Nothing, Just _, Just (Area (Pos _ cY) _), Nothing) -> Pos newX (cY - height charSize)
-              (Just _, Nothing, Nothing, Just (Area (Pos _ cY) (Dimensions _ cH))) -> Pos newX (cY + cH)
-              (Nothing, Nothing, Nothing, Nothing) -> newPos
-              _ -> gsMainCharacterPosition
-         in gs {gsCollisions = (nwCollision, swCollision, seCollision, neCollision), gsMainCharacterPosition = fixedPos}
   _ -> gs

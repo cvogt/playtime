@@ -10,7 +10,7 @@ import SpaceMiner.Graphics
 
 --   foldl (.) id (flap [applyToEngineState, applyToGameState] event')
 main :: IO ()
-main =
+main = do
   let igs = makeInitialGameState dim
       dim = Dimensions {width = 320, height = 240} -- logical pixel resolution
    in playtime $ EngineConfig igs dim stepGameState' computeSpritePlacements $ \_ GameState {..} ->

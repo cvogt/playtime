@@ -40,18 +40,18 @@ where
 
 import Control.Applicative ((<*>), Applicative, pure)
 import Control.DeepSeq (NFData)
-import Control.Monad ((<=<), (=<<), (>>=), Monad, fail, forever, join, mfilter, unless, void, when)
+import Control.Monad ((<=<), (=<<), (>>), (>>=), Monad, fail, forever, join, mfilter, return, unless, void, when)
 import Data.Bifunctor (Bifunctor, bimap, first, second)
 import Data.Bool ((&&), Bool (False, True), not, otherwise, (||))
 import Data.Char (Char)
 import Data.Data (toConstr)
 import Data.Either (Either (Left, Right), either)
 import Data.Eq (Eq ((/=), (==)))
-import Data.Foldable (Foldable, all, any, elem, find, fold, foldl, forM_, for_, length, null, sum, toList)
+import Data.Foldable (Foldable, all, any, elem, find, fold, foldl, forM_, for_, length, mapM_, null, sum, toList)
 import Data.Function (($), (.), flip, id)
 import Data.Functor (($>), (<$), (<$>), (<&>), Functor, fmap)
 import Data.Int (Int)
-import Data.List (concat, drop, filter, iterate, repeat, reverse, take) -- UNSAFE, DO NOT IMPORT: foldl1, foldr1
+import Data.List (concat, drop, filter, iterate, repeat, reverse, take, takeWhile) -- UNSAFE, DO NOT IMPORT: foldl1, foldr1
 import Data.List.NonEmpty (NonEmpty ((:|)), groupAllWith, groupBy, groupWith)
 import Data.Map (Map, keys, mapKeys)
 import qualified Data.Map as Map

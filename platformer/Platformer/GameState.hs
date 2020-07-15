@@ -31,7 +31,14 @@ makeInitialGameState Dimensions {width} =
     { gsJumped = Nothing,
       gsCollisions = (Nothing, Nothing, Nothing, Nothing),
       gsFloor = mempty,
-      gsRoom = Board $ mapKeys (uncurry Pos) $ mapFromList $ concat $ take 10 $ iterate (+ 12) 200 <&> (\r -> take 60 (iterate (+ 12) 0 `zip` repeat r) `zip` (repeat FloorPlate)),
+      gsRoom =
+        Board
+          $ mapKeys (uncurry Pos)
+          $ mapFromList
+          $ concat
+          $ take 10
+          $ (iterate (+ 12) 200 <&>)
+          $ (\r -> take 60 (iterate (+ 12) 0 `zip` repeat r) `zip` (repeat FloorPlate)),
       gsMainCharacterPosition = Pos (width / 2) 0
     }
 

@@ -29,6 +29,7 @@ module My.Prelude
     module GHC.Generics,
     module GHC.Integer,
     module GHC.Num,
+    module GHC.Real,
     module GHC.Show,
     module My.Prelude,
     module Safe,
@@ -50,9 +51,9 @@ import Data.Foldable (Foldable, all, any, elem, find, fold, foldl, forM_, for_, 
 import Data.Function (($), (.), flip, id)
 import Data.Functor (($>), (<$), (<$>), (<&>), Functor, fmap)
 import Data.Int (Int)
-import Data.List (drop, filter, reverse, take) -- UNSAFE, DO NOT IMPORT: foldl1, foldr1
+import Data.List (concat, drop, filter, iterate, repeat, reverse, take) -- UNSAFE, DO NOT IMPORT: foldl1, foldr1
 import Data.List.NonEmpty (NonEmpty ((:|)), groupAllWith, groupBy, groupWith)
-import Data.Map (Map, keys)
+import Data.Map (Map, keys, mapKeys)
 import qualified Data.Map as Map
 import Data.Maybe (Maybe (Just, Nothing), catMaybes, fromMaybe, isJust, isNothing, maybe)
 import Data.Monoid ((<>), Monoid, mempty)
@@ -65,10 +66,11 @@ import Data.Time.Clock.System (SystemTime)
 import Data.Traversable (for, forM, sequence)
 import Data.Tuple (fst, snd, uncurry)
 import Foreign (ForeignPtr)
-import GHC.Float (Double, Float, divideDouble)
+import GHC.Float ((**), Double, Float, divideDouble)
 import GHC.Generics (Generic)
 import GHC.Integer (Integer)
-import GHC.Num ((*), (+), (-), Num, subtract)
+import GHC.Num ((*), (+), (-), Num, abs, subtract)
+import GHC.Real (Integral)
 import GHC.Show (Show (show))
 import Safe (headMay, lastMay)
 import Safe.Foldable (foldl1Safe, foldr1Safe)

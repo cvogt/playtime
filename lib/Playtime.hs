@@ -23,7 +23,7 @@ data EngineConfig gameState = EngineConfig
     dim :: Dimensions,
     stepGameState :: EngineState -> gameState -> Event -> gameState,
     computeSpritePlacements' :: (TextureId -> Texture) -> (EngineState, gameState) -> (Dimensions, [TexturePlacements]),
-    gameDebugInfo :: gameState -> [[Char]]
+    gameDebugInfo :: EngineState -> gameState -> [[Char]]
   }
 
 playtime :: forall a. (FromJSON a, ToJSON a, NFData a) => EngineConfig a -> IO ()

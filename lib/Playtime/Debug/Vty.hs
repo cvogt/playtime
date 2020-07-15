@@ -10,14 +10,14 @@ import Playtime.ConcurrentState
 import Playtime.Types
 import Playtime.Util
 
-forkDebugTerminal :: ConcurrentState gameState -> (gameState -> [[Char]]) -> IO ThreadId
+forkDebugTerminal :: ConcurrentState gameState -> (EngineState -> gameState -> [[Char]]) -> IO ThreadId
 forkDebugTerminal ConcurrentState {..} gameDebugInfo = do
   -- FIXME: cursor stays hidden after termination
   cfg <- Vty.standardIOConfig
   vty <- Vty.mkVty cfg
   flip forkFinally (\_ -> Vty.shutdown vty) $ do
     flip iterateM_ (0, 0, 0, 0, 0) $ \(oldAvgGameLoopTime1, oldAvgGameLoopTime2, oldAvgTexturePlacementTime, oldAvgRenderLoopTime, oldAvgTotalLoopTime) -> do
-      (EngineState {..}, gameState) <- readMVar csGameState
+      (engineState@EngineState {..}, gameState) <- readMVar csGameState
       gameLoopTimes1 <- modifyMVar csEngineStateTime $ \t -> pure ([], t)
       gameLoopTimes2 <- modifyMVar csGameStateTime $ \t -> pure ([], t)
       texturePlacementTimes <- modifyMVar csSpritePlacementTime $ \t -> pure ([], t)
@@ -37,9 +37,10 @@ forkDebugTerminal ConcurrentState {..} gameDebugInfo = do
                        "1/csEngineStateTime: " <> show newAvgGameLoopTime1,
                        "1/csGameStateTime: " <> show newAvgGameLoopTime2,
                        "opengl pos: " <> show (x, y),
-                       "keys: " <> show gsKeysPressed
+                       "keys: " <> show gsKeysPressed,
+                       "gsLastLoopTime: " <> show gsLastLoopTime
                      ]
-                    <> gameDebugInfo gameState
+                    <> gameDebugInfo engineState gameState
               )
 
       threadDelay $ 500 * 1000 -- FIXME: changing this to 100 * make process freeze on exit

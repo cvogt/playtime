@@ -11,8 +11,6 @@ import Playtime.Util
 
 newtype Board = Board {unBoard :: Map Pos TextureId} deriving newtype (Show, Semigroup, Monoid, NFData)
 
-data UIMode = TexturePlacementMode TextureId | TextureMoveMode deriving (Show, Generic, NFData, ToJSON, FromJSON)
-
 data GameState = GameState
   { gsCollisions :: Corners (Maybe Area),
     gsVelocityY :: Double,
@@ -46,21 +44,16 @@ makeInitialGameState Dimensions {width} =
 
 stepGameState' :: EngineState -> GameState -> Event -> GameState
 stepGameState' EngineState {..} gs@GameState {..} = \case
-  KeyEvent Key'Space KeyState'Pressed ->
-    gs
-      { gsVelocityY = -220
-      }
+  KeyEvent Key'Space KeyState'Pressed -> gs {gsVelocityY = -220}
   RenderEvent time ->
     let timePassed = pico2Double $ timeDiffPico gsLastLoopTime time
         charSize = gridsize
         newPosCandidate =
           Pos
-            (if MovementAction Left' `setMember` gsActions then x - d else if MovementAction Right' `setMember` gsActions then x + d else x)
-            (y + (1 * timePassed * gsVelocityY))
+            (x + (timePassed * gsVelocityX))
+            (y + (timePassed * gsVelocityY))
           where
             Pos {x, y} = gsMainCharacterPosition
-            distancePerSec = 100
-            d = timePassed * distancePerSec
         collisions :: Corners (Maybe Area)
         collisions = corners newArea <&> \corner -> find (corner `isWithin`) tiles
           where
@@ -81,10 +74,18 @@ stepGameState' EngineState {..} gs@GameState {..} = \case
         newVelocityY =
           let hasCollisions = not . null . catMaybes $ toList collisions
            in if hasCollisions then 0 else gsVelocityY + (9.81 * timePassed * 55)
+        speedX = 100
      in gs
           { gsCollisions = collisions,
             gsMainCharacterPosition = newPosFinal,
-            gsVelocityY = newVelocityY
+            gsVelocityY = newVelocityY,
+            gsVelocityX =
+              if Key'A `setMember` gsKeysPressed
+                then - speedX
+                else
+                  if Key'D `setMember` gsKeysPressed
+                    then speedX
+                    else 0
           }
   _ -> gs
 

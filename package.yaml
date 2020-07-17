@@ -54,6 +54,7 @@ dependencies:
 
 default-extensions:
 - DeriveAnyClass
+- DeriveFunctor
 - DeriveGeneric
 - DerivingStrategies
 - FlexibleContexts

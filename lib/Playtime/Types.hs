@@ -89,18 +89,17 @@ isWithin :: Pos -> Area -> Bool
 isWithin (Pos cx cy) (Area (Pos x y) (Dimensions width height)) = x <= cx && y <= cy && cx <= (x + width) && cy <= (y + height)
 
 collidesWith :: Area -> Area -> Bool
-collidesWith area1 area2 = any (`isWithin` area2) $ cornersList area1
+collidesWith area1 area2 = any (`isWithin` area2) $ corners area1
 
-cornerScales :: (Scale, Scale, Scale, Scale)
-cornerScales = (Scale 0 0, Scale 0 1, Scale 1 1, Scale 1 0)
+cornerScales :: Corners Scale
+cornerScales = Corners (Scale 0 0) (Scale 0 1) (Scale 1 1) (Scale 1 0)
 
-corners :: Area -> (Pos, Pos, Pos, Pos)
-corners (Area pos dim) = case cornerScales of (c1, c2, c3, c4) -> (f c1, f c2, f c3, f c4)
-  where
-    f scale = pos |+| (scale |*| dim)
+data Corners a = Corners {nw :: a, sw :: a, se :: a, ne :: a} deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON, Functor) -- ne aka north east = upper left corner, etc
 
-cornersList :: Area -> [Pos]
-cornersList area = case corners area of (c1, c2, c3, c4) -> [c1, c2, c3, c4]
+instance Foldable Corners where foldr f b (Corners ne se sw nw) = foldr f b [ne, se, sw, nw]
+
+corners :: Area -> Corners Pos
+corners (Area pos dim) = cornerScales <&> \scale -> pos |+| (scale |*| dim)
 
 instance Num Scale where
   (Scale lx ly) + (Scale rx ry) = Scale (lx + rx) (ly + ry)

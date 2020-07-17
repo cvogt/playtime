@@ -40,7 +40,7 @@ where
 
 import Control.Applicative ((<*>), Applicative, pure)
 import Control.DeepSeq (NFData)
-import Control.Monad ((<=<), (=<<), (>>), (>>=), Monad, fail, forever, join, mfilter, return, unless, void, when)
+import Control.Monad ((<=<), (=<<), (>>), (>>=), Monad, fail, filterM, forever, join, mfilter, return, unless, void, when)
 import Data.Bifunctor (Bifunctor, bimap, first, second)
 import Data.Bool ((&&), Bool (False, True), not, otherwise, (||))
 import Data.Char (Char)
@@ -51,7 +51,7 @@ import Data.Foldable (Foldable, all, any, elem, find, fold, foldl, forM_, for_, 
 import Data.Function (($), (.), flip, id)
 import Data.Functor (($>), (<$), (<$>), (<&>), Functor, fmap)
 import Data.Int (Int)
-import Data.List (concat, drop, filter, iterate, repeat, reverse, take, takeWhile) -- UNSAFE, DO NOT IMPORT: foldl1, foldr1
+import Data.List (concat, drop, filter, iterate, repeat, reverse, sort, take, takeWhile) -- UNSAFE, DO NOT IMPORT: foldl1, foldr1
 import Data.List.NonEmpty (NonEmpty ((:|)), groupAllWith, groupBy, groupWith)
 import Data.Map (Map, keys, mapKeys)
 import qualified Data.Map as Map

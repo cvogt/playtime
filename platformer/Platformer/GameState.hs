@@ -42,6 +42,37 @@ makeInitialGameState Dimensions {width} =
           $ (\r -> take 60 (iterate (+ 12) 0 `zip` repeat r) `zip` (repeat FloorPlate))
     }
 
+
+     x0,y0           |  x1,y1    x0,y0             |  x1,y1                 |
+      +----+         |       .---+---.---+         |     .-----.            |  x1,y1 .-------.
+x1,y1 |    |         |       |   |   |   |         |     |x0,y0|            |        |       |
+   .----.  |         |       |   |   |   |         |     |  +-------+       |  x0,y0 +-------+
+   |  | |  |         |       |   |   |   |         |     |  |  |    |       |        |       |
+   |  +----+ x0',y0' |       .---+---.---+ x0',y0' |     .-----.    |       |        .-------. x1',y1'
+   |    |            |              x1',y1'        |        |x1',y1'|       |        |       |
+   .----.            |                             |        +-------+       |        +-------+ x0',y0'
+       x1',y1'       |                             |                x0',y0' |
+
+
+x0 > x1 && x0 < x1' && x0' > x1 && x0' > x1' && y0 < y1 && y0 < y1' && y0' > y1 && y0' < y1'
+
+x0 > x1 && x0 < x1' && x0' > x1 && x0' > x1' && y0 == y1 && y0 < y1' && y0' > y1 && y0' == y1'
+
+x0 > x1 && x0 < x1' && x0' > x1 && x0' > x1' && y0 > y1 && y0 < y1' && y0' > y1 && y0' > y1'
+
+x0 == x1 && x0 < x1' && x0' > x1 && x0' == x1' && y0 > y1 && y0 < y1' && y0' > y1 && y0' > y1'
+
+
+x1,y1 .------------.
+      | x0,y0      |
+      |    +--+    |
+      |    |  |    |
+      |    +--+    |
+      |     x0',y0'|
+      .------------. x1',y1'
+
+x0 > x1 && x0 < x1' && x0' > x1 && x0' < x1' && y0 > y1 && y0 < y1' && y0' > y1 && y0' < y1'
+
 stepGameState' :: EngineState -> GameState -> Event -> GameState
 stepGameState' EngineState {..} gs@GameState {..} = \case
   KeyEvent Key'Space KeyState'Pressed -> gs {gsVelocityY = -220}

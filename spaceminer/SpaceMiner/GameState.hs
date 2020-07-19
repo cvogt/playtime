@@ -8,6 +8,7 @@ import My.Prelude
 import Playtime.Textures
 import Playtime.Types
 import Playtime.Util
+import Data.List (zip)
 
 newtype Board = Board {unBoard :: Map Pos TextureId} deriving newtype (Show, Semigroup, Monoid, NFData)
 
@@ -80,26 +81,32 @@ stepGameState' EngineState {..} gs@GameState {..} = \case
             distancePerSec = 100
             charSize = gridsize
             d = timePassed * distancePerSec
-            Pos x y = gsMainCharacterPosition
             newY = if MovementAction Up `setMember` gsActions then y - d else if MovementAction Down `setMember` gsActions then y + d else y
             newX = if MovementAction Left' `setMember` gsActions then x - d else if MovementAction Right' `setMember` gsActions then x + d else x
-            newPos = Pos newX newY
+            Pos {x, y} = gsMainCharacterPosition
+            deltaX = newX - x
+            deltaY = newY - y
+            (stepX, _stepY) = if deltaX > deltaY then (1, deltaY / deltaX) else (deltaX / deltaY, 1)
+            candidatesX = [x + deltaX] -- fmap (x +) . takeWhile (<= deltaX) $ iterate (+ stepX) 0
+            candidatesY = [y + deltaY] -- fmap (y +) . takeWhile (<= deltaY) $ iterate (+ stepY) 0
+            candidates = uncurry Pos <$> zip candidatesX candidatesY
             tileArea pos = Area pos charSize
-            newArea = tileArea newPos
-            collisions = filter (newArea `collidesWith`) $ tileArea <$> (keys $ unBoard gsRoom)
-            Corners nw sw se ne = corners newArea
-            nwCollision = find (nw `isWithin`) collisions
-            swCollision = find (sw `isWithin`) collisions
-            seCollision = find (se `isWithin`) collisions
-            neCollision = find (ne `isWithin`) collisions
-            fixedPos = case (nwCollision, swCollision, seCollision, neCollision) of
-              (Just _, Just (Area (Pos cX _) (Dimensions cW _)), Nothing, Nothing) -> Pos (cX + cW) newY
-              (Nothing, Nothing, Just (Area (Pos cX _) _), Just _) -> Pos (cX - width charSize) newY
-              (Nothing, Just _, Just (Area (Pos _ cY) _), Nothing) -> Pos newX (cY - height charSize)
-              (Just _, Nothing, Nothing, Just (Area (Pos _ cY) (Dimensions _ cH))) -> Pos newX (cY + cH)
-              (Nothing, Nothing, Nothing, Nothing) -> newPos
-              _ -> gsMainCharacterPosition
-         in gs {gsCollisions = (nwCollision, swCollision, seCollision, neCollision), gsMainCharacterPosition = fixedPos}
+            tiles = tileArea <$> (keys $ unBoard gsRoom)
+            unobstructedPath = flip takeWhile candidates $ \c -> not $ any (Area c charSize `collidesWith`) tiles
+            newPosFinal@(Pos _ _) = case fromMaybe gsMainCharacterPosition $ lastMay unobstructedPath of
+              c@(Pos cx cy) ->
+                if any ((Area (Pos (cx + stepX) cy) charSize) `collidesWith`) tiles
+                  then
+                    let remainingCandidatesY = drop (length unobstructedPath) candidatesY
+                        remainingCandidates = uncurry Pos <$> zip (repeat cx) remainingCandidatesY
+                        remainingUnobstructedPath = flip takeWhile remainingCandidates $ \v -> any (Area v charSize `collidesWith`) tiles
+                     in fromMaybe c $ lastMay remainingUnobstructedPath
+                  else
+                    let remainingCandidatesX = drop (length unobstructedPath) candidatesX
+                        remainingCandidates = uncurry Pos <$> zip remainingCandidatesX (repeat cy)
+                        remainingUnobstructedPath = flip takeWhile remainingCandidates $ \v -> any (Area v charSize `collidesWith`) tiles
+                     in fromMaybe c $ lastMay remainingUnobstructedPath
+         in gs {gsMainCharacterPosition = newPosFinal}
   _ -> gs
 
 instance FromJSON Board where parseJSON = fmap (Board . mapFromList) . parseJSON

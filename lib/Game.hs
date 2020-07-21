@@ -17,6 +17,7 @@ makeInitialEngineState scale dim time =
       gsLogicalDimensions = dim,
       gsActions = mempty,
       gsTimes = [],
+      gsTimePassed = 0,
       gsWindowSize = scale |*| dim
     }
 
@@ -77,6 +78,7 @@ stepEngineState (clearOneTimeEffects -> gs@EngineState {..}) = \case
         halfsec = 500 * 1000 * 1000 * 1000
      in gs
           { gsLastLoopTime = time,
+            gsTimePassed = pico2Double picosecs,
             gsTimes = if sum gsTimes > halfsec then [] else picosecs : gsTimes,
             gsFps = if sum gsTimes > halfsec then avg gsTimes else gsFps
           }

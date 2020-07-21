@@ -2,13 +2,12 @@ module SpaceMiner.GameState where
 
 import Data.Aeson (FromJSON (parseJSON), ToJSON (toJSON))
 import GHC.Float (int2Double)
-import GHC.Real ((/), floor, fromIntegral)
+import GHC.Real ((/), floor)
 import "GLFW-b" Graphics.UI.GLFW
 import My.Prelude
+import Playtime.Geometry
 import Playtime.Textures
 import Playtime.Types
-import Playtime.Util
-import Data.List (zip)
 
 newtype Board = Board {unBoard :: Map Pos TextureId} deriving newtype (Show, Semigroup, Monoid, NFData)
 
@@ -17,10 +16,12 @@ data UIMode = TexturePlacementMode TextureId | TextureMoveMode deriving (Show, G
 data GameState = GameState
   { gsUIMode :: UIMode,
     gsCollisions :: (Maybe Area, Maybe Area, Maybe Area, Maybe Area),
+    gsCandidates :: [Pos],
     gsFloor :: Board,
     gsRoom :: Board,
     gsLastPlacement :: Pos,
-    gsMainCharacterPosition :: Pos
+    gsMainCharacterPosition :: Pos,
+    gsMainCharacterPositionPrevious :: Pos
   }
   deriving (Show, Generic, NFData, ToJSON, FromJSON)
 
@@ -31,11 +32,13 @@ makeInitialGameState :: Dimensions -> GameState
 makeInitialGameState Dimensions {width, height} =
   GameState
     { gsUIMode = TexturePlacementMode FloorPlate,
+      gsCandidates = mempty,
       gsCollisions = (Nothing, Nothing, Nothing, Nothing),
       gsFloor = mempty,
       gsRoom = mempty,
       gsLastPlacement = Pos 0 0,
-      gsMainCharacterPosition = Pos (width / 2) (height / 2)
+      gsMainCharacterPosition = Pos (width / 2) (height / 2),
+      gsMainCharacterPositionPrevious = Pos (width / 2) (height / 2)
     }
 
 stepGameState' :: EngineState -> GameState -> Event -> GameState
@@ -72,41 +75,17 @@ stepGameState' EngineState {..} gs@GameState {..} = \case
           Key'3 -> TextureMoveMode
           _ -> gsUIMode
       }
-  RenderEvent time ->
+  RenderEvent _ ->
     if OneTimeEffect Reset `setMember` gsActions
       then gs {gsFloor = mempty, gsRoom = mempty}
       else
-        let picosecs = timeDiffPico gsLastLoopTime time
-            timePassed = int2Double (fromIntegral picosecs) / 1000 / 1000 / 1000 / 1000
-            distancePerSec = 100
-            charSize = gridsize
-            d = timePassed * distancePerSec
-            newY = if MovementAction Up `setMember` gsActions then y - d else if MovementAction Down `setMember` gsActions then y + d else y
-            newX = if MovementAction Left' `setMember` gsActions then x - d else if MovementAction Right' `setMember` gsActions then x + d else x
-            Pos {x, y} = gsMainCharacterPosition
-            deltaX = newX - x
-            deltaY = newY - y
-            (stepX, _stepY) = if deltaX > deltaY then (1, deltaY / deltaX) else (deltaX / deltaY, 1)
-            candidatesX = [x + deltaX] -- fmap (x +) . takeWhile (<= deltaX) $ iterate (+ stepX) 0
-            candidatesY = [y + deltaY] -- fmap (y +) . takeWhile (<= deltaY) $ iterate (+ stepY) 0
-            candidates = uncurry Pos <$> zip candidatesX candidatesY
-            tileArea pos = Area pos charSize
-            tiles = tileArea <$> (keys $ unBoard gsRoom)
-            unobstructedPath = flip takeWhile candidates $ \c -> not $ any (Area c charSize `collidesWith`) tiles
-            newPosFinal@(Pos _ _) = case fromMaybe gsMainCharacterPosition $ lastMay unobstructedPath of
-              c@(Pos cx cy) ->
-                if any ((Area (Pos (cx + stepX) cy) charSize) `collidesWith`) tiles
-                  then
-                    let remainingCandidatesY = drop (length unobstructedPath) candidatesY
-                        remainingCandidates = uncurry Pos <$> zip (repeat cx) remainingCandidatesY
-                        remainingUnobstructedPath = flip takeWhile remainingCandidates $ \v -> any (Area v charSize `collidesWith`) tiles
-                     in fromMaybe c $ lastMay remainingUnobstructedPath
-                  else
-                    let remainingCandidatesX = drop (length unobstructedPath) candidatesX
-                        remainingCandidates = uncurry Pos <$> zip remainingCandidatesX (repeat cy)
-                        remainingUnobstructedPath = flip takeWhile remainingCandidates $ \v -> any (Area v charSize `collidesWith`) tiles
-                     in fromMaybe c $ lastMay remainingUnobstructedPath
-         in gs {gsMainCharacterPosition = newPosFinal}
+        let distancePerSec = 100
+            velocityX = if MovementAction Left' `setMember` gsActions then - distancePerSec else if MovementAction Right' `setMember` gsActions then distancePerSec else 0
+            velocityY = if MovementAction Up `setMember` gsActions then - distancePerSec else if MovementAction Down `setMember` gsActions then distancePerSec else 0
+         in gs
+              { gsMainCharacterPosition = move gsTimePassed (Area gsMainCharacterPosition 12) gsMainCharacterPositionPrevious velocityX velocityY $ flip Area 12 <$> (keys $ unBoard gsRoom),
+                gsMainCharacterPositionPrevious = gsMainCharacterPosition
+              }
   _ -> gs
 
 instance FromJSON Board where parseJSON = fmap (Board . mapFromList) . parseJSON

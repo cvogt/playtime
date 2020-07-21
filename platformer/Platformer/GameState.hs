@@ -1,13 +1,13 @@
 module Platformer.GameState where
 
 import Data.Aeson (FromJSON (parseJSON), ToJSON (toJSON))
-import Data.List (zip)
+import qualified Data.List.NonEmpty as NEL (zip)
 import GHC.Real ((/))
 import "GLFW-b" Graphics.UI.GLFW
 import My.Prelude
+import Playtime.Geometry
 import Playtime.Textures
 import Playtime.Types
-import Playtime.Util
 
 newtype Board = Board {unBoard :: Map Pos TextureId} deriving newtype (Show, Semigroup, Monoid, NFData)
 
@@ -16,6 +16,8 @@ data GameState = GameState
     gsVelocityY :: Double,
     gsVelocityX :: Double,
     gsMainCharacterPosition :: Pos,
+    gsMainCharacterPositionPrevious :: Pos,
+    gsPenetrable :: Board,
     gsRoom :: Board
   }
   deriving (Show, Generic, NFData, ToJSON, FromJSON)
@@ -30,6 +32,8 @@ makeInitialGameState Dimensions {width} =
       gsVelocityY = 0,
       gsVelocityX = 0,
       gsMainCharacterPosition = Pos (width / 2) 0,
+      gsMainCharacterPositionPrevious = Pos (width / 2) 0,
+      gsPenetrable = Board $ mempty,
       gsRoom =
         Board
           $ mapInsert (Pos 240 188) FloorPlate
@@ -38,101 +42,31 @@ makeInitialGameState Dimensions {width} =
           $ mapFromList
           $ concat
           $ take 10
+          $ toList
           $ (iterate (+ 12) 200 <&>)
-          $ (\r -> take 60 (iterate (+ 12) 0 `zip` repeat r) `zip` (repeat FloorPlate))
+          $ (\r -> take 60 $ toList $ (iterate (+ 12) 0 `NEL.zip` repeat r) `NEL.zip` (repeat FloorPlate))
     }
-
-
-     x0,y0           |  x1,y1    x0,y0             |  x1,y1                 |
-      +----+         |       .---+---.---+         |     .-----.            |  x1,y1 .-------.
-x1,y1 |    |         |       |   |   |   |         |     |x0,y0|            |        |       |
-   .----.  |         |       |   |   |   |         |     |  +-------+       |  x0,y0 +-------+
-   |  | |  |         |       |   |   |   |         |     |  |  |    |       |        |       |
-   |  +----+ x0',y0' |       .---+---.---+ x0',y0' |     .-----.    |       |        .-------. x1',y1'
-   |    |            |              x1',y1'        |        |x1',y1'|       |        |       |
-   .----.            |                             |        +-------+       |        +-------+ x0',y0'
-       x1',y1'       |                             |                x0',y0' |
-
-
-x0 > x1 && x0 < x1' && x0' > x1 && x0' > x1' && y0 < y1 && y0 < y1' && y0' > y1 && y0' < y1'
-
-x0 > x1 && x0 < x1' && x0' > x1 && x0' > x1' && y0 == y1 && y0 < y1' && y0' > y1 && y0' == y1'
-
-x0 > x1 && x0 < x1' && x0' > x1 && x0' > x1' && y0 > y1 && y0 < y1' && y0' > y1 && y0' > y1'
-
-x0 == x1 && x0 < x1' && x0' > x1 && x0' == x1' && y0 > y1 && y0 < y1' && y0' > y1 && y0' > y1'
-
-
-x1,y1 .------------.
-      | x0,y0      |
-      |    +--+    |
-      |    |  |    |
-      |    +--+    |
-      |     x0',y0'|
-      .------------. x1',y1'
-
-x0 > x1 && x0 < x1' && x0' > x1 && x0' < x1' && y0 > y1 && y0 < y1' && y0' > y1 && y0' < y1'
 
 stepGameState' :: EngineState -> GameState -> Event -> GameState
 stepGameState' EngineState {..} gs@GameState {..} = \case
   KeyEvent Key'Space KeyState'Pressed -> gs {gsVelocityY = -220}
-  RenderEvent time ->
-    let timePassed = pico2Double $ timeDiffPico gsLastLoopTime time
-        charSize = gridsize
-        Pos {x, y} = gsMainCharacterPosition
-        deltaX = timePassed * gsVelocityX
-        deltaY = timePassed * gsVelocityY
-        (stepX, _stepY) = if deltaX > deltaY then (1, deltaY / deltaX) else (deltaX / deltaY, 1)
-        candidatesX = [x + deltaX] -- fmap (x +) . takeWhile (<= deltaX) $ iterate (+ stepX) 0
-        candidatesY = [y + deltaY] -- fmap (y +) . takeWhile (<= deltaY) $ iterate (+ stepY) 0
-        candidates = uncurry Pos <$> zip candidatesX candidatesY
-        tileArea pos = Area pos charSize
-        tiles = tileArea <$> (keys $ unBoard gsRoom)
-        unobstructedPath = flip takeWhile candidates $ \c -> not $ any (Area c charSize `collidesWith`) tiles
-        newPosFinal@(Pos _ newY) = case fromMaybe gsMainCharacterPosition $ lastMay unobstructedPath of
-          c@(Pos cx cy) ->
-            if any ((Area (Pos (cx + stepX) cy) charSize) `collidesWith`) tiles
-              then
-                let remainingCandidatesY = drop (length unobstructedPath) candidatesY
-                    remainingCandidates = uncurry Pos <$> zip (repeat cx) remainingCandidatesY
-                    remainingUnobstructedPath = flip takeWhile remainingCandidates $ \v -> any (Area v charSize `collidesWith`) tiles
-                 in fromMaybe c $ lastMay remainingUnobstructedPath
-              else
-                let remainingCandidatesX = drop (length unobstructedPath) candidatesX
-                    remainingCandidates = uncurry Pos <$> zip remainingCandidatesX (repeat cy)
-                    remainingUnobstructedPath = flip takeWhile remainingCandidates $ \v -> any (Area v charSize `collidesWith`) tiles
-                 in fromMaybe c $ lastMay remainingUnobstructedPath
-        -- collisions :: Pos -> Corners (Maybe Area)
-        -- collisions newPosCandidate = corners newArea <&> \corner -> find (corner `isWithin`) tiles
-        --   where
-        --     tileArea pos = Area pos charSize
-        --     newArea = tileArea newPosCandidate
-
-        -- newPosFinal =
-        --   -- Pos finalX finalY
-        --   let Corners {nw, sw, se, ne} = collisions
-        --       Pos newX newY = newPosCandidate
-        --    in case (nw, sw, se, ne) of
-        --         (Just _, Just (Area (Pos cX _) (Dimensions cW _)), Nothing, Nothing) -> Pos (cX + cW) newY
-        --         (Nothing, Nothing, Just (Area (Pos cX _) _), Just _) -> Pos (cX - width charSize) newY
-        --         (Nothing, Just _, Just (Area (Pos _ cY) _), Nothing) -> Pos newX (cY - height charSize)
-        --         (Just _, Nothing, Nothing, Just (Area (Pos _ cY) (Dimensions _ cH))) -> Pos newX (cY + cH)
-        --         (Nothing, Nothing, Nothing, Nothing) -> newPosCandidate
-        --         _ -> gsMainCharacterPosition
-        -- finalX = case (catMaybes [nw, sw], catMaybes [ne, se]) of
-        --   ([Area (Pos cX _) (Dimensions cW _)], []) -> cX + cW
-        --   ([], [Area (Pos cX _) _]) -> cX - width charSize
-        --   _ -> x newPosCandidate
-        -- finalY = case (catMaybes [nw, ne], catMaybes [sw, se]) of
-        --   ([Area (Pos _ cY) (Dimensions _ cH)], []) -> cY + cH
-        --   ([], [Area (Pos _ cY) _]) -> cY - height charSize
-        --   _ -> y newPosCandidate
-        newVelocityY = if newY == y && gsVelocityY /= 0 then gsVelocityY else gsVelocityY + (9.81 * timePassed * 55)
-        speedX = 100
+  RenderEvent _ ->
+    let speedX = 100
+        newMainCharacterPosition =
+          move
+            gsTimePassed
+            (Area gsMainCharacterPosition 12)
+            gsMainCharacterPositionPrevious
+            gsVelocityX
+            gsVelocityY
+            $ flip Area 12 <$> (keys $ unBoard gsRoom)
      in gs
-          { --gsCollisions = collisions,
-            gsMainCharacterPosition = newPosFinal,
-            gsVelocityY = newVelocityY,
+          { gsMainCharacterPosition = newMainCharacterPosition,
+            gsMainCharacterPositionPrevious = gsMainCharacterPosition,
+            gsVelocityY =
+              if gsVelocityY /= 0 && y gsMainCharacterPosition == y newMainCharacterPosition
+                then 0
+                else gsVelocityY + 9.81 * gsTimePassed * 55,
             gsVelocityX =
               if Key'A `setMember` gsKeysPressed
                 then - speedX

@@ -50,6 +50,7 @@ data EngineState = EngineState
     gsLastLoopTime :: SystemTime,
     gsActions :: Set Action,
     gsTimes :: [Integer],
+    gsTimePassed :: Double,
     gsWindowSize :: Dimensions
   }
   deriving (Show, Generic, NFData)
@@ -89,7 +90,9 @@ isWithin :: Pos -> Area -> Bool
 isWithin (Pos cx cy) (Area (Pos x y) (Dimensions width height)) = x <= cx && y <= cy && cx <= (x + width) && cy <= (y + height)
 
 collidesWith :: Area -> Area -> Bool
-collidesWith area1 area2 = any (`isWithin` area2) $ corners area1
+collidesWith (Area a1 da) (Area b1 db) =
+  let a2 = a1 |+| da; b2 = b1 |+| db
+   in x a1 < x b2 && x a2 > x b1 && y a1 < y b2 && y a2 > y b1
 
 cornerScales :: Corners Scale
 cornerScales = Corners (Scale 0 0) (Scale 0 1) (Scale 1 1) (Scale 1 0)

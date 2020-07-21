@@ -19,6 +19,7 @@ module My.Prelude
     module Data.Monoid,
     module Data.Ord,
     module Data.Semigroup,
+    module Data.Sequence,
     module Data.Set,
     module Data.Text,
     module Data.Time.Clock.System,
@@ -38,9 +39,9 @@ module My.Prelude
   )
 where
 
-import Control.Applicative ((<*>), Applicative, pure)
+import Control.Applicative ((<*>), (<|>), Alternative, Applicative, pure)
 import Control.DeepSeq (NFData)
-import Control.Monad ((<=<), (=<<), (>>), (>>=), Monad, fail, filterM, forever, join, mfilter, return, unless, void, when)
+import Control.Monad ((<=<), (=<<), (>>), (>>=), Monad, fail, filterM, foldM, forever, join, mfilter, return, unless, void, when)
 import Data.Bifunctor (Bifunctor, bimap, first, second)
 import Data.Bool ((&&), Bool (False, True), not, otherwise, (||))
 import Data.Char (Char)
@@ -51,16 +52,18 @@ import Data.Foldable (Foldable, all, any, elem, find, fold, foldl, foldr, forM_,
 import Data.Function (($), (.), flip, id)
 import Data.Functor (($>), (<$), (<$>), (<&>), Functor, fmap)
 import Data.Int (Int)
-import Data.List (concat, drop, filter, iterate, repeat, reverse, sort, take, takeWhile) -- UNSAFE, DO NOT IMPORT: foldl1, foldr1
-import Data.List.NonEmpty (NonEmpty ((:|)), groupAllWith, groupBy, groupWith)
+import Data.List (concat, drop, dropWhile, filter, nub, reverse, sort, take, takeWhile) -- UNSAFE, DO NOT IMPORT: foldl1, foldr1
+import qualified Data.List.NonEmpty
+import Data.List.NonEmpty (NonEmpty ((:|)), groupAllWith, groupBy, groupWith, head, iterate, last, repeat)
 import Data.Map (Map, keys, mapKeys)
-import qualified Data.Map as Map
+import qualified Data.Map
 import Data.Maybe (Maybe (Just, Nothing), catMaybes, fromMaybe, isJust, isNothing, maybe)
 import Data.Monoid ((<>), Monoid, mempty)
-import Data.Ord (Ord ((<), (<=), (>), (>=)))
+import Data.Ord (Ord ((<), (<=), (>), (>=)), max, min)
 import Data.Semigroup (Semigroup)
+import Data.Sequence (iterateN)
 import Data.Set (Set, difference, union)
-import qualified Data.Set as Set
+import qualified Data.Set
 import Data.Text (Text)
 import Data.Time.Clock.System (SystemTime)
 import Data.Traversable (for, forM, sequence)
@@ -77,31 +80,37 @@ import Safe.Foldable (foldl1Safe, foldr1Safe)
 import Universum (foldl1, foldr1)
 
 mapDelete :: Ord k => k -> Map k a -> Map k a
-mapDelete = Map.delete
+mapDelete = Data.Map.delete
 
 mapFromList :: Ord k => [(k, a)] -> Map k a
-mapFromList = Map.fromList
+mapFromList = Data.Map.fromList
 
 mapInsert :: Ord k => k -> a -> Map k a -> Map k a
-mapInsert = Map.insert
+mapInsert = Data.Map.insert
 
 mapLookup :: Ord k => k -> Map k a -> Maybe a
-mapLookup = Map.lookup
+mapLookup = Data.Map.lookup
 
 mapToList :: Map k a -> [(k, a)]
-mapToList = Map.toList
+mapToList = Data.Map.toList
 
 setDelete :: Ord a => a -> Set a -> Set a
-setDelete = Set.delete
+setDelete = Data.Set.delete
 
 setFromList :: Ord a => [a] -> Set a
-setFromList = Set.fromList
+setFromList = Data.Set.fromList
 
 setInsert :: Ord a => a -> Set a -> Set a
-setInsert = Set.insert
+setInsert = Data.Set.insert
 
 setMember :: Ord a => a -> Set a -> Bool
-setMember = Set.member
+setMember = Data.Set.member
+
+mapSingleton :: k -> a -> Map k a
+mapSingleton = Data.Map.singleton
+
+nelTakeWhile :: (a -> Bool) -> NonEmpty a -> [a]
+nelTakeWhile = Data.List.NonEmpty.takeWhile
 
 -- similar to both in lens
 both :: Data.Bifunctor.Bifunctor p => (a -> d) -> p a a -> p d d

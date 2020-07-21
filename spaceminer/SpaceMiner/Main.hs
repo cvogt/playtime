@@ -16,6 +16,7 @@ main = do
    in playtime $ EngineConfig igs dim stepGameState' computeSpritePlacements $ \_ GameState {..} ->
         let Pos x' y' = gsMainCharacterPosition
          in [ "collisions: " <> show gsCollisions,
+              "candidates: " <> show gsCandidates,
               "main char: " <> show (x', y'),
               "last places sprite location: " <> show gsLastPlacement,
               "sprite count floor: " <> show (Map.size $ unBoard gsFloor),

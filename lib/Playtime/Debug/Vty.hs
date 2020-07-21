@@ -38,7 +38,7 @@ forkDebugTerminal ConcurrentState {..} gameDebugInfo = do
                        "1/csGameStateTime: " <> show newAvgGameLoopTime2,
                        "opengl pos: " <> show (x, y),
                        "keys: " <> show gsKeysPressed,
-                       "gsLastLoopTime: " <> show gsLastLoopTime
+                       "gsTimePassed: " <> show gsTimePassed
                      ]
                     <> gameDebugInfo engineState gameState
               )

@@ -8,7 +8,7 @@ import Playtime.Types
 
 data GameState = GameState
   { gsMainCharacterPosition :: Pos,
-    gsEnemyPosition :: Pos,
+    gsEnemies :: Set Pos,
     gsBullets :: Set Pos
   }
   deriving (Show, Generic, NFData, ToJSON, FromJSON)
@@ -20,7 +20,7 @@ makeInitialGameState :: Dimensions -> GameState
 makeInitialGameState Dimensions {height} =
   GameState
     { gsMainCharacterPosition = Pos 10 (height / 2),
-      gsEnemyPosition = Pos 800 (height / 2),
+      gsEnemies = setSingleton $ Pos 1024 (height / 2),
       gsBullets = mempty
     }
 
@@ -45,6 +45,7 @@ stepGameState' EngineState {..} gs@GameState {..} = \case
         velocityY = if MovementAction Up `setMember` gsActions then - distancePerSec else if MovementAction Down `setMember` gsActions then distancePerSec else 0
      in gs
           { gsMainCharacterPosition = gsMainCharacterPosition |+| Dimensions (gsTimePassed * velocityX) (gsTimePassed * velocityY),
+            gsEnemies = map (|+| Dimensions (- gsTimePassed * 50) 0) $ setFilter (\(Pos x _) -> x > -50) gsEnemies,
             gsBullets = map (|+| Dimensions (gsTimePassed * 500) 0) $ setFilter (\(Pos x _) -> x < 1200) gsBullets
           }
   _ -> gs

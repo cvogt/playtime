@@ -94,6 +94,9 @@ mapLookup = Data.Map.lookup
 mapToList :: Map k a -> [(k, a)]
 mapToList = Data.Map.toList
 
+mapSingleton :: k -> a -> Map k a
+mapSingleton = Data.Map.singleton
+
 setDelete :: Ord a => a -> Set a -> Set a
 setDelete = Data.Set.delete
 
@@ -109,8 +112,8 @@ setInsert = Data.Set.insert
 setMember :: Ord a => a -> Set a -> Bool
 setMember = Data.Set.member
 
-mapSingleton :: k -> a -> Map k a
-mapSingleton = Data.Map.singleton
+setSingleton :: a -> Set a
+setSingleton = Data.Set.singleton
 
 nelTakeWhile :: (a -> Bool) -> NonEmpty a -> [a]
 nelTakeWhile = Data.List.NonEmpty.takeWhile

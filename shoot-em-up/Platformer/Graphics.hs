@@ -9,8 +9,9 @@ computeSpritePlacements :: (TextureId -> Texture) -> (EngineState, GameState) ->
 computeSpritePlacements textures (EngineState {..}, GameState {..}) =
   (gsLogicalDimensions, sprites)
   where
-    sprites = bullets <> [texturePlacements Plane 1 gsMainCharacterPosition, texturePlacements TopWall 1 gsEnemyPosition]
+    sprites = bullets <> enemies <> [texturePlacements Plane 1 gsMainCharacterPosition]
     texturePlacements :: TextureId -> Scale -> Pos -> TexturePlacements
     texturePlacements textureId scale pos =
       let Texture dim _ _ = textures textureId in TexturePlacements textureId $ Area (pos) $ scale |*| dim
-    bullets = toList gsBullets <&> \pos -> texturePlacements TopWall (Scale 0.25 0.25) pos
+    bullets = texturePlacements TopWall (Scale 0.25 0.25) <$> toList gsBullets
+    enemies = texturePlacements TopWall 1 <$> toList gsEnemies

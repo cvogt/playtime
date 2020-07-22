@@ -62,7 +62,7 @@ import Data.Monoid ((<>), Monoid, mempty)
 import Data.Ord (Ord ((<), (<=), (>), (>=)), max, min)
 import Data.Semigroup (Semigroup)
 import Data.Sequence (iterateN)
-import Data.Set (Set, difference, union)
+import Data.Set (Set, difference, map, union)
 import qualified Data.Set
 import Data.Text (Text)
 import Data.Time.Clock.System (SystemTime)
@@ -96,6 +96,9 @@ mapToList = Data.Map.toList
 
 setDelete :: Ord a => a -> Set a -> Set a
 setDelete = Data.Set.delete
+
+setFilter :: Ord a => (a -> Bool) -> Set a -> Set a
+setFilter = Data.Set.filter
 
 setFromList :: Ord a => [a] -> Set a
 setFromList = Data.Set.fromList

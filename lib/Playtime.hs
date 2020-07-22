@@ -21,16 +21,14 @@ import Playtime.Types
 data EngineConfig gameState = EngineConfig
   { initialGameState :: gameState,
     dim :: Dimensions,
+    scale :: Scale,
     stepGameState :: EngineState -> gameState -> Event -> gameState,
     computeSpritePlacements' :: (TextureId -> Texture) -> (EngineState, gameState) -> (Dimensions, [TexturePlacements]),
     gameDebugInfo :: EngineState -> gameState -> [[Char]]
   }
 
 playtime :: forall a. (FromJSON a, ToJSON a, NFData a) => EngineConfig a -> IO ()
-playtime EngineConfig {initialGameState, gameDebugInfo, dim, stepGameState, computeSpritePlacements'} = do
-  -- basic configuration
-  let scale = 3 -- scale up to screen resolution
-
+playtime EngineConfig {initialGameState, gameDebugInfo, dim, scale, stepGameState, computeSpritePlacements'} = do
   -- initialization
   ies <- makeInitialEngineState scale dim <$> getSystemTime
   let igs = (ies, initialGameState)

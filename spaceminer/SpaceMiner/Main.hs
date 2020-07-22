@@ -13,7 +13,7 @@ main :: IO ()
 main = do
   let igs = makeInitialGameState dim
       dim = Dimensions {width = 320, height = 240} -- logical pixel resolution
-   in playtime $ EngineConfig igs dim stepGameState' computeSpritePlacements $ \_ GameState {..} ->
+   in playtime $ EngineConfig igs dim 3 stepGameState' computeSpritePlacements $ \_ GameState {..} ->
         let Pos x' y' = gsMainCharacterPosition
          in [ "collisions: " <> show gsCollisions,
               "candidates: " <> show gsCandidates,

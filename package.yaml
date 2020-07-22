@@ -94,6 +94,11 @@ executables:
     source-dirs: platformer
     ghc-options: -threaded -rtsopts -with-rtsopts=-N
     dependencies: playtime
+  shoot-em-up:
+    main: Main.hs
+    source-dirs: shoot-em-up
+    ghc-options: -threaded -rtsopts -with-rtsopts=-N
+    dependencies: playtime
 
 tests:
   playtime-test:

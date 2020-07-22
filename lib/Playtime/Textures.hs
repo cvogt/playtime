@@ -13,6 +13,7 @@ data TextureId
   | MainCharacter
   | RedResource
   | TopWall
+  | Plane
   deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON)
 
 textureNameMap :: Map TextureId [Char]
@@ -22,7 +23,8 @@ textureNameMap =
       (Inventory, "inventory"),
       (MainCharacter, "main_character"),
       (RedResource, "red_resource"),
-      (TopWall, "top_wall")
+      (TopWall, "top_wall"),
+      (Plane, "Plane") -- https://www.cleanpng.com/png-alien-shooter-shooter-game-sprite-pac-man-shoot-em-1502814/
     ]
 
 passableTiles :: Set TextureId
@@ -30,3 +32,6 @@ passableTiles = Set.fromList [FloorPlate]
 
 assetsDir :: FilePath
 assetsDir = $(makeRelativeToProject "assets" >>= strToExp)
+
+-- convert svg to png
+-- https://hackage.haskell.org/package/rasterific-svg-0.3.3.2/docs/Graphics-Rasterific-Svg.html

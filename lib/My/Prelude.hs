@@ -54,7 +54,7 @@ import Data.Functor (($>), (<$), (<$>), (<&>), Functor, fmap)
 import Data.Int (Int)
 import Data.List (concat, drop, dropWhile, filter, nub, reverse, sort, take, takeWhile) -- UNSAFE, DO NOT IMPORT: foldl1, foldr1
 import qualified Data.List.NonEmpty
-import Data.List.NonEmpty (NonEmpty ((:|)), groupAllWith, groupBy, groupWith, head, iterate, last, repeat)
+import Data.List.NonEmpty (NonEmpty ((:|)), groupAllWith, groupBy, groupWith, head, iterate, last, repeat, unfoldr)
 import Data.Map (Map, keys, mapKeys)
 import qualified Data.Map
 import Data.Maybe (Maybe (Just, Nothing), catMaybes, fromMaybe, isJust, isNothing, maybe)

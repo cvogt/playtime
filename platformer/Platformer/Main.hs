@@ -10,6 +10,7 @@ import Platformer.Graphics
 import Playtime
 import Playtime.Textures
 import Playtime.Types
+import System.Random
 
 --   foldl (.) id (flap [applyToEngineState, applyToGameState] event')
 main :: IO ()
@@ -35,6 +36,6 @@ tests = do
           }
   time <- getSystemTime
   let egs = makeInitialEngineState 3 dim time
-  let igs' = stepGameState' egs igs $ RenderEvent (time {systemNanoseconds = systemNanoseconds time + 1000000000})
+  let igs' = stepGameState' (mkStdGen 17) egs igs $ RenderEvent (time {systemNanoseconds = systemNanoseconds time + 1000000000})
   when (gsMainCharacterPosition igs' /= gsMainCharacterPosition igs) $ do
     putStrLn $ "FAIL: " <> show igs'

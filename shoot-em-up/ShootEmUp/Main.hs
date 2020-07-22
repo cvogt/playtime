@@ -1,11 +1,11 @@
-module Platformer.Main where
+module ShootEmUp.Main where
 
 import My.IO
 import My.Prelude
-import Platformer.GameState
-import Platformer.Graphics
 import Playtime
 import Playtime.Types
+import ShootEmUp.GameState
+import ShootEmUp.Graphics
 
 --   foldl (.) id (flap [applyToEngineState, applyToGameState] event')
 main :: IO ()

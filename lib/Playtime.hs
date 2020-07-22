@@ -22,7 +22,7 @@ data EngineConfig gameState = EngineConfig
   { initialGameState :: gameState,
     dim :: Dimensions,
     scale :: Scale,
-    stepGameState :: EngineState -> gameState -> Event -> gameState,
+    stepGameState :: StdGen -> EngineState -> gameState -> Event -> gameState,
     computeSpritePlacements' :: (TextureId -> Texture) -> (EngineState, gameState) -> (Dimensions, [TexturePlacements]),
     gameDebugInfo :: EngineState -> gameState -> [[Char]]
   }
@@ -50,10 +50,11 @@ playtime EngineConfig {initialGameState, gameDebugInfo, dim, scale, stepGameStat
       pure $ not $ gameExitRequested es
   where
     handleEvent :: ConcurrentState a -> Event -> IO (EngineState, a)
-    handleEvent ConcurrentState {csGameState, csEngineStateTime, csGameStateTime} event = do
+    handleEvent ConcurrentState {csGameState, csEngineStateTime, csGameStateTime, csRng} event = do
       modifyMVar csGameState $ \(old_es, old_gs) -> do
+        rng <- readMVar csRng
         new_es <- trackTime csEngineStateTime $ pure $ stepEngineState old_es event
-        new_gs <- trackTime csGameStateTime $ pure $ stepGameState old_es old_gs event
+        new_gs <- trackTime csGameStateTime $ pure $ stepGameState rng old_es old_gs event
         saveMay new_es new_gs
         dupe . (new_es,) . fromMaybe new_gs <$> loadMay new_es
       where

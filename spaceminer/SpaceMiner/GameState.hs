@@ -4,6 +4,7 @@ import Data.Aeson (FromJSON (parseJSON), ToJSON (toJSON))
 import GHC.Float (int2Double)
 import GHC.Real ((/), floor)
 import "GLFW-b" Graphics.UI.GLFW
+import My.Extra
 import My.Prelude
 import Playtime.Geometry
 import Playtime.Textures
@@ -41,8 +42,8 @@ makeInitialGameState Dimensions {width, height} =
       gsMainCharacterPositionPrevious = Pos (width / 2) (height / 2)
     }
 
-stepGameState' :: EngineState -> GameState -> Event -> GameState
-stepGameState' EngineState {..} gs@GameState {..} = \case
+stepGameState' :: StdGen -> EngineState -> GameState -> Event -> GameState
+stepGameState' _ EngineState {..} gs@GameState {..} = \case
   CursorPosEvent _ _ ->
     let Pos x y = gsCursorPos
         gridify :: Double -> Double

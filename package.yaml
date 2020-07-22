@@ -25,6 +25,7 @@ dependencies:
 - file-embed
 - filepath
 - integer-gmp
+- random
 - safe
 - text
 - time

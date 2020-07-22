@@ -4,6 +4,7 @@ import Data.Aeson (FromJSON (parseJSON), ToJSON (toJSON))
 import qualified Data.List.NonEmpty as NEL (zip)
 import GHC.Real ((/))
 import "GLFW-b" Graphics.UI.GLFW
+import My.Extra
 import My.Prelude
 import Playtime.Geometry
 import Playtime.Textures
@@ -47,8 +48,8 @@ makeInitialGameState Dimensions {width} =
           $ (\r -> take 60 $ toList $ (iterate (+ 12) 0 `NEL.zip` repeat r) `NEL.zip` (repeat FloorPlate))
     }
 
-stepGameState' :: EngineState -> GameState -> Event -> GameState
-stepGameState' EngineState {..} gs@GameState {..} = \case
+stepGameState' :: StdGen -> EngineState -> GameState -> Event -> GameState
+stepGameState' _ EngineState {..} gs@GameState {..} = \case
   KeyEvent Key'Space KeyState'Pressed -> gs {gsVelocityY = -220}
   RenderEvent _ ->
     let speedX = 100

@@ -1,9 +1,9 @@
-module Platformer.Graphics where
+module ShootEmUp.Graphics where
 
 import My.Prelude
-import Platformer.GameState
 import Playtime.Textures
 import Playtime.Types
+import ShootEmUp.GameState
 
 computeSpritePlacements :: (TextureId -> Texture) -> (EngineState, GameState) -> (Dimensions, [TexturePlacements])
 computeSpritePlacements textures (EngineState {..}, GameState {..}) =

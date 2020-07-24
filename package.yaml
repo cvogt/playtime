@@ -27,6 +27,7 @@ dependencies:
 - integer-gmp
 - random
 - safe
+- sdl2-mixer
 - text
 - time
 - unix
@@ -60,9 +61,10 @@ default-extensions:
 - DerivingStrategies
 - FlexibleContexts
 - FlexibleInstances
-- GeneralizedNewtypeDeriving
+- GeneralizedNewtypeDeriving # FIXME: Safe Haskell considers GeneralizedNewtypeDeriving unsafe
 - LambdaCase
 - MultiParamTypeClasses
+- TemplateHaskell # FIXME: Safe Haskell considers TemplateHaskell unsafe, maybe at least use manual PRAGMA or use cwd instead of FileEmbed?
 - NamedFieldPuns
 - NoImplicitPrelude
 - OverloadedStrings
@@ -70,7 +72,6 @@ default-extensions:
 - RecordWildCards
 - ScopedTypeVariables
 - StandaloneDeriving
-- TemplateHaskell
 - TupleSections
 - TypeApplications
 - TypeOperators
@@ -80,9 +81,15 @@ library:
   source-dirs: lib
 
 ghc-options:
-  -O0 -j
-  -Wall -Werror
-  -optP-Wno-nonportable-include-path
+  -O0 -j -Weverything -Werror
+  -Wno-missing-export-lists
+  -Wno-missing-import-lists
+  -Wno-missing-local-signatures
+  -Wno-safe
+  -Wno-unsafe
+  -Wno-missing-deriving-strategies
+  -Wno-monomorphism-restriction
+  # -optP-Wno-nonportable-include-path
 
 executables:
   spaceminer:

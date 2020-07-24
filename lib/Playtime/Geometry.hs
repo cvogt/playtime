@@ -6,6 +6,21 @@ import GHC.Real ((/), ceiling, floor)
 import My.Prelude
 import Playtime.Types
 
+relativePos :: Pos -> Double -> Double -> Pos
+relativePos Pos {x, y} xd yd = Pos {x = x + xd, y = y + yd}
+
+relativePoss :: Pos -> [(Double, Double)] -> [Pos]
+relativePoss pos xyd = uncurry (relativePos pos) <$> xyd
+
+updateX :: (Double -> Double) -> Pos -> Pos
+updateX f (Pos x y) = Pos (f x) y
+
+updateXIf :: (Double -> Bool) -> (Double -> Double) -> Pos -> Pos
+updateXIf c f (Pos x y) = if c x then Pos (f x) y else Pos x y
+
+filterX :: (Double -> Bool) -> [Pos] -> [Pos]
+filterX f = filter (f . x)
+
 move :: Double -> Area -> Pos -> Double -> Double -> [Area] -> Pos
 move timePassed (Area objectPos objectDim) previousPos velocityX velocityY obstacles =
   case lastMay unobstructed of

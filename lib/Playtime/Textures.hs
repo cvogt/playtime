@@ -1,7 +1,9 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Playtime.Textures where
 
 import Data.Aeson (FromJSON, ToJSON)
-import Data.FileEmbed
+import Data.FileEmbed (makeRelativeToProject, strToExp)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import My.Prelude
@@ -14,6 +16,9 @@ data TextureId
   | RedResource
   | TopWall
   | Plane
+  | HaskellLoveLogo
+  | EnemyRed
+  | EnemyGreen
   deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON)
 
 textureNameMap :: Map TextureId [Char]
@@ -24,7 +29,10 @@ textureNameMap =
       (MainCharacter, "main_character"),
       (RedResource, "red_resource"),
       (TopWall, "top_wall"),
-      (Plane, "Plane") -- https://www.cleanpng.com/png-alien-shooter-shooter-game-sprite-pac-man-shoot-em-1502814/
+      (HaskellLoveLogo, "haskell_love_logo"), -- https://haskell.love/
+      (EnemyRed, "enemy_red"), -- https://www.cleanpng.com/png-spacecraft-sprite-2d-computer-graphics-clash-of-ta-4669364/
+      (EnemyGreen, "enemy_green"),
+      (Plane, "plane") -- https://www.cleanpng.com/png-alien-shooter-shooter-game-sprite-pac-man-shoot-em-1502814/
     ]
 
 passableTiles :: Set TextureId

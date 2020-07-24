@@ -8,6 +8,7 @@ module My.Prelude
     module Data.Data,
     module Data.Either,
     module Data.Eq,
+    module Data.Fixed,
     module Data.Foldable,
     module Data.Function,
     module Data.Functor,
@@ -36,6 +37,7 @@ module My.Prelude
     module Safe,
     module Safe.Foldable,
     module Universum,
+    module System.Random,
   )
 where
 
@@ -48,11 +50,14 @@ import Data.Char (Char)
 import Data.Data (toConstr)
 import Data.Either (Either (Left, Right), either)
 import Data.Eq (Eq ((/=), (==)))
+-- UNSAFE, DO NOT IMPORT: foldl1, foldr1
+
+import Data.Fixed (mod') -- mod' is incorrect for large Doubles and always returns 0.
 import Data.Foldable (Foldable, all, any, elem, find, fold, foldl, foldr, forM_, for_, length, mapM_, null, sum, toList)
 import Data.Function (($), (.), flip, id)
 import Data.Functor (($>), (<$), (<$>), (<&>), Functor, fmap)
 import Data.Int (Int)
-import Data.List (concat, drop, dropWhile, filter, nub, reverse, sort, take, takeWhile) -- UNSAFE, DO NOT IMPORT: foldl1, foldr1
+import Data.List (concat, drop, dropWhile, filter, nub, replicate, reverse, sort, take, takeWhile)
 import qualified Data.List.NonEmpty
 import Data.List.NonEmpty (NonEmpty ((:|)), groupAllWith, groupBy, groupWith, head, iterate, last, repeat, unfoldr)
 import Data.Map (Map, keys, mapKeys)
@@ -77,6 +82,7 @@ import GHC.Real (Integral)
 import GHC.Show (Show (show))
 import Safe (headMay, lastMay)
 import Safe.Foldable (foldl1Safe, foldr1Safe)
+import System.Random (StdGen, next) -- FIXME: replace next with uniform once stack upgraded random
 import Universum (foldl1, foldr1)
 
 mapDelete :: Ord k => k -> Map k a -> Map k a
@@ -100,7 +106,7 @@ mapSingleton = Data.Map.singleton
 setDelete :: Ord a => a -> Set a -> Set a
 setDelete = Data.Set.delete
 
-setFilter :: Ord a => (a -> Bool) -> Set a -> Set a
+setFilter :: (a -> Bool) -> Set a -> Set a
 setFilter = Data.Set.filter
 
 setFromList :: Ord a => [a] -> Set a

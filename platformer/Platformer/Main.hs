@@ -10,14 +10,14 @@ import Platformer.Graphics
 import Playtime
 import Playtime.Textures
 import Playtime.Types
-import System.Random
+import Playtime.Util
 
 --   foldl (.) id (flap [applyToEngineState, applyToGameState] event')
 main :: IO ()
 main =
   let igs = makeInitialGameState dim
       dim = Dimensions {width = 320, height = 240} -- logical pixel resolution
-   in playtime $ EngineConfig igs dim 3 stepGameState' computeSpritePlacements $ \EngineState {..} GameState {..} ->
+   in playtime $ EngineConfig igs dim 3 computeSpritePlacements noPreStepIO stepGameState' noPostStepIO $ \EngineState {..} GameState {..} ->
         let Pos x' y' = gsMainCharacterPosition
          in [ "gsVelocityY: " <> show gsVelocityY,
               "collisions: " <> show gsCollisions,
@@ -36,6 +36,6 @@ tests = do
           }
   time <- getSystemTime
   let egs = makeInitialEngineState 3 dim time
-  let igs' = stepGameState' (mkStdGen 17) egs igs $ RenderEvent (time {systemNanoseconds = systemNanoseconds time + 1000000000})
+  let igs' = stepGameState' () egs igs $ RenderEvent (time {systemNanoseconds = systemNanoseconds time + 1000000000})
   when (gsMainCharacterPosition igs' /= gsMainCharacterPosition igs) $ do
     putStrLn $ "FAIL: " <> show igs'

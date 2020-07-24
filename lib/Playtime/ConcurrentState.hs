@@ -1,6 +1,5 @@
 module Playtime.ConcurrentState where
 
-import My.Extra
 import My.IO
 import My.Prelude
 import Playtime.Types
@@ -16,10 +15,10 @@ data ConcurrentState gameState = ConcurrentState
     csTotalLoopTime :: MVar [(SystemTime, SystemTime)]
   }
 
-makeInitialConcurrentState :: (EngineState, gameState) -> IO (ConcurrentState gameState)
-makeInitialConcurrentState gameState = do
+makeInitialConcurrentState :: EngineState -> gameState -> IO (ConcurrentState gameState)
+makeInitialConcurrentState es gs = do
   csSpritePlacementTime <- newMVar []
-  csGameState <- newMVar gameState
+  csGameState <- newMVar (es, gs)
   csEngineStateTime <- newMVar []
   csGameStateTime <- newMVar []
   csRenderLoopTime <- newMVar []

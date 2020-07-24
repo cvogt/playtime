@@ -1,4 +1,4 @@
-module Music where
+module Playtime.Midi where
 
 import Data.FileEmbed (makeRelativeToProject, strToExp)
 import Euterpea hiding (Text, forever)

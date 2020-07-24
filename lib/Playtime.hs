@@ -3,7 +3,6 @@ module Playtime where
 import Data.Aeson (FromJSON, ToJSON, eitherDecode, encode)
 import qualified Data.ByteString.Lazy as BSL
 import Data.FileEmbed
--- import Music
 
 import Game
 import qualified "GLFW-b" Graphics.UI.GLFW as GLFW

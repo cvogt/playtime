@@ -47,14 +47,12 @@ playtime EngineConfig {..} = do
 
   let stepStates :: Event -> IO (EngineState, gs)
       stepStates event = do
-        modifyMVar csGameState $ \(old_es, old_gs) -> do
+        modifyMVar csGameState $ \(old_es, old_gs) -> trackTimeM csTimeStep $ do
           let new_es = stepEngineState old_es event
-          trackTime csEngineStateTime new_es
 
           pre <- preStepIO new_es
 
           let new_gs = pureStep pre old_es old_gs event
-          trackTime csGameStateTime new_gs
 
           dupe . (new_es,) <$> postStepIO new_es new_gs
 
@@ -63,10 +61,10 @@ playtime EngineConfig {..} = do
     textures <- loadTextures
     setEventCallback window $ void . stepStates
 
-    whileM $ trackTimeM csTotalLoopTime $ do
+    whileM $ trackTimeM csTimeRender $ do
       GLFW.pollEvents
       state@(es, _) <- stepStates . RenderEvent =<< getSystemTime
       pure state
         >>= trackTimeM csSpritePlacementTime . pure . computeSpritePlacements' textures
-        >>= trackTimeM csRenderLoopTime . renderGL textures window
+        >>= trackTimeM csTimeGL . renderGL textures window
       pure $ not $ gameExitRequested es

@@ -16,15 +16,13 @@ forkDebugTerminal ConcurrentState {..} gameDebugInfo = do
   cfg <- Vty.standardIOConfig
   vty <- Vty.mkVty cfg
   flip forkFinally (\_ -> Vty.shutdown vty) $ do
-    flip iterateM_ (0, 0, 0, 0, 0) $ \(oldAvgGameLoopTime1, oldAvgGameLoopTime2, oldAvgTexturePlacementTime, oldAvgRenderLoopTime, oldAvgTotalLoopTime) -> do
+    flip iterateM_ (0, 0, 0, 0) $ \(oldAvgTimeStep, oldAvgTexturePlacementTime, oldAvgRenderLoopTime, oldAvgTotalLoopTime) -> do
       (engineState@EngineState {..}, gameState) <- readMVar csGameState
-      gameLoopTimes1 <- modifyMVar csEngineStateTime $ \t -> pure ([], t)
-      gameLoopTimes2 <- modifyMVar csGameStateTime $ \t -> pure ([], t)
+      timeStep <- modifyMVar csTimeStep $ \t -> pure ([], t)
       texturePlacementTimes <- modifyMVar csSpritePlacementTime $ \t -> pure ([], t)
-      renderLoopTimes <- modifyMVar csRenderLoopTime $ \t -> pure ([], t)
-      totalLoopTimes <- modifyMVar csTotalLoopTime $ \t -> pure ([], t)
-      let newAvgGameLoopTime1 = if not $ null gameLoopTimes1 then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> gameLoopTimes1) else oldAvgGameLoopTime1
-          newAvgGameLoopTime2 = if not $ null gameLoopTimes2 then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> gameLoopTimes2) else oldAvgGameLoopTime2
+      renderLoopTimes <- modifyMVar csTimeGL $ \t -> pure ([], t)
+      totalLoopTimes <- modifyMVar csTimeRender $ \t -> pure ([], t)
+      let newAvgTimeStep = if not $ null timeStep then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> timeStep) else oldAvgTimeStep
           newAvgTexturePlacementTime = if not $ null texturePlacementTimes then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> texturePlacementTimes) else oldAvgTexturePlacementTime
           newAvgRenderLoopTime = if not $ null renderLoopTimes then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> renderLoopTimes) else oldAvgRenderLoopTime
           newAvgTotalLoopTime = if not $ null totalLoopTimes then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> totalLoopTimes) else oldAvgTotalLoopTime
@@ -34,8 +32,7 @@ forkDebugTerminal ConcurrentState {..} gameDebugInfo = do
           <$> ( "fps: " <> show newAvgTotalLoopTime
                   :| [ "1/renderLoopTime: " <> show newAvgRenderLoopTime,
                        "1/texturePlacementTime: " <> show newAvgTexturePlacementTime,
-                       "1/csEngineStateTime: " <> show newAvgGameLoopTime1,
-                       "1/csGameStateTime: " <> show newAvgGameLoopTime2,
+                       "1/timeStep: " <> show newAvgTimeStep,
                        "opengl pos: " <> show (x, y),
                        "keys: " <> show gsKeysPressed,
                        "gsTimePassed: " <> show gsTimePassed
@@ -44,4 +41,4 @@ forkDebugTerminal ConcurrentState {..} gameDebugInfo = do
               )
 
       threadDelay $ 500 * 1000 -- FIXME: changing this to 100 * make process freeze on exit
-      pure (newAvgGameLoopTime1, newAvgGameLoopTime2, newAvgTexturePlacementTime, newAvgRenderLoopTime, newAvgTotalLoopTime)
+      pure (oldAvgTimeStep, newAvgTexturePlacementTime, newAvgRenderLoopTime, newAvgTotalLoopTime)

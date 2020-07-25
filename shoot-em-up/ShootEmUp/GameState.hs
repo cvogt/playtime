@@ -68,9 +68,10 @@ stepGameState' randInts EngineState {..} gs@GameState {..} = \case
           where
             numAdded = numEnemies - length survivingEnemies
             modY = int2Double . flip mod (double2Int $ height - enemyHeight)
-        stepStar (size, pos) = (size,) $ updateX (modX . moveLeft) pos
+        stepStar (size, pos) = (size,) $ updateY (modX . moveY) $ updateX (modX . moveX) pos
           where
-            moveLeft = subtract $ gsTimePassed * 5 * (size + 1)
+            moveX = subtract $ gsTimePassed * 5 * (size + 1)
+            moveY = subtract $ gsTimePassed * 0 * (size + 1)
             modX = flip mod' (width + maxStarSize)
      in gs
           { gsMainCharacterPosition = gsMainCharacterPosition |+| Dimensions (gsTimePassed * velocityX) (gsTimePassed * velocityY),

@@ -6,6 +6,6 @@ module My.Extra
 where
 
 import "monad-extras" Control.Monad.Extra (unfoldM_)
-import "extra" Control.Monad.Extra (whenM, whileM)
+import "extra" Control.Monad.Extra (unlessM, whenM, whileM)
 import Control.Monad.Loops (iterateM_)
 import Data.Tuple.Extra (dupe)

@@ -15,6 +15,9 @@ relativePoss pos xyd = uncurry (relativePos pos) <$> xyd
 updateX :: (Double -> Double) -> Pos -> Pos
 updateX f (Pos x y) = Pos (f x) y
 
+updateY :: (Double -> Double) -> Pos -> Pos
+updateY f (Pos x y) = Pos x (f y)
+
 updateXIf :: (Double -> Bool) -> (Double -> Double) -> Pos -> Pos
 updateXIf c f (Pos x y) = if c x then Pos (f x) y else Pos x y
 

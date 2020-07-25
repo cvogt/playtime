@@ -1,4 +1,8 @@
-TODO:
+SVG support
+-- https://svg-clipart.com/svg/symbol/mKBXkcQ-flame-vector.svg
+-- https://hackage.haskell.org/package/rasterific-svg-0.3.3.2/docs/Graphics-Rasterific-Svg.html
+
+TODO brainstorming:
 
 1. milestone:
 

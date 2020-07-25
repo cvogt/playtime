@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Playtime.Midi where
 
 import Data.FileEmbed (makeRelativeToProject, strToExp)

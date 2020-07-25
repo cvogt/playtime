@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Playtime.SaveLoad where
 
 import Data.Aeson

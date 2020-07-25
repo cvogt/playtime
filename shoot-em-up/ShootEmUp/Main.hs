@@ -1,7 +1,6 @@
 module ShootEmUp.Main where
 
 import Control.Concurrent.MVar (newEmptyMVar, putMVar)
-import Data.FileEmbed (makeRelativeToProject, strToExp)
 import My.IO
 import My.Prelude
 import Playtime
@@ -13,7 +12,7 @@ import ShootEmUp.Graphics
 import System.Random
 
 gameDir :: FilePath
-gameDir = $(makeRelativeToProject "shoot-em-up" >>= strToExp)
+gameDir = "shoot-em-up" -- $ (makeRelativeToProject "shoot-em-up" >>= strToExp)
 
 --   foldl (.) id (flap [applyToEngineState, applyToGameState] event')
 main :: IO ()

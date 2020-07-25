@@ -69,7 +69,6 @@ default-extensions:
 - GeneralizedNewtypeDeriving # FIXME: Safe Haskell considers GeneralizedNewtypeDeriving unsafe
 - LambdaCase
 - MultiParamTypeClasses
-- TemplateHaskell # FIXME: Safe Haskell considers TemplateHaskell unsafe, maybe at least use manual PRAGMA or use cwd instead of FileEmbed?
 - NamedFieldPuns
 - NoImplicitPrelude
 - OverloadedStrings
@@ -81,6 +80,7 @@ default-extensions:
 - TypeApplications
 - TypeOperators
 - ViewPatterns
+# FIXME: Safe Haskell considers TemplateHaskell unsafe, maybe at least use manual PRAGMA or use cwd instead of FileEmbed?
 
 library:
   source-dirs: lib

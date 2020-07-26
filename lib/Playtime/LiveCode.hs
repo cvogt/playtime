@@ -43,14 +43,15 @@ liveCodeSwitch lcs@LiveCodeState {..} gameState = do
   readMVar lcsChangeDetected >>= \case
     False -> pure ()
     True ->
-      modifyMVar_ lcsCompileError $ \old_err -> do
-        void $ swapMVar lcsChangeDetected False
-        Playtime.LiveCode.compileAndEval lcsSrcFiles lcsModule lcsExpression >>= \case
-          Left compileErrors -> pure $ Just compileErrors
-          Right makeEngineConfig' -> do
-            swapMVar lcsGameState $ toJSON gameState
-            void $ swapMVar lcsEngineConfig =<< makeEngineConfig' lcs
-            pure Nothing -- doesn't clear compile errors because EngineConfig has already been replaced
+      void $
+        swapMVar lcsCompileError =<< do
+          void $ swapMVar lcsChangeDetected False
+          Playtime.LiveCode.compileAndEval lcsSrcFiles lcsModule lcsExpression >>= \case
+            Left compileErrors -> pure $ Just compileErrors
+            Right makeEngineConfig' -> do
+              void $ swapMVar lcsGameState $ toJSON gameState
+              void $ swapMVar lcsEngineConfig =<< makeEngineConfig' lcs
+              pure Nothing -- doesn't clear compile errors because EngineConfig has already been replaced
 
 makeLiveCodeState :: (LiveCodeState -> IO EngineConfig) -> [Char] -> [Char] -> FilePath -> [FilePath] -> IO LiveCodeState
 makeLiveCodeState makeEngineConfig' lcsModule lcsExpression lcsWatchDir lcsSrcFiles = do

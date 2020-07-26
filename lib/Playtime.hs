@@ -2,6 +2,7 @@ module Playtime
   ( module Playtime,
     module Playtime.EngineState,
     module Playtime.Geometry,
+    module Playtime.SaveLoad,
     module Playtime.Textures,
     module Playtime.Types,
     module Playtime.Util,
@@ -24,6 +25,7 @@ import Playtime.GL
 import Playtime.GLFW
 import Playtime.Geometry
 import Playtime.LiveCode
+import Playtime.SaveLoad
 import Playtime.Textures
 import Playtime.Types
 import Playtime.Util

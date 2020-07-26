@@ -4,7 +4,6 @@ import Control.Concurrent.MVar (newEmptyMVar, putMVar)
 import My.IO
 import My.Prelude
 import Playtime
-import Playtime.SaveLoad
 import SDL.Mixer
 import ShootEmUp.GameState
 import ShootEmUp.Visualize
@@ -45,11 +44,9 @@ makeEngineConfig liveCodeState = do
         ecStepGameState = \es@EngineState {..} event ->
           modifyMVar_ gameStateMVar $ \old_gs -> do
             pre <- sequence $ replicate 10 randomIO
-            let new_gs = stepGameStatePure pre es old_gs event
+            let new_gs = stepGameStatePure pre old_gs es event
             liveCodeSwitch liveCodeState new_gs
-
             when (Key'Space `elem` esKeysPressed) $ play =<< readMVar popSound
-
             saveMay es new_gs
             fromMaybe new_gs <$> loadMay es,
         ecCheckIfContinue = pure . not . gameExitRequested,

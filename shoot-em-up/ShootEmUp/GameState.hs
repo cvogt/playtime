@@ -39,8 +39,8 @@ makeInitialGameState Dimensions {width, height} = do
         gsBullets = mempty
       }
 
-stepGameStatePure :: [Int] -> EngineState -> GameState -> Event -> GameState
-stepGameStatePure randInts EngineState {..} gs@GameState {..} = \case
+stepGameStatePure :: [Int] -> GameState -> EngineState -> Event -> GameState
+stepGameStatePure randInts gs@GameState {..} EngineState {..} = \case
   KeyEvent Key'Space KeyState'Pressed ->
     gs
       { gsBullets =

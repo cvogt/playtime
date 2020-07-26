@@ -1,7 +1,6 @@
 module Platformer.Main where
 
 import qualified Data.Map as Map
-import Data.Time.Clock.System
 import My.IO
 import My.Prelude
 import Platformer.GameState
@@ -31,7 +30,7 @@ dim = Dimensions {width = 320, height = 240}
 makeEngineConfig :: LiveCodeState -> IO EngineConfig
 makeEngineConfig liveCodeState = do
   recoveredGameState <- startLiveCode liveCodeState
-  gameStateMVar <- newMVar =<< maybe (pure $ makeInitialGameState dim) pure recoveredGameState
+  gameStateMVar <- newMVar $ fromMaybe (makeInitialGameState dim) recoveredGameState
 
   pure $
     EngineConfig
@@ -39,7 +38,7 @@ makeEngineConfig liveCodeState = do
         ecScale = 3,
         ecVisualize = \tx es -> visualize tx es <$> readMVar gameStateMVar,
         ecStepGameState = \es event -> modifyMVar_ gameStateMVar $ \gs -> do
-          let new_gs = stepGameState' gs es event
+          let new_gs = stepGameStatePure gs es event
           liveCodeSwitch liveCodeState new_gs
           pure new_gs,
         ecCheckIfContinue = pure . not . gameExitRequested,
@@ -54,17 +53,3 @@ makeEngineConfig liveCodeState = do
               "sprite count room: " <> show (Map.size $ unBoard gsRoom)
             ]
       }
-
-tests :: IO ()
-tests = do
-  let igs =
-        (makeInitialGameState dim)
-          { gsVelocityY = 0.33,
-            gsMainCharacterPosition = Pos 0 (-7),
-            gsRoom = Board $ mapFromList $ (,FloorPlate) <$> [Pos (-6) 5, Pos 6 5]
-          }
-  time <- getSystemTime
-  let egs = makeInitialEngineState 3 dim time
-  let igs' = stepGameState' igs egs $ RenderEvent (time {systemNanoseconds = systemNanoseconds time + 1000000000})
-  when (gsMainCharacterPosition igs' /= gsMainCharacterPosition igs) $ do
-    putStrLn $ "FAIL: " <> show igs'

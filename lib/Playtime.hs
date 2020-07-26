@@ -7,6 +7,9 @@ module Playtime
     module Playtime.Util,
     GLFW.Key (..),
     GLFW.KeyState (..),
+    LiveCodeState,
+    startLiveCode,
+    liveCodeSwitch,
   )
 where
 
@@ -20,6 +23,7 @@ import Playtime.EngineState
 import Playtime.GL
 import Playtime.GLFW
 import Playtime.Geometry
+import Playtime.LiveCode
 import Playtime.Textures
 import Playtime.Types
 import Playtime.Util
@@ -33,13 +37,21 @@ import Playtime.Util
 -- dim = Dimension
 
 playtime :: MVar EngineConfig -> IO ()
-playtime ecMVar = do
+playtime = playtime' Nothing
+
+playtimeLiveCode :: (LiveCodeState -> IO EngineConfig) -> [Char] -> [Char] -> FilePath -> [FilePath] -> IO ()
+playtimeLiveCode makeEngineConfig lcsModule lcsExpression lcsWatchDir lcsSrcFiles = do
+  lcs <- makeLiveCodeState makeEngineConfig lcsModule lcsExpression lcsWatchDir lcsSrcFiles
+  playtime' (Just lcs) $ lcsEngineConfig lcs
+
+playtime' :: Maybe LiveCodeState -> MVar EngineConfig -> IO ()
+playtime' lcsMay ecMVar = do
   EngineConfig {ecScale, ecDim, ecCheckIfContinue} <- readMVar ecMVar
   -- initialization
   ies@EngineState {gsWindowSize} <- makeInitialEngineState ecScale ecDim <$> getSystemTime
   cs@ConcurrentState {..} <- makeInitialConcurrentState ies
 
-  void $ forkDebugTerminal cs ecMVar
+  void $ forkDebugTerminal cs ecMVar lcsMay
 
   -- open gl rendering loop
   withGLFW gsWindowSize "Playtime" $ \window -> do

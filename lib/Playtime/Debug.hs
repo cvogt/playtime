@@ -7,6 +7,7 @@ import My.Extra
 import My.IO
 import My.Prelude
 import Playtime.ConcurrentState
+import Playtime.LiveCode
 import Playtime.Types
 import Playtime.Util
 import System.Console.ANSI
@@ -24,8 +25,8 @@ trackTimeM mvar action = do
 trackTime :: NFData a => MVar [(SystemTime, SystemTime)] -> a -> IO ()
 trackTime mvar = void . trackTimeM mvar . pure
 
-forkDebugTerminal :: ConcurrentState -> MVar EngineConfig -> IO ThreadId
-forkDebugTerminal ConcurrentState {..} engineConfigMVar = do
+forkDebugTerminal :: ConcurrentState -> MVar EngineConfig -> Maybe LiveCodeState -> IO ThreadId
+forkDebugTerminal ConcurrentState {..} engineConfigMVar lcsMay = do
   -- FIXME: cursor stays hidden after termination
   forkIO $ do
     flip iterateM_ (0, 0, 0, 0) $ \(oldAvgTimeStep, oldAvgTexturePlacementTime, oldAvgRenderLoopTime, oldAvgTotalLoopTime) -> do
@@ -44,9 +45,11 @@ forkDebugTerminal ConcurrentState {..} engineConfigMVar = do
       clearFromCursorToScreenBeginning
       restoreCursor
       saveCursor
+      ce <- sequence $ readMVar . lcsCompileError <$> lcsMay
       traverse_ (putStrLn . take 400) $
-        ( "fps: " <> show newAvgTotalLoopTime
-            :| [ "1/renderLoopTime: " <> show newAvgRenderLoopTime,
+        ( (maybe "" (("compile status: " <>) . fromMaybe "no errors") ce)
+            :| [ "fps: " <> show newAvgTotalLoopTime,
+                 "1/renderLoopTime: " <> show newAvgRenderLoopTime,
                  "1/texturePlacementTime: " <> show newAvgTexturePlacementTime,
                  "1/timeStep: " <> show newAvgTimeStep,
                  "opengl pos: " <> show (x, y),

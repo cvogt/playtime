@@ -38,7 +38,7 @@ move timePassed (Area objectPos objectDim) previousPos velocityX velocityY obsta
             Nothing -> pos
             Just pos' -> pos'
   where
-    nonColliding p = any (Area p objectDim `collidesWith`) obstacles
+    nonColliding p = not $ any (Area p objectDim `collidesWith`) obstacles
     candidates = trajectoryPixels objectPos timePassed velocityX velocityY
     unobstructed = takeWhile nonColliding candidates
 

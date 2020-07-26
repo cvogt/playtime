@@ -41,8 +41,8 @@ makeInitialGameState Dimensions {width, height} =
       gsMainCharacterPositionPrevious = Pos (width / 2) (height / 2)
     }
 
-stepGameState' :: () -> EngineState -> GameState -> Event -> GameState
-stepGameState' () EngineState {..} gs@GameState {..} = \case
+stepGameState' :: GameState -> EngineState -> Event -> GameState
+stepGameState' gs@GameState {..} EngineState {..} = \case
   CursorPosEvent _ _ ->
     let Pos x y = gsCursorPos
         gridify :: Double -> Double

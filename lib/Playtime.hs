@@ -1,10 +1,11 @@
 module Playtime
   ( module Playtime,
+    module Playtime.ConcurrentState,
+    module Playtime.EngineState,
     GLFW.Key (..),
   )
 where
 
-import Game
 import qualified "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.Extra
 import My.IO
@@ -12,9 +13,9 @@ import My.Prelude
 import Playtime.ConcurrentState
 import Playtime.Debug
 import Playtime.Debug.Vty
+import Playtime.EngineState
 import Playtime.GL
 import Playtime.GLFW
-import Playtime.Textures
 import Playtime.Types
 
 -- README
@@ -25,46 +26,34 @@ import Playtime.Types
 -- pos = Position
 -- dim = Dimension
 
-data EngineConfig gs pre = EngineConfig
-  { initialGameState :: gs,
-    dim :: Dimensions,
-    scale :: Scale,
-    --    sounds :: Set FilePath,
-    computeSpritePlacements' :: (TextureId -> Texture) -> (EngineState, gs) -> (Dimensions, [TexturePlacements]),
-    preStepIO :: EngineState -> IO pre,
-    pureStep :: pre -> EngineState -> gs -> Event -> gs,
-    postStepIO :: EngineState -> gs -> IO gs,
-    gameDebugInfo :: EngineState -> gs -> [[Char]]
-  }
-
-playtime :: forall gs pre. (NFData gs) => EngineConfig gs pre -> IO ()
-playtime EngineConfig {..} = do
+playtime :: MVar EngineConfig -> IO ()
+playtime ecMVar = do
+  EngineConfig {ecScale, ecDim, ecCheckIfContinue} <- readMVar ecMVar
   -- initialization
-  ies@EngineState {gsWindowSize} <- makeInitialEngineState scale dim <$> getSystemTime
-  cs@ConcurrentState {..} <- makeInitialConcurrentState ies initialGameState
+  ies@EngineState {gsWindowSize} <- makeInitialEngineState ecScale ecDim <$> getSystemTime
+  cs@ConcurrentState {..} <- makeInitialConcurrentState ies
 
-  void $ forkDebugTerminal cs gameDebugInfo
-
-  let stepStates :: Event -> IO (EngineState, gs)
-      stepStates event = do
-        modifyMVar csGameState $ \(old_es, old_gs) -> trackTimeM csTimeStep $ do
-          let new_es = stepEngineState old_es event
-
-          pre <- preStepIO new_es
-
-          let new_gs = pureStep pre old_es old_gs event
-
-          dupe . (new_es,) <$> postStepIO new_es new_gs
+  when False $ void $ forkDebugTerminal cs ecMVar
 
   -- open gl rendering loop
   withGLFW gsWindowSize "Playtime" $ \window -> do
     textures <- loadTextures
-    setEventCallback window $ void . stepStates
+    setEventCallback window $ void . stepStates cs
 
     whileM $ trackTimeM csTimeRender $ do
       GLFW.pollEvents
-      state@(es, _) <- stepStates . RenderEvent =<< getSystemTime
-      pure state
-        >>= trackTimeM csSpritePlacementTime . pure . computeSpritePlacements' textures
+      EngineConfig {ecComputeSpritePlacements'} <- readMVar ecMVar
+      es <- stepStates cs . RenderEvent =<< getSystemTime
+      pure es
+        >>= trackTimeM csSpritePlacementTime . ecComputeSpritePlacements' textures
         >>= trackTimeM csTimeGL . renderGL textures window
-      pure $ not $ gameExitRequested es
+      ecCheckIfContinue es
+  where
+    stepStates :: ConcurrentState -> Event -> IO EngineState
+    stepStates ConcurrentState {..} event =
+      modifyMVar csEngineState $ \old_es ->
+        trackTimeM csTimeStep $ do
+          EngineConfig {ecStepGameState} <- readMVar ecMVar
+          let new_es = stepEngineState old_es event
+          ecStepGameState new_es event
+          pure (new_es, new_es)

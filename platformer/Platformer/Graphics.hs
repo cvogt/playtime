@@ -6,8 +6,8 @@ import Platformer.GameState
 import Playtime.Textures
 import Playtime.Types
 
-computeSpritePlacements :: (TextureId -> Texture) -> (EngineState, GameState) -> (Dimensions, [TexturePlacements])
-computeSpritePlacements textures (EngineState {..}, GameState {..}) =
+computeSpritePlacements :: (TextureId -> Texture) -> EngineState -> GameState -> (Dimensions, [TexturePlacements])
+computeSpritePlacements textures EngineState {..} GameState {..} =
   (gsLogicalDimensions, sprites)
   where
     sprites = room <> [texturePlacements MainCharacter 1 gsMainCharacterPosition]

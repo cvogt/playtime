@@ -39,6 +39,7 @@ dependencies:
 - ghc
 - ghc-paths
 - ghc-boot-th
+- fsnotify
 
 # extra
 - extra

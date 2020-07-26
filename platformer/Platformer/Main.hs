@@ -2,7 +2,6 @@ module Platformer.Main where
 
 import qualified Data.Map as Map
 import Data.Time.Clock.System
-import Game
 import My.IO
 import My.Prelude
 import Platformer.GameState
@@ -10,24 +9,37 @@ import Platformer.Graphics
 import Playtime
 import Playtime.Textures
 import Playtime.Types
-import Playtime.Util
 
 --   foldl (.) id (flap [applyToEngineState, applyToGameState] event')
+
+dim :: Dimensions
+dim = Dimensions {width = 320, height = 240}
+
 main :: IO ()
-main =
-  let igs = makeInitialGameState dim
-      dim = Dimensions {width = 320, height = 240} -- logical pixel resolution
-   in playtime $ EngineConfig igs dim 3 computeSpritePlacements noPreStepIO stepGameState' noPostStepIO $ \EngineState {..} GameState {..} ->
+main = do
+  playtime =<< newMVar =<< makeEngineConfig <$> newMVar (makeInitialGameState dim)
+
+makeEngineConfig :: MVar GameState -> EngineConfig
+makeEngineConfig gameStateMVar =
+  EngineConfig
+    { ecDim = dim,
+      ecScale = 3,
+      ecComputeSpritePlacements' = \tx es -> computeSpritePlacements tx es <$> readMVar gameStateMVar,
+      ecStepGameState = \es event -> modifyMVar_ gameStateMVar $ \gs -> pure $ stepGameState' gs es event,
+      ecCheckIfContinue = pure . not . gameExitRequested,
+      ecGameDebugInfo = \_ -> do
+        GameState {..} <- readMVar gameStateMVar
         let Pos x' y' = gsMainCharacterPosition
-         in [ "gsVelocityY: " <> show gsVelocityY,
-              "collisions: " <> show gsCollisions,
-              "main char: " <> show (x', y'),
-              "sprite count room: " <> show (Map.size $ unBoard gsRoom)
-            ]
+        pure $
+          [ "gsVelocityY: " <> show gsVelocityY,
+            "collisions: " <> show gsCollisions,
+            "main char: " <> show (x', y'),
+            "sprite count room: " <> show (Map.size $ unBoard gsRoom)
+          ]
+    }
 
 tests :: IO ()
 tests = do
-  let dim = Dimensions {width = 320, height = 240} -- logical pixel resolution
   let igs =
         (makeInitialGameState dim)
           { gsVelocityY = 0.33,
@@ -36,6 +48,6 @@ tests = do
           }
   time <- getSystemTime
   let egs = makeInitialEngineState 3 dim time
-  let igs' = stepGameState' () egs igs $ RenderEvent (time {systemNanoseconds = systemNanoseconds time + 1000000000})
+  let igs' = stepGameState' igs egs $ RenderEvent (time {systemNanoseconds = systemNanoseconds time + 1000000000})
   when (gsMainCharacterPosition igs' /= gsMainCharacterPosition igs) $ do
     putStrLn $ "FAIL: " <> show igs'

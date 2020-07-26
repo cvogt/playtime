@@ -7,8 +7,18 @@ import Data.Aeson (FromJSON, ToJSON)
 import GHC.Num
 import qualified Graphics.Rendering.OpenGL.GL as GL (TextureObject)
 import qualified "GLFW-b" Graphics.UI.GLFW as GLFW
+import My.IO
 import My.Prelude
 import Playtime.Textures
+
+data EngineConfig = EngineConfig
+  { ecDim :: Dimensions,
+    ecScale :: Scale,
+    ecComputeSpritePlacements' :: (TextureId -> Texture) -> EngineState -> IO (Dimensions, [TexturePlacements]),
+    ecStepGameState :: EngineState -> Event -> IO (),
+    ecCheckIfContinue :: EngineState -> IO Bool,
+    ecGameDebugInfo :: EngineState -> IO [[Char]]
+  }
 
 -- Event Types
 data Color = RGBA Int Int Int Int deriving (Eq, Ord, Show, Generic, NFData)

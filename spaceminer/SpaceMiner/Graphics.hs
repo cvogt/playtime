@@ -9,8 +9,8 @@ import Playtime.Types
 import Playtime.Util
 import SpaceMiner.GameState
 
-computeSpritePlacements :: (TextureId -> Texture) -> (EngineState, GameState) -> (Dimensions, [TexturePlacements])
-computeSpritePlacements textures (EngineState {..}, GameState {..}) =
+computeSpritePlacements :: (TextureId -> Texture) -> EngineState -> GameState -> (Dimensions, [TexturePlacements])
+computeSpritePlacements textures EngineState {..} GameState {..} =
   (gsLogicalDimensions, sprites <> highlightMouserOver)
   where
     sprites =

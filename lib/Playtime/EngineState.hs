@@ -1,4 +1,4 @@
-module Game where
+module Playtime.EngineState where
 
 import GHC.Float (int2Double)
 import "GLFW-b" Graphics.UI.GLFW

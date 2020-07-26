@@ -10,14 +10,14 @@ import Playtime.ConcurrentState
 import Playtime.Types
 import Playtime.Util
 
-forkDebugTerminal :: ConcurrentState gameState -> (EngineState -> gameState -> [[Char]]) -> IO ThreadId
-forkDebugTerminal ConcurrentState {..} gameDebugInfo = do
+forkDebugTerminal :: ConcurrentState -> MVar EngineConfig -> IO ThreadId
+forkDebugTerminal ConcurrentState {..} engineConfigMVar = do
   -- FIXME: cursor stays hidden after termination
   cfg <- Vty.standardIOConfig
   vty <- Vty.mkVty cfg
   flip forkFinally (\_ -> Vty.shutdown vty) $ do
     flip iterateM_ (0, 0, 0, 0) $ \(oldAvgTimeStep, oldAvgTexturePlacementTime, oldAvgRenderLoopTime, oldAvgTotalLoopTime) -> do
-      (engineState@EngineState {..}, gameState) <- readMVar csGameState
+      engineState@EngineState {..} <- readMVar csEngineState
       timeStep <- modifyMVar csTimeStep $ \t -> pure ([], t)
       texturePlacementTimes <- modifyMVar csSpritePlacementTime $ \t -> pure ([], t)
       renderLoopTimes <- modifyMVar csTimeGL $ \t -> pure ([], t)
@@ -27,6 +27,8 @@ forkDebugTerminal ConcurrentState {..} gameDebugInfo = do
           newAvgRenderLoopTime = if not $ null renderLoopTimes then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> renderLoopTimes) else oldAvgRenderLoopTime
           newAvgTotalLoopTime = if not $ null totalLoopTimes then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> totalLoopTimes) else oldAvgTotalLoopTime
           Pos x y = gsCursorPos
+      gameDebugInfo <- ecGameDebugInfo <$> readMVar engineConfigMVar
+      gameInfo <- gameDebugInfo engineState
       Vty.update vty $ Vty.picForImage $ foldl1 (Vty.<->) $
         Vty.string (Vty.defAttr `Vty.withForeColor` Vty.white)
           <$> ( "fps: " <> show newAvgTotalLoopTime
@@ -37,7 +39,7 @@ forkDebugTerminal ConcurrentState {..} gameDebugInfo = do
                        "keys: " <> show gsKeysPressed,
                        "gsTimePassed: " <> show gsTimePassed
                      ]
-                    <> gameDebugInfo engineState gameState
+                    <> gameInfo
               )
 
       threadDelay $ 500 * 1000 -- FIXME: changing this to 100 * make process freeze on exit

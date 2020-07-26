@@ -4,9 +4,7 @@ import Codec.Picture.Types (PixelRGBA8 (PixelRGBA8), pixelAt)
 import qualified Data.Map as Map
 import GHC.Float (double2Int)
 import My.Prelude
-import Playtime.Textures
-import Playtime.Types
-import Playtime.Util
+import Playtime
 import SpaceMiner.GameState
 
 computeSpritePlacements :: (TextureId -> Texture) -> EngineState -> GameState -> (Dimensions, [TexturePlacements])

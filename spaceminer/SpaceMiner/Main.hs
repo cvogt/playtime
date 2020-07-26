@@ -4,7 +4,6 @@ import qualified Data.Map as Map
 import My.IO
 import My.Prelude
 import Playtime
-import Playtime.Types
 import SpaceMiner.GameState
 import SpaceMiner.Graphics
 

@@ -3,8 +3,7 @@ module Platformer.Graphics where
 import qualified Data.Map as Map
 import My.Prelude
 import Platformer.GameState
-import Playtime.Textures
-import Playtime.Types
+import Playtime
 
 computeSpritePlacements :: (TextureId -> Texture) -> EngineState -> GameState -> (Dimensions, [TexturePlacements])
 computeSpritePlacements textures EngineState {..} GameState {..} =

@@ -1,8 +1,7 @@
 module ShootEmUp.Graphics where
 
 import My.Prelude
-import Playtime.Textures
-import Playtime.Types
+import Playtime
 import ShootEmUp.GameState
 
 computeSpritePlacements :: (TextureId -> Texture) -> EngineState -> GameState -> (Dimensions, [TexturePlacements])

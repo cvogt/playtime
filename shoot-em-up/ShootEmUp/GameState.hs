@@ -7,8 +7,7 @@ import GHC.Real (mod)
 import "GLFW-b" Graphics.UI.GLFW
 import My.IO
 import My.Prelude
-import Playtime.Geometry
-import Playtime.Types
+import Playtime
 import System.Random
 
 data GameState = GameState

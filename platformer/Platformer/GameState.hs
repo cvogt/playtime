@@ -5,9 +5,7 @@ import qualified Data.List.NonEmpty as NEL (zip)
 import GHC.Real ((/))
 import "GLFW-b" Graphics.UI.GLFW
 import My.Prelude
-import Playtime.Geometry
-import Playtime.Textures
-import Playtime.Types
+import Playtime
 
 newtype Board = Board {unBoard :: Map Pos TextureId} deriving newtype (Show, Semigroup, Monoid, NFData)
 

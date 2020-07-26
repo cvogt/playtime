@@ -1,9 +1,12 @@
 module Playtime
   ( module Playtime,
-    module Playtime.ConcurrentState,
     module Playtime.EngineState,
+    module Playtime.Geometry,
+    module Playtime.Textures,
     module Playtime.Types,
+    module Playtime.Util,
     GLFW.Key (..),
+    GLFW.KeyState (..),
   )
 where
 
@@ -13,11 +16,13 @@ import My.IO
 import My.Prelude
 import Playtime.ConcurrentState
 import Playtime.Debug
-import Playtime.Debug.Vty
 import Playtime.EngineState
 import Playtime.GL
 import Playtime.GLFW
+import Playtime.Geometry
+import Playtime.Textures
 import Playtime.Types
+import Playtime.Util
 
 -- README
 -- Acronyms to know:

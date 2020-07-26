@@ -7,7 +7,6 @@ import My.Prelude
 import Platformer.GameState
 import Platformer.Graphics
 import Playtime
-import Playtime.Textures
 
 --   foldl (.) id (flap [applyToEngineState, applyToGameState] event')
 

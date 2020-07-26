@@ -10,31 +10,50 @@ import Playtime
 
 --   foldl (.) id (flap [applyToEngineState, applyToGameState] event')
 
+gameDir :: FilePath
+gameDir = "platformer"
+
+srcFiles :: [FilePath]
+srcFiles =
+  [ gameDir </> "Platformer/Main.hs",
+    gameDir </> "Platformer/GameState.hs",
+    gameDir </> "Platformer/Graphics.hs"
+  ]
+
+--   foldl (.) id (flap [applyToEngineState, applyToGameState] event')
+main :: IO ()
+main =
+  playtimeLiveCode makeEngineConfig "Platformer.Main" "makeEngineConfig" (gameDir </> "Platformer") srcFiles
+
 dim :: Dimensions
 dim = Dimensions {width = 320, height = 240}
 
-main :: IO ()
-main = do
-  playtime =<< newMVar =<< makeEngineConfig <$> newMVar (makeInitialGameState dim)
+makeEngineConfig :: LiveCodeState -> IO EngineConfig
+makeEngineConfig liveCodeState = do
+  recoveredGameState <- startLiveCode liveCodeState
+  gameStateMVar <- newMVar =<< maybe (pure $ makeInitialGameState dim) pure recoveredGameState
 
-makeEngineConfig :: MVar GameState -> EngineConfig
-makeEngineConfig gameStateMVar =
-  EngineConfig
-    { ecDim = dim,
-      ecScale = 3,
-      ecComputeSpritePlacements' = \tx es -> computeSpritePlacements tx es <$> readMVar gameStateMVar,
-      ecStepGameState = \es event -> modifyMVar_ gameStateMVar $ \gs -> pure $ stepGameState' gs es event,
-      ecCheckIfContinue = pure . not . gameExitRequested,
-      ecGameDebugInfo = \_ -> do
-        GameState {..} <- readMVar gameStateMVar
-        let Pos x' y' = gsMainCharacterPosition
-        pure $
-          [ "gsVelocityY: " <> show gsVelocityY,
-            "collisions: " <> show gsCollisions,
-            "main char: " <> show (x', y'),
-            "sprite count room: " <> show (Map.size $ unBoard gsRoom)
-          ]
-    }
+  pure $
+    EngineConfig
+      { ecDim = dim,
+        ecScale = 3,
+        ecComputeSpritePlacements' = \tx es -> computeSpritePlacements tx es <$> readMVar gameStateMVar,
+        ecStepGameState = \es event -> modifyMVar_ gameStateMVar $ \gs -> do
+          let new_gs = stepGameState' gs es event
+          liveCodeSwitch liveCodeState new_gs
+          pure new_gs,
+        ecCheckIfContinue = pure . not . gameExitRequested,
+        ecGameDebugInfo = \_ -> do
+          GameState {..} <- readMVar gameStateMVar
+          let Pos x' y' = gsMainCharacterPosition
+          pure $
+            [ "collisions: " <> show gsCollisions,
+              "main char: " <> show (x', y'),
+              "gsVelocityX: " <> show gsVelocityX,
+              "gsVelocityY: " <> show gsVelocityY,
+              "sprite count room: " <> show (Map.size $ unBoard gsRoom)
+            ]
+      }
 
 tests :: IO ()
 tests = do

@@ -24,6 +24,7 @@ module My.Prelude
     module Data.Sequence,
     module Data.Set,
     module Data.Text,
+    module Data.Text.Encoding,
     module Data.Time.Clock.System,
     module Data.Traversable,
     module Data.Tuple,
@@ -59,7 +60,7 @@ import Data.Foldable (Foldable, all, any, elem, find, fold, foldl, foldr, forM_,
 import Data.Function (($), (.), flip, id)
 import Data.Functor (($>), (<$), (<$>), (<&>), Functor, fmap)
 import Data.Int (Int)
-import Data.List (concat, drop, dropWhile, filter, nub, replicate, reverse, sort, take, takeWhile)
+import Data.List (concat, drop, dropWhile, filter, nub, replicate, reverse, sort, sortBy, sortOn, take, takeWhile)
 import qualified Data.List.NonEmpty
 import Data.List.NonEmpty (NonEmpty ((:|)), groupAllWith, groupBy, groupWith, head, iterate, last, repeat, unfoldr)
 import Data.Map (Map, keys, mapKeys)
@@ -72,6 +73,7 @@ import Data.Sequence (iterateN)
 import Data.Set (Set, difference, map, union)
 import qualified Data.Set
 import Data.Text (Text)
+import Data.Text.Encoding (decodeUtf8', encodeUtf8)
 import Data.Time.Clock.System (SystemTime)
 import Data.Traversable (for, forM, sequence, traverse)
 import Data.Tuple (fst, snd, uncurry)

@@ -17,7 +17,6 @@ description:         Please see the README on GitHub at ...
 dependencies:
 # - ansi-terminal
 - aeson
-- ansi-terminal
 - base
 - bmp
 - bytestring
@@ -29,18 +28,23 @@ dependencies:
 - mtl
 - random
 - safe
-- silently
 - sdl2-mixer
 - text
 - time
 - unix
+- unordered-containers
 - vector
+
+# for debug
+- ansi-terminal
+- terminal-size
 
 # for live code feature
 - ghc
 - ghc-paths
 - ghc-boot-th
 - fsnotify
+- silently
 
 # extra
 - extra

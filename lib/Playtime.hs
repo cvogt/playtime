@@ -11,6 +11,7 @@ module Playtime
     LiveCodeState,
     startLiveCode,
     liveCodeSwitch,
+    debugPrint,
   )
 where
 

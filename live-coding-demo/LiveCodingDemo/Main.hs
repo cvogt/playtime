@@ -42,13 +42,8 @@ makeEngineConfig liveCodeState = do
             fromMaybe new_gs <$> loadMay es,
         ecCheckIfContinue = pure . not . gameExitRequested,
         ecGameDebugInfo = \EngineState {..} -> do
-          GameState {..} <- readMVar gameStateMVar
-          pure
-            [ "bullets: " <> show gsBullets,
-              "stars: " <> show gsStars,
-              "enemies: " <> show gsEnemies,
-              "DEBUG: " <> show gsDebug
-            ]
+          gs <- readMVar gameStateMVar
+          pure $ debugPrint gs
       }
 
 tests :: IO ()

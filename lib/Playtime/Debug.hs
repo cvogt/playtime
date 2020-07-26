@@ -1,6 +1,11 @@
 module Playtime.Debug where
 
 import Control.DeepSeq (rnf)
+import Data.Aeson
+import qualified Data.ByteString.Lazy as BSL
+import qualified Data.HashMap.Strict as HMS
+import Data.List (intercalate, lines, zip)
+import qualified Data.Text as T
 import GHC.Float (int2Double)
 import GHC.Real ((/), round)
 import My.Extra
@@ -60,3 +65,10 @@ forkDebugTerminal ConcurrentState {..} engineConfigMVar lcsMay = do
         )
       threadDelay $ 500 * 1000 -- FIXME: changing this to 100 * make process freeze on exit
       pure (oldAvgTimeStep, newAvgTexturePlacementTime, newAvgRenderLoopTime, newAvgTotalLoopTime)
+
+debugPrint :: ToJSON a => a -> [[Char]]
+debugPrint a = case toJSON a of
+  Object hms -> fmap (\(k, v) -> T.unpack k <> ": " <> v) $ sortOn fst $ HMS.keys hms `zip` (enc <$> HMS.elems hms)
+  other -> [enc other]
+  where
+    enc = take 200 . either show T.unpack . decodeUtf8' . BSL.toStrict . encode

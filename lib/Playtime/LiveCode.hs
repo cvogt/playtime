@@ -63,14 +63,26 @@ loadSourceGhc paths = ExceptT $
             foldl
               (flip EnumSet.insert)
               EnumSet.empty
-              [ DeriveAnyClass, -- FIXME: probably need to make extensions configurable at some point
+              [ TraditionalRecordSyntax, -- FIXME: probably need to make extensions configurable at some point
+                DeriveAnyClass,
+                DeriveFunctor,
                 DeriveGeneric,
+                DerivingStrategies,
+                FlexibleContexts,
+                FlexibleInstances,
+                GeneralizedNewtypeDeriving,
                 LambdaCase,
-                PackageImports,
+                MultiParamTypeClasses,
                 RecordPuns, -- this is NamedFieldPuns
-                RecordWildCards, -- Doesn't seem to work here
-                TraditionalRecordSyntax,
+                -- ImplicitPrelude,
+                OverloadedStrings,
+                PackageImports,
+                RecordWildCards,
+                ScopedTypeVariables,
+                StandaloneDeriving,
                 TupleSections,
+                TypeApplications,
+                TypeOperators,
                 ViewPatterns
               ],
           packageFlags = [ExposePackage "ghc" (PackageArg "ghc") $ ModRenaming True []]

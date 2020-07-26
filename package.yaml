@@ -25,6 +25,7 @@ dependencies:
 - file-embed
 - filepath
 - integer-gmp
+- mtl
 - random
 - safe
 - sdl2-mixer

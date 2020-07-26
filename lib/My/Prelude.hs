@@ -2,6 +2,7 @@ module My.Prelude
   ( module Control.Applicative,
     module Control.DeepSeq,
     module Control.Monad,
+    module Control.Monad.Except,
     module Data.Bifunctor,
     module Data.Bool,
     module Data.Char,
@@ -44,6 +45,7 @@ where
 import Control.Applicative ((<*>), (<|>), Alternative, Applicative, pure)
 import Control.DeepSeq (NFData)
 import Control.Monad ((<=<), (=<<), (>>), (>>=), Monad, fail, filterM, foldM, forever, join, mfilter, return, unless, void, when)
+import Control.Monad.Except (ExceptT (ExceptT), runExceptT)
 import Data.Bifunctor (Bifunctor, bimap, first, second)
 import Data.Bool ((&&), Bool (False, True), not, otherwise, (||))
 import Data.Char (Char)

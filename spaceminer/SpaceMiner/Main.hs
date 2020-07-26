@@ -5,7 +5,7 @@ import My.IO
 import My.Prelude
 import Playtime
 import SpaceMiner.GameState
-import SpaceMiner.Graphics
+import SpaceMiner.Visualize
 
 dim :: Dimensions
 dim = Dimensions {width = 320, height = 240}
@@ -19,7 +19,7 @@ makeEngineConfig gameStateMVar =
   EngineConfig
     { ecDim = dim,
       ecScale = 3,
-      ecComputeSpritePlacements' = \tx es -> computeSpritePlacements tx es <$> readMVar gameStateMVar,
+      ecVisualize = \tx es -> visualize tx es <$> readMVar gameStateMVar,
       ecStepGameState = \es event -> modifyMVar_ gameStateMVar $ \gs -> pure $ stepGameState' gs es event,
       ecCheckIfContinue = pure . not . gameExitRequested,
       ecGameDebugInfo = \_ -> do

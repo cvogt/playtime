@@ -5,7 +5,7 @@ import Data.Time.Clock.System
 import My.IO
 import My.Prelude
 import Platformer.GameState
-import Platformer.Graphics
+import Platformer.Visualize
 import Playtime
 
 --   foldl (.) id (flap [applyToEngineState, applyToGameState] event')
@@ -37,7 +37,7 @@ makeEngineConfig liveCodeState = do
     EngineConfig
       { ecDim = dim,
         ecScale = 3,
-        ecComputeSpritePlacements' = \tx es -> computeSpritePlacements tx es <$> readMVar gameStateMVar,
+        ecVisualize = \tx es -> visualize tx es <$> readMVar gameStateMVar,
         ecStepGameState = \es event -> modifyMVar_ gameStateMVar $ \gs -> do
           let new_gs = stepGameState' gs es event
           liveCodeSwitch liveCodeState new_gs

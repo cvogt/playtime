@@ -1,7 +1,7 @@
 module LiveCodingDemo.Main where
 
 import LiveCodingDemo.GameState
-import LiveCodingDemo.Graphics
+import LiveCodingDemo.Visualize
 import My.IO
 import My.Prelude
 import Playtime
@@ -32,7 +32,7 @@ makeEngineConfig liveCodeState = do
     EngineConfig
       { ecDim = dim,
         ecScale = 1,
-        ecComputeSpritePlacements' = \tx es -> computeSpritePlacements tx es <$> readMVar gameStateMVar,
+        ecVisualize = \tx es -> visualize tx es <$> readMVar gameStateMVar,
         ecStepGameState = \es event ->
           modifyMVar_ gameStateMVar $ \old_gs -> do
             pre <- sequence $ replicate 1500 randomIO

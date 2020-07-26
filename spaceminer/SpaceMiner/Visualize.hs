@@ -1,4 +1,4 @@
-module SpaceMiner.Graphics where
+module SpaceMiner.Visualize where
 
 import Codec.Picture.Types (PixelRGBA8 (PixelRGBA8), pixelAt)
 import qualified Data.Map as Map
@@ -7,8 +7,8 @@ import My.Prelude
 import Playtime
 import SpaceMiner.GameState
 
-computeSpritePlacements :: (TextureId -> Texture) -> EngineState -> GameState -> (Dimensions, [TexturePlacements])
-computeSpritePlacements textures EngineState {..} GameState {..} =
+visualize :: (TextureId -> Texture) -> EngineState -> GameState -> (Dimensions, [TexturePlacements])
+visualize textures EngineState {..} GameState {..} =
   (esLogicalDimensions, sprites <> highlightMouserOver)
   where
     sprites =

@@ -1,12 +1,12 @@
-module Platformer.Graphics where
+module Platformer.Visualize where
 
 import qualified Data.Map as Map
 import My.Prelude
 import Platformer.GameState
 import Playtime
 
-computeSpritePlacements :: (TextureId -> Texture) -> EngineState -> GameState -> (Dimensions, [TexturePlacements])
-computeSpritePlacements textures EngineState {..} GameState {..} =
+visualize :: (TextureId -> Texture) -> EngineState -> GameState -> (Dimensions, [TexturePlacements])
+visualize textures EngineState {..} GameState {..} =
   (esLogicalDimensions, sprites)
   where
     sprites = room <> [texturePlacements MainCharacter 1 gsMainCharacterPosition]

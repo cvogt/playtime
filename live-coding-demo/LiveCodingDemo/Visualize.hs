@@ -1,11 +1,11 @@
-module LiveCodingDemo.Graphics where
+module LiveCodingDemo.Visualize where
 
 import LiveCodingDemo.GameState
 import My.Prelude
 import Playtime
 
-computeSpritePlacements :: (TextureId -> Texture) -> EngineState -> GameState -> (Dimensions, [TexturePlacements])
-computeSpritePlacements textures EngineState {..} GameState {..} =
+visualize :: (TextureId -> Texture) -> EngineState -> GameState -> (Dimensions, [TexturePlacements])
+visualize textures EngineState {..} GameState {..} =
   (esLogicalDimensions, sprites)
   where
     sprites =

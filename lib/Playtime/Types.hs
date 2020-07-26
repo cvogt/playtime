@@ -14,7 +14,7 @@ import Playtime.Textures
 data EngineConfig = EngineConfig
   { ecDim :: Dimensions,
     ecScale :: Scale,
-    ecComputeSpritePlacements' :: (TextureId -> Texture) -> EngineState -> IO (Dimensions, [TexturePlacements]),
+    ecVisualize :: (TextureId -> Texture) -> EngineState -> IO (Dimensions, [TexturePlacements]),
     ecStepGameState :: EngineState -> Event -> IO (),
     ecCheckIfContinue :: EngineState -> IO Bool,
     ecGameDebugInfo :: EngineState -> IO [[Char]]

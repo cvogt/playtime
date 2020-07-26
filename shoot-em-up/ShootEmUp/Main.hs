@@ -7,7 +7,7 @@ import Playtime
 import Playtime.SaveLoad
 import SDL.Mixer
 import ShootEmUp.GameState
-import ShootEmUp.Graphics
+import ShootEmUp.Visualize
 import System.Random
 
 gameDir :: FilePath
@@ -41,7 +41,7 @@ makeEngineConfig liveCodeState = do
     EngineConfig
       { ecDim = dim,
         ecScale = 1,
-        ecComputeSpritePlacements' = \tx es -> computeSpritePlacements tx es <$> readMVar gameStateMVar,
+        ecVisualize = \tx es -> visualize tx es <$> readMVar gameStateMVar,
         ecStepGameState = \es@EngineState {..} event ->
           modifyMVar_ gameStateMVar $ \old_gs -> do
             pre <- sequence $ replicate 10 randomIO

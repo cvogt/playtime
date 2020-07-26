@@ -1,11 +1,11 @@
-module ShootEmUp.Graphics where
+module ShootEmUp.Visualize where
 
 import My.Prelude
 import Playtime
 import ShootEmUp.GameState
 
-computeSpritePlacements :: (TextureId -> Texture) -> EngineState -> GameState -> (Dimensions, [TexturePlacements])
-computeSpritePlacements textures EngineState {..} GameState {..} =
+visualize :: (TextureId -> Texture) -> EngineState -> GameState -> (Dimensions, [TexturePlacements])
+visualize textures EngineState {..} GameState {..} =
   (esLogicalDimensions, sprites)
   where
     sprites = stars <> bullets <> enemies <> [texturePlacements Plane 1 gsMainCharacterPosition]

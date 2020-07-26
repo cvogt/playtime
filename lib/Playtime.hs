@@ -60,10 +60,10 @@ playtime' lcsMay ecMVar = do
 
     whileM $ trackTimeM csTimeRender $ do
       GLFW.pollEvents
-      EngineConfig {ecComputeSpritePlacements'} <- readMVar ecMVar
+      EngineConfig {ecVisualize} <- readMVar ecMVar
       es <- stepStates cs . RenderEvent =<< getSystemTime
       pure es
-        >>= trackTimeM csSpritePlacementTime . ecComputeSpritePlacements' textures
+        >>= trackTimeM csSpritePlacementTime . ecVisualize textures
         >>= trackTimeM csTimeGL . renderGL textures window
       ecCheckIfContinue es
   where

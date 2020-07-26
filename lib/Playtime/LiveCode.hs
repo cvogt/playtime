@@ -27,6 +27,7 @@ import HscTypes (SourceError, srcErrorMessages)
 import My.IO
 import My.Prelude
 import Playtime.Types (EngineConfig)
+import System.Console.ANSI as ANSI
 import System.FSNotify hiding (Event)
 import System.IO (stderr, stdout)
 import System.IO.Silently (hCapture)
@@ -42,20 +43,23 @@ liveCodeSwitch :: ToJSON gameState => LiveCodeState -> gameState -> IO ()
 liveCodeSwitch lcs@LiveCodeState {..} gameState = do
   readMVar lcsChangeDetected >>= \case
     False -> pure ()
-    True ->
+    True -> do
       void $
         swapMVar lcsCompileError =<< do
           void $ swapMVar lcsChangeDetected False
+          void $ swapMVar lcsCompiling True
           Playtime.LiveCode.compileAndEval lcsSrcFiles lcsModule lcsExpression >>= \case
             Left compileErrors -> pure $ Just compileErrors
             Right makeEngineConfig' -> do
               void $ swapMVar lcsGameState $ toJSON gameState
               void $ swapMVar lcsEngineConfig =<< makeEngineConfig' lcs
               pure Nothing -- doesn't clear compile errors because EngineConfig has already been replaced
+      void $ swapMVar lcsCompiling False
 
 makeLiveCodeState :: (LiveCodeState -> IO EngineConfig) -> [Char] -> [Char] -> FilePath -> [FilePath] -> IO LiveCodeState
 makeLiveCodeState makeEngineConfig' lcsModule lcsExpression lcsWatchDir lcsSrcFiles = do
   lcsChangeDetected <- newMVar False
+  lcsCompiling <- newMVar False
   lcsCompileError <- newMVar Nothing
   lcsGameState <- newMVar Null
   lcsEngineConfig <- newEmptyMVar
@@ -69,6 +73,7 @@ data LiveCodeState = LiveCodeState
     lcsModule :: [Char],
     lcsExpression :: [Char],
     lcsChangeDetected :: MVar Bool,
+    lcsCompiling :: MVar Bool,
     lcsCompileError :: MVar (Maybe [Char]),
     lcsEngineConfig :: MVar EngineConfig,
     lcsGameState :: MVar Value
@@ -91,8 +96,14 @@ watch LiveCodeState {..} = do
 
 compileAndEval :: Typeable a => [FilePath] -> String -> String -> IO (Either String a)
 compileAndEval srcFiles modname expr = do
+  clearFromCursorToScreenBeginning
+  restoreCursor
+  saveCursor
+  setSGR [SetColor Foreground Vivid Blue]
   putStrLn $ "EVALING " <> modname <> "." <> expr <> " in:"
+  putStrLn ""
   for_ srcFiles putStrLn
+  setSGR [ANSI.Reset]
   (compileErrors, res) <- hCapture [stdout, stderr] $ runGhc (Just libdir) $ runExceptT $ do
     loadSourceGhc srcFiles
     evalExpression modname expr

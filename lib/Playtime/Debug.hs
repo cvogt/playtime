@@ -15,7 +15,10 @@ import Playtime.ConcurrentState
 import Playtime.LiveCode
 import Playtime.Types
 import Playtime.Util
-import System.Console.ANSI
+import System.Console.ANSI as ANSI
+import qualified System.Console.Terminal.Size as TerminalSize
+
+-- this modile is pretty messy. got to clean up some time.
 
 -- this relies on lazy evaluation to be correct and measures the time to force a
 trackTimeM :: NFData a => MVar [(SystemTime, SystemTime)] -> IO a -> IO a
@@ -50,20 +53,28 @@ forkDebugTerminal ConcurrentState {..} engineConfigMVar lcsMay = do
       clearFromCursorToScreenBeginning
       restoreCursor
       saveCursor
-      ce <- sequence $ readMVar . lcsCompileError <$> lcsMay
-      traverse_ (putStrLn . take 400) $
-        ( (maybe "" (("compile status: " <>) . fromMaybe "no errors") ce)
-            :| [ "fps: " <> show newAvgTotalLoopTime,
-                 "1/renderLoopTime: " <> show newAvgRenderLoopTime,
-                 "1/texturePlacementTime: " <> show newAvgTexturePlacementTime,
-                 "1/timeStep: " <> show newAvgTimeStep,
-                 "opengl pos: " <> show (x, y),
-                 "keys: " <> show esKeysPressed,
-                 "esTimePassed: " <> show esTimePassed
-               ]
-              <> gameInfo
-        )
-      threadDelay $ 500 * 1000 -- FIXME: changing this to 100 * make process freeze on exit
+      (join . join -> ce) <- sequence $ tryReadMVar . lcsCompileError <$> lcsMay
+      Just TerminalSize.Window {height, width} <- TerminalSize.size
+      putStrLn $ T.unpack $ T.unlines $ take (height -2) $ join $
+        T.chunksOf width . T.stripEnd . T.pack
+          <$> (maybe [] (\e -> lines $ setSGRCode [SetColor Foreground Vivid Red] <> e <> "\n" <> replicate width '-' <> setSGRCode [ANSI.Reset]) ce)
+          <> ( take width
+                 <$> [ "fps: " <> show newAvgTotalLoopTime,
+                       "1/renderLoopTime: " <> show newAvgRenderLoopTime,
+                       "1/texturePlacementTime: " <> show newAvgTexturePlacementTime,
+                       "1/timeStep: " <> show newAvgTimeStep,
+                       replicate width '-',
+                       "esCursorPos: " <> show esCursorPos,
+                       "esKeysPressed: " <> show esKeysPressed,
+                       "esMousePressed: " <> show esMousePressed,
+                       "esActions: " <> show esActions,
+                       "esTimePassed: " <> show esTimePassed,
+                       replicate width '-'
+                     ]
+                 <> gameInfo
+             )
+
+      threadDelay $ 200 * 1000 -- FIXME: changing this to 100 * make process freeze on exit
       pure (oldAvgTimeStep, newAvgTexturePlacementTime, newAvgRenderLoopTime, newAvgTotalLoopTime)
 
 debugPrint :: ToJSON a => a -> [[Char]]

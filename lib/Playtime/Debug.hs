@@ -39,7 +39,7 @@ forkDebugTerminal ConcurrentState {..} engineConfigMVar lcsMay = do
           newAvgTexturePlacementTime = if not $ null texturePlacementTimes then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> texturePlacementTimes) else oldAvgTexturePlacementTime
           newAvgRenderLoopTime = if not $ null renderLoopTimes then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> renderLoopTimes) else oldAvgRenderLoopTime
           newAvgTotalLoopTime = if not $ null totalLoopTimes then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> totalLoopTimes) else oldAvgTotalLoopTime
-          Pos x y = gsCursorPos
+          Pos x y = esCursorPos
       gameDebugInfo <- ecGameDebugInfo <$> readMVar engineConfigMVar
       gameInfo <- gameDebugInfo engineState
       clearFromCursorToScreenBeginning
@@ -53,8 +53,8 @@ forkDebugTerminal ConcurrentState {..} engineConfigMVar lcsMay = do
                  "1/texturePlacementTime: " <> show newAvgTexturePlacementTime,
                  "1/timeStep: " <> show newAvgTimeStep,
                  "opengl pos: " <> show (x, y),
-                 "keys: " <> show gsKeysPressed,
-                 "gsTimePassed: " <> show gsTimePassed
+                 "keys: " <> show esKeysPressed,
+                 "esTimePassed: " <> show esTimePassed
                ]
               <> gameInfo
         )

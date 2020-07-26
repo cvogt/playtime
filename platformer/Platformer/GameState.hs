@@ -52,7 +52,7 @@ stepGameState' gs@GameState {..} EngineState {..} = \case
     let speedX = 100
         newMainCharacterPosition =
           move
-            gsTimePassed
+            esTimePassed
             (Area gsMainCharacterPosition 12)
             gsMainCharacterPositionPrevious
             gsVelocityX
@@ -64,12 +64,12 @@ stepGameState' gs@GameState {..} EngineState {..} = \case
             gsVelocityY =
               if gsVelocityY /= 0 && y gsMainCharacterPosition == y newMainCharacterPosition
                 then 0
-                else gsVelocityY + 9.81 * gsTimePassed * 55,
+                else gsVelocityY + 9.81 * esTimePassed * 55,
             gsVelocityX =
-              if Key'A `setMember` gsKeysPressed
+              if Key'A `setMember` esKeysPressed
                 then - speedX
                 else
-                  if Key'D `setMember` gsKeysPressed
+                  if Key'D `setMember` esKeysPressed
                     then speedX
                     else 0
           }

@@ -9,7 +9,7 @@ import SpaceMiner.GameState
 
 computeSpritePlacements :: (TextureId -> Texture) -> EngineState -> GameState -> (Dimensions, [TexturePlacements])
 computeSpritePlacements textures EngineState {..} GameState {..} =
-  (gsLogicalDimensions, sprites <> highlightMouserOver)
+  (esLogicalDimensions, sprites <> highlightMouserOver)
   where
     sprites =
       floor <> room
@@ -35,14 +35,14 @@ computeSpritePlacements textures EngineState {..} GameState {..} =
       flip find (reverse sprites) $ \case
         TexturePlacements textureId area@(Area pos dim') ->
           let Texture dim _ img = textures textureId
-              Pos cx cy = gsCursorPos
+              Pos cx cy = esCursorPos
               Pos {x, y} = pos
               Scale {sx, sy} = dim' |/| dim
               px = (cx - x) `divideDouble` sx
               py = (cy - y) `divideDouble` sy
               transparentPixel = case pixelAt img (double2Int px) (double2Int py) of PixelRGBA8 _ _ _ a -> a == 0
-           in gsCursorPos `isWithin` area && not transparentPixel
-        Rectangle _ area _ -> gsCursorPos `isWithin` area
+           in esCursorPos `isWithin` area && not transparentPixel
+        Rectangle _ area _ -> esCursorPos `isWithin` area
     floor = (Map.toList $ unBoard gsFloor) <&> \(pos, t) -> texturePlacements t 1 pos
     room = (Map.toList $ unBoard gsRoom) <&> \(pos, t) -> texturePlacements t 1 pos
     -- backup of grouping logic as reminder if needed: (groupWith snd $ Map.toList $ unBoard gsFloor) <&> \ne@((_, t) :| _) ->

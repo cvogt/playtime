@@ -6,7 +6,7 @@ import ShootEmUp.GameState
 
 computeSpritePlacements :: (TextureId -> Texture) -> EngineState -> GameState -> (Dimensions, [TexturePlacements])
 computeSpritePlacements textures EngineState {..} GameState {..} =
-  (gsLogicalDimensions, sprites)
+  (esLogicalDimensions, sprites)
   where
     sprites = stars <> bullets <> enemies <> [texturePlacements Plane 1 gsMainCharacterPosition]
     texturePlacements :: TextureId -> Scale -> Pos -> TexturePlacements

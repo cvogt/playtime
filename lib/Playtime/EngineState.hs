@@ -9,16 +9,16 @@ import Playtime.Util
 makeInitialEngineState :: Scale -> Dimensions -> SystemTime -> EngineState
 makeInitialEngineState scale dim time =
   EngineState
-    { gsCursorPos = Pos 0 0,
-      gsFps = 0,
-      gsKeysPressed = mempty,
-      gsMousePressed = mempty,
-      gsLastLoopTime = time,
-      gsLogicalDimensions = dim,
-      gsActions = mempty,
-      gsTimes = [],
-      gsTimePassed = 0,
-      gsWindowSize = scale |*| dim
+    { esCursorPos = Pos 0 0,
+      esFps = 0,
+      esKeysPressed = mempty,
+      esMousePressed = mempty,
+      esLastLoopTime = time,
+      esLogicalDimensions = dim,
+      esActions = mempty,
+      esTimes = [],
+      esTimePassed = 0,
+      esWindowSize = scale |*| dim
     }
 
 groupKeyBindings :: [([Key], Action)] -> Map Key [(Set Key, Action)]
@@ -43,43 +43,43 @@ keyBindings =
 clearOneTimeEffects :: EngineState -> EngineState
 clearOneTimeEffects es =
   es
-    { gsActions =
+    { esActions =
         -- clear triggers for one time side effects
-        gsActions es `difference` (setFromList $ fmap OneTimeEffect $ catMaybes $ fmap oneTimeEffectMay $ toList $ gsActions es)
+        esActions es `difference` (setFromList $ fmap OneTimeEffect $ catMaybes $ fmap oneTimeEffectMay $ toList $ esActions es)
     }
 
 stepEngineState :: EngineState -> Event -> EngineState
 stepEngineState (clearOneTimeEffects -> gs@EngineState {..}) = \case
-  WindowSizeEvent width height -> gs {gsWindowSize = Dimensions (int2Double width) (int2Double height)}
+  WindowSizeEvent width height -> gs {esWindowSize = Dimensions (int2Double width) (int2Double height)}
   CursorPosEvent x y ->
     gs
-      { gsCursorPos =
+      { esCursorPos =
           -- this ratio calculation leads to proper relative scaling on window resize
           -- FIXME: we still get distortion if aspect ration of resized window is different
           --        we should be able to fix that by adding black borders as needed
-          let Scale {sx, sy} = gsLogicalDimensions |/| gsWindowSize
+          let Scale {sx, sy} = esLogicalDimensions |/| esWindowSize
            in Pos (sx * x) (sy * y)
       }
   KeyEvent key KeyState'Pressed ->
-    let pressed = setInsert key gsKeysPressed
+    let pressed = setInsert key esKeysPressed
         matchingBindings = fromMaybe [] $ mapLookup key $ groupKeyBindings keyBindings
         actions = setFromList $ take 1 $ snd <$> filter (null . (`difference` pressed) . fst) matchingBindings
-     in gs {gsKeysPressed = pressed, gsActions = gsActions `union` actions}
+     in gs {esKeysPressed = pressed, esActions = esActions `union` actions}
   KeyEvent key KeyState'Released ->
-    let pressed = setInsert key gsKeysPressed
+    let pressed = setInsert key esKeysPressed
         matchingBindings = fromMaybe [] $ mapLookup key $ groupKeyBindings keyBindings
         actions = setFromList $ take 1 $ snd <$> filter (null . (`difference` pressed) . fst) matchingBindings
-     in gs {gsKeysPressed = setDelete key gsKeysPressed, gsActions = gsActions `difference` actions}
-  MouseEvent mb MouseButtonState'Pressed -> gs {gsMousePressed = setInsert mb gsMousePressed}
-  MouseEvent mb MouseButtonState'Released -> gs {gsMousePressed = setDelete mb gsMousePressed}
-  WindowCloseEvent -> gs {gsActions = setFromList [Exit, OneTimeEffect Save] `union` gsActions}
+     in gs {esKeysPressed = setDelete key esKeysPressed, esActions = esActions `difference` actions}
+  MouseEvent mb MouseButtonState'Pressed -> gs {esMousePressed = setInsert mb esMousePressed}
+  MouseEvent mb MouseButtonState'Released -> gs {esMousePressed = setDelete mb esMousePressed}
+  WindowCloseEvent -> gs {esActions = setFromList [Exit, OneTimeEffect Save] `union` esActions}
   RenderEvent time ->
-    let picosecs = timeDiffPico gsLastLoopTime time
+    let picosecs = timeDiffPico esLastLoopTime time
         halfsec = 500 * 1000 * 1000 * 1000
      in gs
-          { gsLastLoopTime = time,
-            gsTimePassed = pico2Double picosecs,
-            gsTimes = if sum gsTimes > halfsec then [] else picosecs : gsTimes,
-            gsFps = if sum gsTimes > halfsec then avg gsTimes else gsFps
+          { esLastLoopTime = time,
+            esTimePassed = pico2Double picosecs,
+            esTimes = if sum esTimes > halfsec then [] else picosecs : esTimes,
+            esFps = if sum esTimes > halfsec then avg esTimes else esFps
           }
   _ -> gs

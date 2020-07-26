@@ -49,11 +49,11 @@ stepGameStatePure randInts EngineState {..} gs@GameState {..} = \case
       }
   RenderEvent _ ->
     let distancePerSec = 200
-        Dimensions {width, height} = gsLogicalDimensions
-        velocityX = if MovementAction Left' `setMember` gsActions then - distancePerSec else if MovementAction Right' `setMember` gsActions then distancePerSec else 0
-        velocityY = if MovementAction Up `setMember` gsActions then - distancePerSec else if MovementAction Down `setMember` gsActions then distancePerSec else 0
+        Dimensions {width, height} = esLogicalDimensions
+        velocityX = if MovementAction Left' `setMember` esActions then - distancePerSec else if MovementAction Right' `setMember` esActions then distancePerSec else 0
+        velocityY = if MovementAction Up `setMember` esActions then - distancePerSec else if MovementAction Down `setMember` esActions then distancePerSec else 0
         bulletVelocity = 300
-        bulletStep = gsTimePassed * bulletVelocity
+        bulletStep = esTimePassed * bulletVelocity
         enemyHeight = 50
         enemyWidth = 50
         survivingEnemies =
@@ -62,19 +62,19 @@ stepGameStatePure randInts EngineState {..} gs@GameState {..} = \case
               $ not
               $ any (flip Area 50 enemyPos `collidesWith`) (bulletTrajectory =<< gsBullets)
           where
-            bulletTrajectory bullet = flip Area 12 <$> trajectoryPixels bullet gsTimePassed 0 bulletVelocity
+            bulletTrajectory bullet = flip Area 12 <$> trajectoryPixels bullet esTimePassed 0 bulletVelocity
         newEnemies = survivingEnemies <> (Pos 1100 . modY <$> take numAdded randInts)
           where
             numAdded = numEnemies - length survivingEnemies
             modY = int2Double . flip mod (double2Int $ height - enemyHeight)
         stepStar (size, pos) = (size,) $ updateY (modX . moveY) $ updateX (modX . moveX) pos
           where
-            moveX = subtract $ gsTimePassed * 5 * (size + 1)
-            moveY = subtract $ gsTimePassed * 0 * (size + 1)
+            moveX = subtract $ esTimePassed * 5 * (size + 1)
+            moveY = subtract $ esTimePassed * 0 * (size + 1)
             modX = flip mod' (width + maxStarSize)
      in gs
-          { gsMainCharacterPosition = gsMainCharacterPosition |+| Dimensions (gsTimePassed * velocityX) (gsTimePassed * velocityY),
-            gsEnemies = updateX (subtract $ gsTimePassed * 100) <$> newEnemies,
+          { gsMainCharacterPosition = gsMainCharacterPosition |+| Dimensions (esTimePassed * velocityX) (esTimePassed * velocityY),
+            gsEnemies = updateX (subtract $ esTimePassed * 100) <$> newEnemies,
             gsStars = stepStar <$> gsStars,
             gsBullets = filterX (< 1024) gsBullets <&> updateX (+ bulletStep)
           }

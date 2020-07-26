@@ -48,7 +48,7 @@ makeEngineConfig liveCodeState = do
             let new_gs = stepGameStatePure pre es old_gs event
             liveCodeSwitch liveCodeState new_gs
 
-            when (Key'Space `elem` gsKeysPressed) $ play =<< readMVar popSound
+            when (Key'Space `elem` esKeysPressed) $ play =<< readMVar popSound
 
             saveMay es new_gs
             fromMaybe new_gs <$> loadMay es,

@@ -35,7 +35,7 @@ data Event
 -- Game State Types
 
 gameExitRequested :: EngineState -> Bool
-gameExitRequested es = Exit `elem` (gsActions es)
+gameExitRequested es = Exit `elem` (esActions es)
 
 data OneTimeEffect' = Load | Save | Reset deriving (Eq, Ord, Show, Generic, NFData)
 
@@ -52,16 +52,16 @@ movementAction (MovementAction v) = Just v
 movementAction _ = Nothing
 
 data EngineState = EngineState
-  { gsCursorPos :: Pos,
-    gsFps :: Double,
-    gsLogicalDimensions :: Dimensions,
-    gsKeysPressed :: Set GLFW.Key,
-    gsMousePressed :: Set GLFW.MouseButton,
-    gsLastLoopTime :: SystemTime,
-    gsActions :: Set Action,
-    gsTimes :: [Integer],
-    gsTimePassed :: Double,
-    gsWindowSize :: Dimensions
+  { esCursorPos :: Pos,
+    esFps :: Double,
+    esLogicalDimensions :: Dimensions,
+    esKeysPressed :: Set GLFW.Key,
+    esMousePressed :: Set GLFW.MouseButton,
+    esLastLoopTime :: SystemTime,
+    esActions :: Set Action,
+    esTimes :: [Integer],
+    esTimePassed :: Double,
+    esWindowSize :: Dimensions
   }
   deriving (Show, Generic, NFData)
 

@@ -6,7 +6,7 @@ import Playtime
 
 computeSpritePlacements :: (TextureId -> Texture) -> EngineState -> GameState -> (Dimensions, [TexturePlacements])
 computeSpritePlacements textures EngineState {..} GameState {..} =
-  (gsLogicalDimensions, sprites)
+  (esLogicalDimensions, sprites)
   where
     sprites =
       ((\pos -> Rectangle Solid (Area pos $ Dimensions 3 3) $ RGBA 255 255 255 255) <$> gsStars)

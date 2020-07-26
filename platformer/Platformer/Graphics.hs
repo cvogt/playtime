@@ -7,7 +7,7 @@ import Playtime
 
 computeSpritePlacements :: (TextureId -> Texture) -> EngineState -> GameState -> (Dimensions, [TexturePlacements])
 computeSpritePlacements textures EngineState {..} GameState {..} =
-  (gsLogicalDimensions, sprites)
+  (esLogicalDimensions, sprites)
   where
     sprites = room <> [texturePlacements MainCharacter 1 gsMainCharacterPosition]
     texturePlacements :: TextureId -> Scale -> Pos -> TexturePlacements

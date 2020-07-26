@@ -42,7 +42,7 @@ makeInitialGameState Dimensions {width, height} =
 stepGameState' :: GameState -> EngineState -> Event -> GameState
 stepGameState' gs@GameState {..} EngineState {..} = \case
   CursorPosEvent _ _ ->
-    let Pos x y = gsCursorPos
+    let Pos x y = esCursorPos
         gridify :: Double -> Double
         gridify = (* gridsize) . int2Double . floor . (/ gridsize)
         placement = Pos (gridify x) (gridify y)
@@ -51,7 +51,7 @@ stepGameState' gs@GameState {..} EngineState {..} = \case
             gsFloor =
               case gsUIMode of
                 TexturePlacementMode texture ->
-                  case (`setMember` gsMousePressed) of
+                  case (`setMember` esMousePressed) of
                     f | f MouseButton'1 && texture == FloorPlate -> Board $ mapInsert placement texture (unBoard gsFloor)
                     f | f MouseButton'2 -> Board $ mapDelete placement (unBoard gsFloor)
                     _ -> gsFloor
@@ -59,7 +59,7 @@ stepGameState' gs@GameState {..} EngineState {..} = \case
             gsRoom =
               case gsUIMode of
                 TexturePlacementMode texture ->
-                  case (`setMember` gsMousePressed) of
+                  case (`setMember` esMousePressed) of
                     f | f MouseButton'1 && texture /= FloorPlate -> Board $ mapInsert placement texture (unBoard gsRoom)
                     f | f MouseButton'2 -> Board $ mapDelete placement (unBoard gsRoom)
                     _ -> gsRoom
@@ -74,14 +74,14 @@ stepGameState' gs@GameState {..} EngineState {..} = \case
           _ -> gsUIMode
       }
   RenderEvent _ ->
-    if OneTimeEffect Reset `setMember` gsActions
+    if OneTimeEffect Reset `setMember` esActions
       then gs {gsFloor = mempty, gsRoom = mempty}
       else
         let distancePerSec = 100
-            velocityX = if MovementAction Left' `setMember` gsActions then - distancePerSec else if MovementAction Right' `setMember` gsActions then distancePerSec else 0
-            velocityY = if MovementAction Up `setMember` gsActions then - distancePerSec else if MovementAction Down `setMember` gsActions then distancePerSec else 0
+            velocityX = if MovementAction Left' `setMember` esActions then - distancePerSec else if MovementAction Right' `setMember` esActions then distancePerSec else 0
+            velocityY = if MovementAction Up `setMember` esActions then - distancePerSec else if MovementAction Down `setMember` esActions then distancePerSec else 0
          in gs
-              { gsMainCharacterPosition = move gsTimePassed (Area gsMainCharacterPosition 12) gsMainCharacterPositionPrevious velocityX velocityY $ flip Area 12 <$> (keys $ unBoard gsRoom),
+              { gsMainCharacterPosition = move esTimePassed (Area gsMainCharacterPosition 12) gsMainCharacterPositionPrevious velocityX velocityY $ flip Area 12 <$> (keys $ unBoard gsRoom),
                 gsMainCharacterPositionPrevious = gsMainCharacterPosition
               }
   _ -> gs

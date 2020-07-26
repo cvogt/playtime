@@ -48,13 +48,13 @@ playtime' :: Maybe LiveCodeState -> MVar EngineConfig -> IO ()
 playtime' lcsMay ecMVar = do
   EngineConfig {ecScale, ecDim, ecCheckIfContinue} <- readMVar ecMVar
   -- initialization
-  ies@EngineState {gsWindowSize} <- makeInitialEngineState ecScale ecDim <$> getSystemTime
+  ies@EngineState {esWindowSize} <- makeInitialEngineState ecScale ecDim <$> getSystemTime
   cs@ConcurrentState {..} <- makeInitialConcurrentState ies
 
   void $ forkDebugTerminal cs ecMVar lcsMay
 
   -- open gl rendering loop
-  withGLFW gsWindowSize "Playtime" $ \window -> do
+  withGLFW esWindowSize "Playtime" $ \window -> do
     textures <- loadTextures
     setEventCallback window $ void . stepStates cs
 

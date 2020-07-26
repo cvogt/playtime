@@ -55,7 +55,7 @@ import Data.Eq (Eq ((/=), (==)))
 -- UNSAFE, DO NOT IMPORT: foldl1, foldr1
 
 import Data.Fixed (mod') -- mod' is incorrect for large Doubles and always returns 0.
-import Data.Foldable (Foldable, all, any, elem, find, fold, foldl, foldr, forM_, for_, length, mapM_, null, sum, toList)
+import Data.Foldable (Foldable, all, any, elem, find, fold, foldl, foldr, forM_, for_, length, mapM_, null, sum, toList, traverse_)
 import Data.Function (($), (.), flip, id)
 import Data.Functor (($>), (<$), (<$>), (<&>), Functor, fmap)
 import Data.Int (Int)
@@ -73,7 +73,7 @@ import Data.Set (Set, difference, map, union)
 import qualified Data.Set
 import Data.Text (Text)
 import Data.Time.Clock.System (SystemTime)
-import Data.Traversable (for, forM, sequence)
+import Data.Traversable (for, forM, sequence, traverse)
 import Data.Tuple (fst, snd, uncurry)
 import Foreign (ForeignPtr)
 import GHC.Float ((**), Double, Float, divideDouble)

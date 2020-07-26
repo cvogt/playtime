@@ -3,13 +3,11 @@ module ShootEmUp.Main where
 import Control.Concurrent.MVar (newEmptyMVar, putMVar)
 import Control.Concurrent.MVar (swapMVar)
 import Data.Aeson (Result (..), Value, fromJSON, toJSON)
-import My.Extra
 import My.IO
 import My.Prelude
 import Playtime
 import qualified Playtime.LiveCode
 import Playtime.SaveLoad
-import Playtime.Types
 import SDL.Mixer
 import ShootEmUp.GameState
 import ShootEmUp.Graphics
@@ -53,7 +51,7 @@ makeEngineConfig engineConfigMVar gameStateJson = do
     putMVar popSound =<< load (gameDir </> "assets/bubble_pop.ogg") -- https://freesound.org/people/blue2107/sounds/59978/
     void $ playForever =<< load (gameDir </> "assets/venus_music.ogg") -- https://opengameart.org/content/nes-shooter-music-5-tracks-3-jingles
   let dim = Dimensions {width = 1024, height = 768} -- logical pixel resolution
-  gameStateMVar <- (newMVar =<<) $ maybe (makeInitialGameState dim) pure $ (\case Error _ -> Nothing; Success a -> Just a) . fromJSON =<< gameStateJson
+  gameStateMVar <- (newMVar =<<) $ maybe (makeInitialGameState dim) pure $ (\case Error _ -> Nothing; Success gs -> Just gs {gsCompileErrors = Nothing}) . fromJSON =<< gameStateJson
   pure $
     EngineConfig
       { ecDim = dim,
@@ -67,8 +65,10 @@ makeEngineConfig engineConfigMVar gameStateJson = do
           pure
             [ "main char: " <> show (x', y'),
               "bullets: " <> show gsBullets,
-              "enemies: " <> show gsEnemies,
-              "stars: " <> show gsStars
+              "enemies: " <> (show $ take 5 gsEnemies),
+              "stars: " <> (show $ take 5 gsStars),
+              "compile status: " <> fromMaybe "SUCCESS" gsCompileErrors,
+              "--------------------------------------"
             ]
       }
 
@@ -78,20 +78,24 @@ tests = pure ()
 stepGameState :: MVar EngineConfig -> MVar Chunk -> MVar Bool -> MVar GameState -> EngineState -> Event -> IO ()
 stepGameState engineConfigMVar popSound update gameStateMVar es@EngineState {..} event = do
   modifyMVar_ gameStateMVar $ \old_gs -> do
-    pre <- sequence $ take 10 $ toList $ repeat $ randomIO
+    pre <- sequence $ replicate 10 randomIO
 
     let new_gs = stepGameStatePure pre es old_gs event
 
     when (Key'Space `elem` gsKeysPressed) $ play =<< readMVar popSound
 
-    whenM (readMVar update) $ do
-      void $ swapMVar update False
-      Playtime.LiveCode.compileAndEval srcFiles "ShootEmUp.Main" "makeEngineConfig" >>= \case
-        Left err -> putStrLn err
-        Right makeEngineConfig' -> do
-          void $ swapMVar engineConfigMVar =<< makeEngineConfig' engineConfigMVar (Just $ toJSON new_gs)
-          putStrLn "---------------------------------------"
-          putStrLn "SUCCESS"
-
     saveMay es new_gs
-    fromMaybe new_gs <$> loadMay es
+    final_gs <- fromMaybe new_gs <$> loadMay es
+
+    needsUpdate <- readMVar update
+    compileErrors <-
+      if not needsUpdate
+        then pure $ gsCompileErrors new_gs
+        else do
+          void $ swapMVar update False
+          Playtime.LiveCode.compileAndEval srcFiles "ShootEmUp.Main" "makeEngineConfig" >>= \case
+            Left err -> pure $ Just err
+            Right makeEngineConfig' -> do
+              void $ swapMVar engineConfigMVar =<< makeEngineConfig' engineConfigMVar (Just $ toJSON new_gs)
+              pure Nothing
+    pure $ final_gs {gsCompileErrors = compileErrors} -- doesn't clear compile errors because EngineConfig has already been replaced

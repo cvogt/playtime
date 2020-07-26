@@ -23,14 +23,17 @@ import GHC.Paths (libdir)
 import HscTypes (SourceError, srcErrorMessages)
 import My.IO
 import My.Prelude
+import System.IO (stderr, stdout)
+import System.IO.Silently (hCapture)
 
 type String = [Char]
 
 compileAndEval :: Typeable a => [FilePath] -> String -> String -> IO (Either String a)
 compileAndEval srcFiles modname expr = do
-  runGhc (Just libdir) $ runExceptT $ do
+  (compileErrors, res) <- hCapture [stdout, stderr] $ runGhc (Just libdir) $ runExceptT $ do
     loadSourceGhc srcFiles
     evalExpression modname expr
+  pure $ first (<> compileErrors) res
 
 evalExpression :: forall a. Typeable a => String -> String -> ExceptT String Ghc a
 evalExpression modname expr = ExceptT $ do
@@ -53,7 +56,8 @@ loadSourceGhc paths = ExceptT $
           simplPhases = 0,
           debugLevel = 0,
           parMakeCount = Nothing,
-          -- log_action :: DynFlags -> WarnReason -> Severity -> SrcSpan -> PprStyle -> MsgDoc -> IO ()
+          --log_action :: DynFlags -> WarnReason -> Severity -> SrcSpan -> PprStyle -> MsgDoc -> IO (),
+          --log_action = \_ _ _ _ _ _ -> putStrLn "ERROR",
           -- we can't see the package.yaml, so we need to specify used extensions here
           extensionFlags =
             foldl
@@ -73,6 +77,6 @@ loadSourceGhc paths = ExceptT $
         }
     for_ paths $ \path -> addTarget =<< guessTarget path Nothing
     load LoadAllTargets >>= \case
-      Failed -> pure $ Left $ "Generic module load error"
+      Failed -> pure $ Left $ "COMPILE ERROR:\n"
       Succeeded -> pure $ Right ()
     `gcatch` \(e :: SourceError) -> pure $ Left $ concat $ fmap show $ bagToList $ srcErrorMessages e

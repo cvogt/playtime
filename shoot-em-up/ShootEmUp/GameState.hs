@@ -12,7 +12,8 @@ import Playtime.Types
 import System.Random
 
 data GameState = GameState
-  { gsMainCharacterPosition :: Pos,
+  { gsCompileErrors :: Maybe [Char],
+    gsMainCharacterPosition :: Pos,
     gsEnemies :: [Pos],
     gsStars :: [(Double, Pos)],
     gsBullets :: [Pos]
@@ -34,7 +35,8 @@ makeInitialGameState Dimensions {width, height} = do
 
   pure
     GameState
-      { gsMainCharacterPosition = Pos 10 200,
+      { gsCompileErrors = Nothing,
+        gsMainCharacterPosition = Pos 10 200,
         gsEnemies = mempty,
         gsStars = fmap int2Double sizes `zip` (uncurry Pos <$> fmap int2Double xs `zip` fmap int2Double ys),
         gsBullets = mempty

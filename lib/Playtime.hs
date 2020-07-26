@@ -2,6 +2,7 @@ module Playtime
   ( module Playtime,
     module Playtime.ConcurrentState,
     module Playtime.EngineState,
+    module Playtime.Types,
     GLFW.Key (..),
   )
 where
@@ -33,7 +34,7 @@ playtime ecMVar = do
   ies@EngineState {gsWindowSize} <- makeInitialEngineState ecScale ecDim <$> getSystemTime
   cs@ConcurrentState {..} <- makeInitialConcurrentState ies
 
-  when False $ void $ forkDebugTerminal cs ecMVar
+  void $ forkDebugTerminal cs ecMVar
 
   -- open gl rendering loop
   withGLFW gsWindowSize "Playtime" $ \window -> do

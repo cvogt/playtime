@@ -17,6 +17,7 @@ description:         Please see the README on GitHub at ...
 dependencies:
 # - ansi-terminal
 - aeson
+- ansi-terminal
 - base
 - bmp
 - bytestring
@@ -28,12 +29,12 @@ dependencies:
 - mtl
 - random
 - safe
+- silently
 - sdl2-mixer
 - text
 - time
 - unix
 - vector
-- vty
 
 # for live code feature
 - ghc

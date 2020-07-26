@@ -2,20 +2,18 @@ module Playtime.Debug.Vty where
 
 import GHC.Float (int2Double)
 import GHC.Real ((/), round)
-import qualified Graphics.Vty as Vty
 import My.Extra
 import My.IO
 import My.Prelude
 import Playtime.ConcurrentState
 import Playtime.Types
 import Playtime.Util
+import System.Console.ANSI
 
 forkDebugTerminal :: ConcurrentState -> MVar EngineConfig -> IO ThreadId
 forkDebugTerminal ConcurrentState {..} engineConfigMVar = do
   -- FIXME: cursor stays hidden after termination
-  cfg <- Vty.standardIOConfig
-  vty <- Vty.mkVty cfg
-  flip forkFinally (\_ -> Vty.shutdown vty) $ do
+  forkIO $ do
     flip iterateM_ (0, 0, 0, 0) $ \(oldAvgTimeStep, oldAvgTexturePlacementTime, oldAvgRenderLoopTime, oldAvgTotalLoopTime) -> do
       engineState@EngineState {..} <- readMVar csEngineState
       timeStep <- modifyMVar csTimeStep $ \t -> pure ([], t)
@@ -29,18 +27,19 @@ forkDebugTerminal ConcurrentState {..} engineConfigMVar = do
           Pos x y = gsCursorPos
       gameDebugInfo <- ecGameDebugInfo <$> readMVar engineConfigMVar
       gameInfo <- gameDebugInfo engineState
-      Vty.update vty $ Vty.picForImage $ foldl1 (Vty.<->) $
-        Vty.string (Vty.defAttr `Vty.withForeColor` Vty.white)
-          <$> ( "fps: " <> show newAvgTotalLoopTime
-                  :| [ "1/renderLoopTime: " <> show newAvgRenderLoopTime,
-                       "1/texturePlacementTime: " <> show newAvgTexturePlacementTime,
-                       "1/timeStep: " <> show newAvgTimeStep,
-                       "opengl pos: " <> show (x, y),
-                       "keys: " <> show gsKeysPressed,
-                       "gsTimePassed: " <> show gsTimePassed
-                     ]
-                    <> gameInfo
-              )
-
+      clearFromCursorToScreenBeginning
+      restoreCursor
+      saveCursor
+      traverse_ (putStrLn . take 400) $
+        ( "fps: " <> show newAvgTotalLoopTime
+            :| [ "1/renderLoopTime: " <> show newAvgRenderLoopTime,
+                 "1/texturePlacementTime: " <> show newAvgTexturePlacementTime,
+                 "1/timeStep: " <> show newAvgTimeStep,
+                 "opengl pos: " <> show (x, y),
+                 "keys: " <> show gsKeysPressed,
+                 "gsTimePassed: " <> show gsTimePassed
+               ]
+              <> gameInfo
+        )
       threadDelay $ 500 * 1000 -- FIXME: changing this to 100 * make process freeze on exit
       pure (oldAvgTimeStep, newAvgTexturePlacementTime, newAvgRenderLoopTime, newAvgTotalLoopTime)

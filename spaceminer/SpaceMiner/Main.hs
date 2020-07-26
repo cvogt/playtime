@@ -17,7 +17,7 @@ srcFiles :: [FilePath]
 srcFiles =
   [ gameDir </> "SpaceMiner/Main.hs",
     gameDir </> "SpaceMiner/GameState.hs",
-    gameDir </> "SpaceMiner/Graphics.hs"
+    gameDir </> "SpaceMiner/Visualize.hs"
   ]
 
 --   foldl (.) id (flap [applyToEngineState, applyToGameState] event')

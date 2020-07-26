@@ -16,7 +16,7 @@ srcFiles :: [FilePath]
 srcFiles =
   [ gameDir </> "ShootEmUp/Main.hs",
     gameDir </> "ShootEmUp/GameState.hs",
-    gameDir </> "ShootEmUp/Graphics.hs"
+    gameDir </> "ShootEmUp/Visualize.hs"
   ]
 
 --   foldl (.) id (flap [applyToEngineState, applyToGameState] event')

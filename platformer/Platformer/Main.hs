@@ -16,7 +16,7 @@ srcFiles :: [FilePath]
 srcFiles =
   [ gameDir </> "Platformer/Main.hs",
     gameDir </> "Platformer/GameState.hs",
-    gameDir </> "Platformer/Graphics.hs"
+    gameDir </> "Platformer/Visualize.hs"
   ]
 
 --   foldl (.) id (flap [applyToEngineState, applyToGameState] event')

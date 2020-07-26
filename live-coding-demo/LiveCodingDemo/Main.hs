@@ -14,7 +14,7 @@ srcFiles :: [FilePath]
 srcFiles =
   [ gameDir </> "LiveCodingDemo/Main.hs",
     gameDir </> "LiveCodingDemo/GameState.hs",
-    gameDir </> "LiveCodingDemo/Graphics.hs"
+    gameDir </> "LiveCodingDemo/Visualize.hs"
   ]
 
 --   foldl (.) id (flap [applyToEngineState, applyToGameState] event')

@@ -4,7 +4,7 @@ import Control.DeepSeq (rnf)
 import Data.Aeson
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.HashMap.Strict as HMS
-import Data.List (intercalate, lines, zip)
+import Data.List (lines, zip)
 import qualified Data.Text as T
 import GHC.Float (int2Double)
 import GHC.Real ((/), round)
@@ -47,7 +47,6 @@ forkDebugTerminal ConcurrentState {..} engineConfigMVar lcsMay = do
           newAvgTexturePlacementTime = if not $ null texturePlacementTimes then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> texturePlacementTimes) else oldAvgTexturePlacementTime
           newAvgRenderLoopTime = if not $ null renderLoopTimes then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> renderLoopTimes) else oldAvgRenderLoopTime
           newAvgTotalLoopTime = if not $ null totalLoopTimes then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> totalLoopTimes) else oldAvgTotalLoopTime
-          Pos x y = esCursorPos
       gameDebugInfo <- ecGameDebugInfo <$> readMVar engineConfigMVar
       gameInfo <- gameDebugInfo engineState
       clearFromCursorToScreenBeginning

@@ -101,6 +101,8 @@ ghc-options:
   -Wno-unsafe
   -Wno-missing-deriving-strategies
   -Wno-monomorphism-restriction
+  -Wno-error=unused-local-binds
+  -Wno-error=unused-imports
   # -optP-Wno-nonportable-include-path
 
 executables:

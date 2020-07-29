@@ -61,7 +61,7 @@ liveCodeSwitch lcs@LiveCodeState {..} gameState = do
               pure Nothing -- doesn't clear compile errors because EngineConfig has already been replaced
       void $ swapMVar lcsCompiling False
 
-makeLiveCodeState :: (LiveCodeState -> IO EngineConfig) -> [Char] -> [Char] -> FilePath -> IO LiveCodeState
+makeLiveCodeState :: (Maybe LiveCodeState -> IO EngineConfig) -> [Char] -> [Char] -> FilePath -> IO LiveCodeState
 makeLiveCodeState wireEngineConfig lcsModule lcsExpression lcsWatchDir = do
   lcsChangeDetected <- newMVar False
   lcsCompiling <- newMVar False
@@ -69,7 +69,7 @@ makeLiveCodeState wireEngineConfig lcsModule lcsExpression lcsWatchDir = do
   lcsGameState <- newMVar Null
   lcsEngineConfig <- newEmptyMVar
   let lcs = LiveCodeState {..}
-  putMVar lcsEngineConfig =<< wireEngineConfig lcs
+  putMVar lcsEngineConfig =<< wireEngineConfig (Just lcs)
   pure lcs
 
 data LiveCodeState = LiveCodeState

@@ -13,9 +13,10 @@ gameDir = "live-coding-demo"
 
 main :: IO ()
 main =
-  playtimeLiveCode makeEngineConfig "LiveCodingDemo.Main" "makeEngineConfig" $ gameDir </> "LiveCodingDemo"
+  playtime . Left
+    =<< makeLiveCodeState makeEngineConfig "LiveCodingDemo.Main" "makeEngineConfig" (gameDir </> "LiveCodingDemo")
 
-makeEngineConfig :: LiveCodeState -> IO EngineConfig
+makeEngineConfig :: Maybe LiveCodeState -> IO EngineConfig
 makeEngineConfig liveCodeState = do
   let dim = Dimensions {width = 1024, height = 768}
   initialGameState <- makeInitialGameState dim

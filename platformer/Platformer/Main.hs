@@ -11,9 +11,11 @@ gameDir :: FilePath
 gameDir = "platformer"
 
 main :: IO ()
-main = playtimeLiveCode makeEngineConfig "Platformer.Main" "makeEngineConfig" $ gameDir </> "Platformer"
+main =
+  playtime . Left
+    =<< makeLiveCodeState makeEngineConfig "Platformer.Main" "makeEngineConfig" (gameDir </> "Platformer")
 
-makeEngineConfig :: LiveCodeState -> IO EngineConfig
+makeEngineConfig :: Maybe LiveCodeState -> IO EngineConfig
 makeEngineConfig liveCodeState = do
   let dim = Dimensions {width = 320, height = 240}
       loadTx = \(tuId . textureUse -> TextureFile name) -> either fail pure =<< (readPng $ gameDir </> "assets" </> name)

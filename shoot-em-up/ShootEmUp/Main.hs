@@ -21,9 +21,10 @@ main = do
     setChannels 500 -- default 8 seems to be problematic, so choosing somethign much larger ... 500
     setVolume 8 AllChannels
     void $ playForever =<< load (gameDir </> "assets/venus_music.ogg") -- https://opengameart.org/content/nes-shooter-music-5-tracks-3-jingles
-  playtimeLiveCode makeEngineConfig "ShootEmUp.Main" "makeEngineConfig" $ gameDir </> "ShootEmUp"
+  playtime . Left
+    =<< makeLiveCodeState makeEngineConfig "ShootEmUp.Main" "makeEngineConfig" (gameDir </> "ShootEmUp")
 
-makeEngineConfig :: LiveCodeState -> IO EngineConfig
+makeEngineConfig :: Maybe LiveCodeState -> IO EngineConfig
 makeEngineConfig liveCodeState = do
   popSound <- newEmptyMVar
   void $ forkIO

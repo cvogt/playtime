@@ -14,9 +14,11 @@ gameDir :: FilePath
 gameDir = "spaceminer"
 
 main :: IO ()
-main = playtimeLiveCode makeEngineConfig "SpaceMiner.Main" "makeEngineConfig" $ gameDir </> "SpaceMiner"
+main =
+  playtime . Left
+    =<< makeLiveCodeState makeEngineConfig "SpaceMiner.Main" "makeEngineConfig" (gameDir </> "SpaceMiner")
 
-makeEngineConfig :: LiveCodeState -> IO EngineConfig
+makeEngineConfig :: Maybe LiveCodeState -> IO EngineConfig
 makeEngineConfig liveCodeState = do
   let loadTx = \(tuId . textureUse -> TextureFile name) -> either fail pure =<< (readPng $ gameDir </> "assets" </> name)
       stepGameState textures es@EngineState {..} old_gs event = do

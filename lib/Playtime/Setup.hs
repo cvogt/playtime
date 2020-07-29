@@ -20,15 +20,15 @@ wireEngineConfig ::
   (Ord a, Show a, Enum a, Bounded a, ToJSON gs, FromJSON gs) =>
   Dimensions ->
   Scale ->
-  LiveCodeState ->
+  Maybe LiveCodeState ->
   ((a -> Texture) -> EngineState -> gs -> Event -> IO gs) ->
   ((a -> Texture) -> EngineState -> gs -> [TexturePlacements a]) ->
   (a -> IO DynamicImage) ->
   gs ->
   IO EngineConfig
 wireEngineConfig ecDim ecScale liveCodeState stepGameState visualize loadTx initialGameState = do
-  recoveredGameState <- startLiveCode liveCodeState
-  gameStateMVar <- newMVar $ fromMaybe initialGameState recoveredGameState
+  recoveredGameState <- for liveCodeState startLiveCode
+  gameStateMVar <- newMVar $ fromMaybe initialGameState $ join recoveredGameState
   loadedTexturesMVar <- newMVar mempty
   let allTextures :: [a]
       allTextures = enumFrom (minBound :: a) -- this produces a list of all constructors of an enum ADT
@@ -42,7 +42,7 @@ wireEngineConfig ecDim ecScale liveCodeState stepGameState visualize loadTx init
                   lt' <- for allTextures $ \i -> (i,) <$> (either fail pure =<< runExceptT . loadTexture =<< loadTx i)
                   pure $ dupe $ foldl (\m (k, v) -> mapInsert k v m) loadedTextures' lt'
           new_gs <- stepGameState (lt loadedTextures) es old_gs event
-          liveCodeSwitch liveCodeState new_gs
+          for_ liveCodeState $ flip liveCodeSwitch new_gs
           pure new_gs
       ecVisualize = \es -> do
         loadedTextures <- readMVar loadedTexturesMVar

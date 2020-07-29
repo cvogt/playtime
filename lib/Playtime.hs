@@ -13,6 +13,7 @@ module Playtime
     liveCodeSwitch,
     debugPrint,
     wireEngineConfig,
+    makeLiveCodeState,
   )
 where
 
@@ -41,16 +42,9 @@ import Playtime.Util
 -- pos = Position
 -- dim = Dimension
 
-playtime :: MVar EngineConfig -> IO ()
-playtime = playtime' Nothing
-
-playtimeLiveCode :: (LiveCodeState -> IO EngineConfig) -> [Char] -> [Char] -> FilePath -> IO ()
-playtimeLiveCode makeEngineConfig lcsModule lcsExpression lcsWatchDir = do
-  lcs <- makeLiveCodeState makeEngineConfig lcsModule lcsExpression lcsWatchDir
-  playtime' (Just lcs) $ lcsEngineConfig lcs
-
-playtime' :: Maybe LiveCodeState -> MVar EngineConfig -> IO ()
-playtime' lcsMay ecMVar = do
+playtime :: Either LiveCodeState (MVar EngineConfig) -> IO ()
+playtime lcsOrEcMVar = do
+  let (lcsMay, ecMVar) = either (\lcs -> (Just lcs, lcsEngineConfig lcs)) (Nothing,) lcsOrEcMVar
   EngineConfig {ecScale, ecDim, ecCheckIfContinue} <- readMVar ecMVar
   -- initialization
   ies@EngineState {esWindowSize} <- makeInitialEngineState ecScale ecDim <$> getSystemTime
@@ -60,19 +54,19 @@ playtime' lcsMay ecMVar = do
 
   -- open gl rendering loop
   withGLFW esWindowSize "Playtime" $ \window -> do
-    setEventCallback window $ void . stepStates window cs
+    setEventCallback window $ void . stepStates ecMVar window cs
 
     whileM $ trackTimeM csTimeRender $ do
       GLFW.pollEvents
       EngineConfig {ecVisualize} <- readMVar ecMVar
-      es <- stepStates window cs . RenderEvent =<< getSystemTime
+      es <- stepStates ecMVar window cs . RenderEvent =<< getSystemTime
       pure es
         >>= ecVisualize
         >>= trackTimeM csTimeGL . renderGL window ecDim
       ecCheckIfContinue es
   where
-    stepStates :: GLFW.Window -> ConcurrentState -> Event -> IO EngineState
-    stepStates window ConcurrentState {..} event =
+    stepStates :: MVar EngineConfig -> GLFW.Window -> ConcurrentState -> Event -> IO EngineState
+    stepStates ecMVar window ConcurrentState {..} event =
       modifyMVar csEngineState $ \old_es ->
         trackTimeM csTimeStep $ do
           EngineConfig {ecStepGameState} <- readMVar ecMVar

@@ -55,11 +55,9 @@ makeInitialGameState Dimensions {width, height} =
       gsMainCharacterPrevious = Pos (width / 2) (height / 2)
     }
 
---   foldl (.) id (flap [applyToEngineState, applyToGameState] event')
-
 stepGameStatePure :: (TextureId -> Texture) -> GameState -> EngineState -> Event -> GameState
 stepGameStatePure (textureArea -> area) gs@GameState {..} EngineState {..} = \case
-  CursorPosEvent _ _ ->
+  CursorPosEvent _ ->
     let Pos x y = esCursorPos
         gridify :: Double -> Double
         gridify = (* gridsize) . int2Double . floor . (/ gridsize)

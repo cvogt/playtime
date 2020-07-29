@@ -30,5 +30,5 @@ setEventCallback window handleEvent = do
   GLFW.setMouseButtonCallback window $ Just $ \_ button state _modifiers -> handleEvent $ MouseEvent button state
   GLFW.setKeyCallback window $ Just $ \_ key _scancode keyState _modifiers -> handleEvent $ KeyEvent key keyState
   GLFW.setWindowSizeCallback window $ Just $ \_ width height -> handleEvent $ WindowSizeEvent width height
-  GLFW.setCursorPosCallback window $ Just $ \_ x y -> handleEvent $ CursorPosEvent x y
+  GLFW.setCursorPosCallback window $ Just $ \_ x y -> handleEvent $ CursorPosEvent $ Pos x y
   GLFW.setWindowCloseCallback window $ Just $ \_ -> handleEvent $ WindowCloseEvent

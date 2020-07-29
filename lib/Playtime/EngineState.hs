@@ -51,7 +51,7 @@ clearOneTimeEffects es =
 stepEngineState :: EngineState -> Event -> EngineState
 stepEngineState (clearOneTimeEffects -> gs@EngineState {..}) = \case
   WindowSizeEvent width height -> gs {esWindowSize = Dimensions (int2Double width) (int2Double height)}
-  CursorPosEvent x y ->
+  CursorPosEvent (Pos x y) ->
     gs
       { esCursorPos =
           -- this ratio calculation leads to proper relative scaling on window resize

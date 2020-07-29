@@ -5,6 +5,7 @@ module Playtime
     module Playtime.SaveLoad,
     module Playtime.Types,
     module Playtime.Util,
+    module Playtime.UI,
     GLFW.Key (..),
     GLFW.KeyState (..),
     LiveCodeState,
@@ -29,6 +30,7 @@ import Playtime.LiveCode
 import Playtime.SaveLoad
 import Playtime.Setup
 import Playtime.Types
+import Playtime.UI
 import Playtime.Util
 
 -- README

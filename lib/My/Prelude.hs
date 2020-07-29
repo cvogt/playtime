@@ -56,10 +56,11 @@ import Data.Eq (Eq ((/=), (==)))
 -- UNSAFE, DO NOT IMPORT: foldl1, foldr1
 import Data.Fixed (mod') -- mod' is incorrect for large Doubles and always returns 0.
 import Data.Foldable (Foldable, all, any, elem, find, fold, foldl, foldlM, foldr, foldrM, forM_, for_, length, mapM_, null, sum, toList, traverse_)
-import Data.Function (($), (.), flip, id)
+import Data.Function (($), (&), (.), flip, id)
 import Data.Functor (($>), (<$), (<$>), (<&>), Functor, fmap)
 import Data.Int (Int)
 import Data.List ((\\), concat, drop, dropWhile, filter, nub, replicate, reverse, sort, sortBy, sortOn, take, takeWhile, unzip)
+import qualified Data.List
 import qualified Data.List.NonEmpty
 import Data.List.NonEmpty (NonEmpty ((:|)), groupAllWith, groupBy, groupWith, head, iterate, last, repeat, unfoldr)
 import Data.Map (Map, keys, mapKeys)
@@ -132,6 +133,9 @@ setSingleton = Data.Set.singleton
 
 nelTakeWhile :: (a -> Bool) -> NonEmpty a -> [a]
 nelTakeWhile = Data.List.NonEmpty.takeWhile
+
+listDelete :: Eq a => a -> [a] -> [a]
+listDelete = Data.List.delete
 
 -- similar to both in lens
 both :: Data.Bifunctor.Bifunctor p => (a -> d) -> p a a -> p d d

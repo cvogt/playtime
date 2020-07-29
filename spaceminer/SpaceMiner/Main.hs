@@ -20,7 +20,6 @@ srcFiles =
     gameDir </> "SpaceMiner/Visualize.hs"
   ]
 
---   foldl (.) id (flap [applyToEngineState, applyToGameState] event')
 main :: IO ()
 main =
   playtimeLiveCode makeEngineConfig "SpaceMiner.Main" "makeEngineConfig" (gameDir </> "SpaceMiner") srcFiles

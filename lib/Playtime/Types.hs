@@ -27,7 +27,7 @@ data Event
   = RenderEvent SystemTime
   | MouseEvent GLFW.MouseButton GLFW.MouseButtonState
   | KeyEvent GLFW.Key GLFW.KeyState
-  | CursorPosEvent Double Double
+  | CursorPosEvent Pos
   | WindowSizeEvent Int Int
   | WindowCloseEvent
   deriving (Show)
@@ -94,6 +94,9 @@ data Area = Area Pos Dimensions deriving (Eq, Ord, Show, Generic, NFData, FromJS
 
 (|/|) :: Dimensions -> Dimensions -> Scale
 (|/|) Dimensions {width = w1, height = h1} Dimensions {width = w2, height = h2} = Scale {sx = w1 `divideDouble` w2, sy = h1 `divideDouble` h2}
+
+(|-|) :: Pos -> Pos -> Dimensions
+(|-|) Pos {x = x1, y = y1} Pos {x = x2, y = y2} = Dimensions {width = x1 - x2, height = y1 - y2}
 
 isWithin :: Pos -> Area -> Bool
 isWithin (Pos cx cy) (Area (Pos x y) (Dimensions width height)) = x <= cx && y <= cy && cx <= (x + width) && cy <= (y + height)

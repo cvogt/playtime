@@ -14,7 +14,8 @@ data GameState = GameState
   { gsMainCharacter :: Pos,
     gsEnemies :: [Pos],
     gsStars :: [(Double, Pos)],
-    gsBullets :: [Pos]
+    gsBullets :: [Pos],
+    gsDragAndDrop :: Maybe DragAndDrop
   }
   deriving (Show, Generic, NFData, ToJSON, FromJSON)
 
@@ -39,20 +40,38 @@ textureArea textures (TextureUse scale (textures -> Texture dim _ _)) pos = Area
 makeInitialGameState :: Dimensions -> IO GameState
 makeInitialGameState Dimensions {width, height} = do
   let randInts = sequence $ replicate 510 randomIO
+  let randInts' = sequence $ replicate 510 randomIO
+  let randInts'' = sequence $ replicate 510 randomIO
   sizes <- fmap (`mod` maxStarSize) <$> randInts
-  xs <- fmap (`mod` double2Int (width + maxStarSize)) <$> randInts
-  ys <- fmap (`mod` double2Int height) <$> randInts
+  xs <- fmap (`mod` double2Int (width + maxStarSize)) <$> randInts'
+  ys <- fmap (`mod` double2Int height) <$> randInts''
 
   pure
     GameState
       { gsMainCharacter = Pos 10 200,
         gsEnemies = mempty,
         gsStars = fmap int2Double sizes `zip` (uncurry Pos <$> fmap int2Double xs `zip` fmap int2Double ys),
-        gsBullets = mempty
+        gsBullets = mempty,
+        gsDragAndDrop = Nothing
       }
 
 stepGameStatePure :: [Int] -> (TextureId -> Texture) -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure randInts (textureArea -> area) gs@GameState {..} EngineState {..} = \case
+stepGameStatePure pre textures old_gs es event =
+  foldl
+    (&)
+    old_gs
+    [ \gs -> dragAndDrop es gs MouseButton'1 (getBulletAreas gs) setBullets (getDragAndDrop gs) setDragAndDrop event,
+      \gs -> deleteOnClick es gs MouseButton'2 (getBulletAreas gs) setBullets event,
+      \gs -> stepGameStatePure' pre textures gs es event
+    ]
+  where
+    setBullets bullets gs = gs {gsBullets = bullets}
+    getBulletAreas gs = textureArea textures bullet <$> gsBullets gs
+    getDragAndDrop gs = gsDragAndDrop gs
+    setDragAndDrop v gs = gs {gsDragAndDrop = v}
+
+stepGameStatePure' :: [Int] -> (TextureId -> Texture) -> GameState -> EngineState -> Event -> GameState
+stepGameStatePure' randInts (textureArea -> area) gs@GameState {..} EngineState {..} = \case
   KeyEvent Key'Space KeyState'Pressed ->
     gs
       { gsBullets =

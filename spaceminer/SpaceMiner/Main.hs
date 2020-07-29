@@ -13,16 +13,8 @@ dim = Dimensions {width = 320, height = 240}
 gameDir :: FilePath
 gameDir = "spaceminer"
 
-srcFiles :: [FilePath]
-srcFiles =
-  [ gameDir </> "SpaceMiner/Main.hs",
-    gameDir </> "SpaceMiner/GameState.hs",
-    gameDir </> "SpaceMiner/Visualize.hs"
-  ]
-
 main :: IO ()
-main =
-  playtimeLiveCode makeEngineConfig "SpaceMiner.Main" "makeEngineConfig" (gameDir </> "SpaceMiner") srcFiles
+main = playtimeLiveCode makeEngineConfig "SpaceMiner.Main" "makeEngineConfig" $ gameDir </> "SpaceMiner"
 
 makeEngineConfig :: LiveCodeState -> IO EngineConfig
 makeEngineConfig liveCodeState = do

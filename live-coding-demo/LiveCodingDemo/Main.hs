@@ -13,15 +13,7 @@ gameDir = "live-coding-demo"
 
 main :: IO ()
 main =
-  playtimeLiveCode
-    makeEngineConfig
-    "LiveCodingDemo.Main"
-    "makeEngineConfig"
-    (gameDir </> "LiveCodingDemo")
-    [ gameDir </> "LiveCodingDemo/Main.hs",
-      gameDir </> "LiveCodingDemo/GameState.hs",
-      gameDir </> "LiveCodingDemo/Visualize.hs"
-    ]
+  playtimeLiveCode makeEngineConfig "LiveCodingDemo.Main" "makeEngineConfig" $ gameDir </> "LiveCodingDemo"
 
 makeEngineConfig :: LiveCodeState -> IO EngineConfig
 makeEngineConfig liveCodeState = do

@@ -26,9 +26,11 @@ dependencies:
 - filepath
 - integer-gmp
 - mtl
+- protolude
 - random
 - safe
 - sdl2-mixer
+- tar
 - text
 - time
 - unix

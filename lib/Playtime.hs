@@ -44,9 +44,9 @@ import Playtime.Util
 playtime :: MVar EngineConfig -> IO ()
 playtime = playtime' Nothing
 
-playtimeLiveCode :: (LiveCodeState -> IO EngineConfig) -> [Char] -> [Char] -> FilePath -> [FilePath] -> IO ()
-playtimeLiveCode makeEngineConfig lcsModule lcsExpression lcsWatchDir lcsSrcFiles = do
-  lcs <- makeLiveCodeState makeEngineConfig lcsModule lcsExpression lcsWatchDir lcsSrcFiles
+playtimeLiveCode :: (LiveCodeState -> IO EngineConfig) -> [Char] -> [Char] -> FilePath -> IO ()
+playtimeLiveCode makeEngineConfig lcsModule lcsExpression lcsWatchDir = do
+  lcs <- makeLiveCodeState makeEngineConfig lcsModule lcsExpression lcsWatchDir
   playtime' (Just lcs) $ lcsEngineConfig lcs
 
 playtime' :: Maybe LiveCodeState -> MVar EngineConfig -> IO ()

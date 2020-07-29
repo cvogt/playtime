@@ -11,6 +11,10 @@ import Playtime.GL
 import Playtime.LiveCode
 import Playtime.Types
 
+-- FIXME: this file needs cleanup. it implements strict texture loading, but also lazy loading,
+--        which is obviously non-sensical to have both for the same textures.
+--        we may eventually want to strict load certain textures and lazy load others.
+
 wireEngineConfig ::
   forall a gs.
   (Ord a, Show a, Enum a, Bounded a, ToJSON gs, FromJSON gs) =>

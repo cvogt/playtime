@@ -11,16 +11,7 @@ gameDir :: FilePath
 gameDir = "platformer"
 
 main :: IO ()
-main =
-  playtimeLiveCode
-    makeEngineConfig
-    "Platformer.Main"
-    "makeEngineConfig"
-    (gameDir </> "Platformer")
-    [ gameDir </> "Platformer/Main.hs",
-      gameDir </> "Platformer/GameState.hs",
-      gameDir </> "Platformer/Visualize.hs"
-    ]
+main = playtimeLiveCode makeEngineConfig "Platformer.Main" "makeEngineConfig" $ gameDir </> "Platformer"
 
 makeEngineConfig :: LiveCodeState -> IO EngineConfig
 makeEngineConfig liveCodeState = do

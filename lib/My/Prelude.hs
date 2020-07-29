@@ -1,5 +1,6 @@
 module My.Prelude
-  ( module Control.Applicative,
+  ( module Codec.Archive.Tar.Entry,
+    module Control.Applicative,
     module Control.DeepSeq,
     module Control.Monad,
     module Control.Monad.Except,
@@ -36,6 +37,7 @@ module My.Prelude
     module GHC.Num,
     module GHC.Real,
     module GHC.Show,
+    module Protolude,
     module My.Prelude,
     module Safe,
     module Safe.Foldable,
@@ -45,6 +47,7 @@ module My.Prelude
   )
 where
 
+import Codec.Archive.Tar.Entry (getDirectoryContentsRecursive) -- is there a more appropriate recursive directory listing functon?
 import Control.Applicative ((<*>), (<|>), Alternative, Applicative, pure)
 import Control.DeepSeq (NFData)
 import Control.Monad ((<=<), (=<<), (>>), (>>=), Monad, fail, filterM, foldM, forever, join, mfilter, return, unless, void, when)
@@ -87,6 +90,7 @@ import GHC.Integer (Integer)
 import GHC.Num ((*), (+), (-), Num, abs, subtract)
 import GHC.Real (Fractional, Integral)
 import GHC.Show (Show (show))
+import Protolude ((<<$>>))
 import Safe (headMay, lastMay)
 import Safe.Foldable (foldl1Safe, foldr1Safe)
 -- FIXME: replace next with uniform once stack upgraded random
@@ -141,6 +145,9 @@ nelTakeWhile = Data.List.NonEmpty.takeWhile
 
 listDelete :: Eq a => a -> [a] -> [a]
 listDelete = Data.List.delete
+
+listIsSuffixOf :: Eq a => [a] -> [a] -> Bool
+listIsSuffixOf = Data.List.isSuffixOf
 
 -- similar to both in lens
 both :: Data.Bifunctor.Bifunctor p => (a -> d) -> p a a -> p d d

@@ -48,11 +48,12 @@ liveCodeSwitch lcs@LiveCodeState {..} gameState = do
   readMVar lcsChangeDetected >>= \case
     False -> pure ()
     True -> do
+      srcFiles <- fmap (lcsWatchDir </>) <$> filter (listIsSuffixOf ".hs") <$> getDirectoryContentsRecursive lcsWatchDir
       void $
         swapMVar lcsCompileError =<< do
           void $ swapMVar lcsChangeDetected False
           void $ swapMVar lcsCompiling True
-          Playtime.LiveCode.compileAndEval lcsSrcFiles lcsModule lcsExpression >>= \case
+          Playtime.LiveCode.compileAndEval srcFiles lcsModule lcsExpression >>= \case
             Left compileErrors -> pure $ Just compileErrors
             Right wireEngineConfig -> do
               void $ swapMVar lcsGameState $ toJSON gameState
@@ -60,8 +61,8 @@ liveCodeSwitch lcs@LiveCodeState {..} gameState = do
               pure Nothing -- doesn't clear compile errors because EngineConfig has already been replaced
       void $ swapMVar lcsCompiling False
 
-makeLiveCodeState :: (LiveCodeState -> IO EngineConfig) -> [Char] -> [Char] -> FilePath -> [FilePath] -> IO LiveCodeState
-makeLiveCodeState wireEngineConfig lcsModule lcsExpression lcsWatchDir lcsSrcFiles = do
+makeLiveCodeState :: (LiveCodeState -> IO EngineConfig) -> [Char] -> [Char] -> FilePath -> IO LiveCodeState
+makeLiveCodeState wireEngineConfig lcsModule lcsExpression lcsWatchDir = do
   lcsChangeDetected <- newMVar False
   lcsCompiling <- newMVar False
   lcsCompileError <- newMVar Nothing
@@ -73,7 +74,6 @@ makeLiveCodeState wireEngineConfig lcsModule lcsExpression lcsWatchDir lcsSrcFil
 
 data LiveCodeState = LiveCodeState
   { lcsWatchDir :: FilePath,
-    lcsSrcFiles :: [FilePath],
     lcsModule :: [Char],
     lcsExpression :: [Char],
     lcsChangeDetected :: MVar Bool,
@@ -94,7 +94,7 @@ watch LiveCodeState {..} = do
   void $ forkIO $ do
     mgr <- startManagerConf $ WatchConfig DebounceDefault (100 * 1000) True
     -- start a watching job (in the background)
-    void $ watchDir mgr lcsWatchDir (\_ -> True) $
+    void $ watchTree mgr lcsWatchDir (\_ -> True) $
       \_ -> void $ swapMVar lcsChangeDetected True
     forever $ threadDelay $ 1000 * 1000
 

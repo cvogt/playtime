@@ -6,6 +6,17 @@ import GHC.Real ((/), ceiling, floor)
 import My.Prelude
 import Playtime.Types
 
+data TextureUse a = TextureUse {tuScale :: Scale, tuId :: a}
+
+textureArea :: (a -> TextureUse b) -> (a -> Texture) -> a -> Pos -> Area
+textureArea textureUse textures i pos =
+  let TextureUse scale _ = textureUse i
+      Texture dim _ _ = textures i
+   in Area pos $ scale |*| dim
+
+sprite :: (a -> Pos -> Area) -> a -> Pos -> TexturePlacements a
+sprite area i pos = TexturePlacements i $ area i pos
+
 relativePos :: Pos -> Double -> Double -> Pos
 relativePos Pos {x, y} xd yd = Pos {x = x + xd, y = y + yd}
 

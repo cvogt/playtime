@@ -29,6 +29,7 @@ module My.Prelude
     module Data.Traversable,
     module Data.Tuple,
     module Foreign,
+    module GHC.Enum,
     module GHC.Float,
     module GHC.Generics,
     module GHC.Integer,
@@ -40,6 +41,7 @@ module My.Prelude
     module Safe.Foldable,
     module Universum,
     module System.Random,
+    FilePath,
   )
 where
 
@@ -50,7 +52,7 @@ import Control.Monad.Except (ExceptT (ExceptT), runExceptT)
 import Data.Bifunctor (Bifunctor, bimap, first, second)
 import Data.Bool ((&&), Bool (False, True), not, otherwise, (||))
 import Data.Char (Char)
-import Data.Data (toConstr)
+import Data.Data (Data, toConstr)
 import Data.Either (Either (Left, Right), either, isLeft, isRight)
 import Data.Eq (Eq ((/=), (==)))
 -- UNSAFE, DO NOT IMPORT: foldl1, foldr1
@@ -78,6 +80,7 @@ import Data.Time.Clock.System (SystemTime)
 import Data.Traversable (for, forM, sequence, traverse)
 import Data.Tuple (fst, snd, swap, uncurry)
 import Foreign (ForeignPtr)
+import GHC.Enum (Bounded, Enum, enumFrom, minBound)
 import GHC.Float ((**), Double, Float, divideDouble)
 import GHC.Generics (Generic)
 import GHC.Integer (Integer)
@@ -86,7 +89,9 @@ import GHC.Real (Fractional, Integral)
 import GHC.Show (Show (show))
 import Safe (headMay, lastMay)
 import Safe.Foldable (foldl1Safe, foldr1Safe)
-import System.Random (StdGen, next) -- FIXME: replace next with uniform once stack upgraded random
+-- FIXME: replace next with uniform once stack upgraded random
+import System.IO (FilePath) -- FIXME: replace next with uniform once stack upgraded random
+import System.Random (StdGen, next)
 import Universum (foldl1, foldr1)
 
 mapDelete :: Ord k => k -> Map k a -> Map k a

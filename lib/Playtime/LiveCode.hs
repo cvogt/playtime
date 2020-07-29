@@ -143,6 +143,7 @@ loadSourceGhc paths = ExceptT $
               EnumSet.empty
               [ TraditionalRecordSyntax, -- FIXME: probably need to make extensions configurable at some point
                 DeriveAnyClass,
+                DeriveDataTypeable,
                 DeriveFunctor,
                 DeriveGeneric,
                 DerivingStrategies,

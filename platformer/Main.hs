@@ -22,7 +22,7 @@ tests = do
         (makeInitialGameState dim)
           { gsVelocityY = 0.33,
             gsMainCharacter = Pos 0 (-7),
-            gsRoom = Board $ mapFromList $ (,floor_plate) <$> [Pos (-6) 5, Pos 6 5]
+            gsRoom = Board $ mapFromList $ (,FloorPlate) <$> [Pos (-6) 5, Pos 6 5]
           }
   time <- getSystemTime
   let egs = makeInitialEngineState 3 dim time

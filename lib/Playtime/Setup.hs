@@ -12,28 +12,30 @@ import Playtime.LiveCode
 import Playtime.Types
 
 wireEngineConfig ::
-  (Ord a, Show a, ToJSON gs, FromJSON gs) =>
+  forall a gs.
+  (Ord a, Show a, Enum a, Bounded a, ToJSON gs, FromJSON gs) =>
   Dimensions ->
   Scale ->
-  [a] ->
   LiveCodeState ->
   ((a -> Texture) -> EngineState -> gs -> Event -> IO gs) ->
   ((a -> Texture) -> EngineState -> gs -> [TexturePlacements a]) ->
   (a -> IO DynamicImage) ->
   gs ->
   IO EngineConfig
-wireEngineConfig ecDim ecScale ecAllTextures liveCodeState stepGameState visualize loadTx initialGameState = do
+wireEngineConfig ecDim ecScale liveCodeState stepGameState visualize loadTx initialGameState = do
   recoveredGameState <- startLiveCode liveCodeState
   gameStateMVar <- newMVar $ fromMaybe initialGameState recoveredGameState
   loadedTexturesMVar <- newMVar mempty
-  let ecStepGameState = \es event -> do
+  let allTextures :: [a]
+      allTextures = enumFrom (minBound :: a) -- this produces a list of all constructors of an enum ADT
+      ecStepGameState = \es event -> do
         modifyMVar_ gameStateMVar $ \old_gs -> do
           loadedTextures <-
             modifyMVar loadedTexturesMVar $ \loadedTextures' -> do
               if not $ mapNull loadedTextures'
                 then pure $ dupe loadedTextures'
                 else do
-                  lt' <- for ecAllTextures $ \i -> (i,) <$> (either fail pure =<< runExceptT . loadTexture =<< loadTx i)
+                  lt' <- for allTextures $ \i -> (i,) <$> (either fail pure =<< runExceptT . loadTexture =<< loadTx i)
                   pure $ dupe $ foldl (\m (k, v) -> mapInsert k v m) loadedTextures' lt'
           new_gs <- stepGameState (lt loadedTextures) es old_gs event
           liveCodeSwitch liveCodeState new_gs

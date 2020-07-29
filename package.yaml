@@ -68,6 +68,7 @@ dependencies:
 
 default-extensions:
 - DeriveAnyClass
+- DeriveDataTypeable
 - DeriveFunctor
 - DeriveGeneric
 - DerivingStrategies

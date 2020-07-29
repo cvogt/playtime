@@ -25,12 +25,9 @@ main =
 makeEngineConfig :: LiveCodeState -> IO EngineConfig
 makeEngineConfig liveCodeState = do
   let dim = Dimensions {width = 320, height = 240}
-      loadTx = \(TextureId name) -> either fail pure =<< (readPng $ gameDir </> "assets" </> name)
+      loadTx = \(tuId . textureUse -> TextureFile name) -> either fail pure =<< (readPng $ gameDir </> "assets" </> name)
       stepGameState textures es@EngineState {..} old_gs event = do
         let new_gs = stepGameStatePure textures old_gs es event
         saveMay es new_gs
         fromMaybe new_gs <$> loadMay es
-  wireEngineConfig dim 1 all_textures liveCodeState stepGameState visualize loadTx $ makeInitialGameState dim
-
-all_textures :: [TextureId]
-all_textures = tuId <$> [main_character, floor_plate]
+  wireEngineConfig dim 1 liveCodeState stepGameState visualize loadTx $ makeInitialGameState dim

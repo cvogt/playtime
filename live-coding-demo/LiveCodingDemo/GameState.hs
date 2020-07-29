@@ -30,20 +30,18 @@ makeInitialGameState Dimensions {width} = do
         gsPlayer = Pos 100 100
       }
 
-newtype TextureId = TextureId [Char] deriving (Eq, Ord, Show)
+newtype TextureFile = TextureFile FilePath deriving (Eq, Ord, Show)
 
-data TextureUse = TextureUse {tuScale :: Scale, tuId :: TextureId}
+data TextureId = Heart | Plane | Enemy deriving (Eq, Ord, Show, Data, Bounded, Enum, Generic, NFData, ToJSON, FromJSON)
 
-plane, enemy, bullet :: TextureUse
-plane = TextureUse 1 $ TextureId "plane.png"
-enemy = TextureUse 0.1 $ TextureId "enemy_red.png"
-bullet = TextureUse 0.025 $ TextureId "haskell_love_logo.png"
-
-textureArea :: (TextureId -> Texture) -> TextureUse -> Pos -> Area
-textureArea textures (TextureUse scale (textures -> Texture dim _ _)) pos = Area pos $ scale |*| dim
+textureUse :: TextureId -> TextureUse TextureFile
+textureUse = \case
+  Plane -> TextureUse 1 $ TextureFile "plane.png"
+  Enemy -> TextureUse 0.1 $ TextureFile "enemy_red.png"
+  Heart -> TextureUse 0.025 $ TextureFile "haskell_love_logo.png"
 
 stepGameStatePure :: [Int] -> (TextureId -> Texture) -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure randInts (textureArea -> area) gs@GameState {..} EngineState {..} = \case
+stepGameStatePure randInts (textureArea textureUse -> area) gs@GameState {..} EngineState {..} = \case
   KeyEvent Key'Space KeyState'Pressed ->
     let Dimensions {width} = esLogicalDimensions
         _randDoubles = int2Double . (`mod` double2Int width) <$> randInts
@@ -58,7 +56,7 @@ stepGameStatePure randInts (textureArea -> area) gs@GameState {..} EngineState {
         moveY = if Key'W `setMember` esKeysPressed then subtract step else if Key'S `setMember` esKeysPressed then (+ step) else id
         randDoubles = int2Double . (`mod` double2Int height) <$> randInts
         bulletVelocityX = 300
-        (bullets, killed) = unzip $ fmap (both (\(Area pos _) -> pos)) $ filter (uncurry collidesWith) $ (,) <$> (area bullet <$> gsBullets) <*> (area enemy <$> gsEnemies)
+        (bullets, killed) = unzip $ fmap (both (\(Area pos _) -> pos)) $ filter (uncurry collidesWith) $ (,) <$> (area Heart <$> gsBullets) <*> (area Enemy <$> gsEnemies)
         newEnemies = take (10 - length gsEnemies) $ uncurry Pos <$> ((toList $ repeat 1023) `zip` drop 10 randDoubles)
         newEnemies' = filter (not . (`elem` killed)) $ gsEnemies <> newEnemies
      in gs

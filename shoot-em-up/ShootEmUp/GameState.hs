@@ -25,17 +25,16 @@ maxStarSize = 4
 numEnemies :: Int
 numEnemies = 10
 
-newtype TextureId = TextureId [Char] deriving (Eq, Ord, Show)
+data TextureId = Enemy | Heart | Plane
+  deriving (Eq, Ord, Show, Data, Bounded, Enum, Generic, NFData, ToJSON, FromJSON)
 
-data TextureUse = TextureUse {tuScale :: Scale, tuId :: TextureId}
+newtype TextureFile = TextureFile FilePath deriving (Eq, Ord, Show)
 
-plane, enemy, bullet :: TextureUse
-plane = TextureUse 1 $ TextureId "plane.png"
-enemy = TextureUse 0.1 $ TextureId "enemy_red.png"
-bullet = TextureUse 0.025 $ TextureId "haskell_love_logo.png"
-
-textureArea :: (TextureId -> Texture) -> TextureUse -> Pos -> Area
-textureArea textures (TextureUse scale (textures -> Texture dim _ _)) pos = Area pos $ scale |*| dim
+textureUse :: TextureId -> TextureUse TextureFile
+textureUse = \case
+  Plane -> TextureUse 1 $ TextureFile "plane.png"
+  Enemy -> TextureUse 0.1 $ TextureFile "enemy_red.png"
+  Heart -> TextureUse 0.025 $ TextureFile "haskell_love_logo.png"
 
 makeInitialGameState :: Dimensions -> IO GameState
 makeInitialGameState Dimensions {width, height} = do
@@ -66,12 +65,12 @@ stepGameStatePure pre textures old_gs es event =
     ]
   where
     setBullets bullets gs = gs {gsBullets = bullets}
-    getBulletAreas gs = textureArea textures bullet <$> gsBullets gs
+    getBulletAreas gs = textureArea textureUse textures Heart <$> gsBullets gs
     getDragAndDrop gs = gsDragAndDrop gs
     setDragAndDrop v gs = gs {gsDragAndDrop = v}
 
 stepGameStatePure' :: [Int] -> (TextureId -> Texture) -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure' randInts (textureArea -> area) gs@GameState {..} EngineState {..} = \case
+stepGameStatePure' randInts (textureArea textureUse -> area) gs@GameState {..} EngineState {..} = \case
   KeyEvent Key'Space KeyState'Pressed ->
     gs
       { gsBullets =
@@ -91,9 +90,9 @@ stepGameStatePure' randInts (textureArea -> area) gs@GameState {..} EngineState 
           flip filter gsEnemies $ \enemyPos ->
             (x enemyPos > - enemyWidth &&)
               $ not
-              $ any (area enemy enemyPos `collidesWith`) (bulletTrajectory =<< gsBullets)
+              $ any (area Enemy enemyPos `collidesWith`) (bulletTrajectory =<< gsBullets)
           where
-            bulletTrajectory pos = area bullet <$> trajectoryPixels pos esTimePassed 0 bulletVelocity
+            bulletTrajectory pos = area Heart <$> trajectoryPixels pos esTimePassed 0 bulletVelocity
         newEnemies = survivingEnemies <> (Pos 1100 . modY <$> take numAdded randInts)
           where
             numAdded = numEnemies - length survivingEnemies

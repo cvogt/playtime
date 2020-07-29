@@ -41,7 +41,7 @@ makeEngineConfig liveCodeState = do
     $ putMVar popSound =<< load (gameDir </> "assets/bubble_pop.ogg") -- https://freesound.org/people/blue2107/sounds/59978/
   let dim = Dimensions {width = 1024, height = 768}
   initialGameState <- makeInitialGameState dim
-  let loadTx = \(TextureId name) -> either fail pure =<< (readPng $ gameDir </> "assets" </> name)
+  let loadTx = \(tuId . textureUse -> TextureFile name) -> either fail pure =<< (readPng $ gameDir </> "assets" </> name)
       stepGameState textures es@EngineState {..} old_gs event = do
         pre <- sequence $ replicate 10 randomIO
         let new_gs =
@@ -51,7 +51,4 @@ makeEngineConfig liveCodeState = do
         when (Key'Space `elem` esKeysPressed) $ play =<< readMVar popSound
         saveMay es new_gs
         fromMaybe new_gs <$> loadMay es
-  wireEngineConfig dim 1 all_textures liveCodeState stepGameState visualize loadTx initialGameState
-
-all_textures :: [TextureId]
-all_textures = tuId <$> [plane, enemy, bullet]
+  wireEngineConfig dim 1 liveCodeState stepGameState visualize loadTx initialGameState

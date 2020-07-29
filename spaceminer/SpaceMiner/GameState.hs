@@ -7,25 +7,22 @@ import "GLFW-b" Graphics.UI.GLFW
 import My.Prelude
 import Playtime
 
-inventory, red_resource, top_wall, main_character, floor_plate :: TextureUse
-inventory = TextureUse 1 $ TextureId "inventory.png"
-red_resource = TextureUse 1 $ TextureId "red_resource.png"
-top_wall = TextureUse 1 $ TextureId "top_wall.png"
-main_character = TextureUse 1 $ TextureId "main_character.png"
-floor_plate = TextureUse 1 $ TextureId "floor_plate.png"
+data TextureId = Inventory | RedResource | TopWall | MainCharacter | FloorPlate
+  deriving (Eq, Ord, Show, Data, Bounded, Enum, Generic, NFData, ToJSON, FromJSON)
 
-textureArea :: (TextureId -> Texture) -> TextureUse -> Pos -> Area
-textureArea textures (TextureUse scale (textures -> Texture dim _ _)) pos = Area pos $ scale |*| dim
+newtype TextureFile = TextureFile FilePath deriving (Eq, Ord, Show)
 
-data TextureUse = TextureUse {tuScale :: Scale, tuId :: TextureId} deriving (Eq, Ord, Show, Generic, NFData, ToJSON, FromJSON)
+textureUse :: TextureId -> TextureUse TextureFile
+textureUse = \case
+  Inventory -> TextureUse 1 $ TextureFile "inventory.png"
+  RedResource -> TextureUse 1 $ TextureFile "red_resource.png"
+  TopWall -> TextureUse 1 $ TextureFile "top_wall.png"
+  MainCharacter -> TextureUse 1 $ TextureFile "main_character.png"
+  FloorPlate -> TextureUse 1 $ TextureFile "floor_plate.png"
 
-newtype TextureId = TextureId [Char]
-  deriving (Eq, Ord, Show)
-  deriving newtype (NFData, ToJSON, FromJSON)
+newtype Board = Board {unBoard :: Map Pos TextureId} deriving newtype (Show, Semigroup, Monoid, NFData)
 
-newtype Board = Board {unBoard :: Map Pos TextureUse} deriving newtype (Show, Semigroup, Monoid, NFData)
-
-data UIMode = TexturePlacementMode TextureUse | TextureMoveMode deriving (Show, Generic, NFData, ToJSON, FromJSON)
+data UIMode = TexturePlacementMode TextureId | TextureMoveMode deriving (Show, Generic, NFData, ToJSON, FromJSON)
 
 data GameState = GameState
   { gsUIMode :: UIMode,
@@ -45,7 +42,7 @@ gridsize = 12
 makeInitialGameState :: Dimensions -> GameState
 makeInitialGameState Dimensions {width, height} =
   GameState
-    { gsUIMode = TexturePlacementMode floor_plate,
+    { gsUIMode = TexturePlacementMode FloorPlate,
       gsCandidates = mempty,
       gsCollisions = (Nothing, Nothing, Nothing, Nothing),
       gsFloor = mempty,
@@ -56,7 +53,7 @@ makeInitialGameState Dimensions {width, height} =
     }
 
 stepGameStatePure :: (TextureId -> Texture) -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure (textureArea -> area) gs@GameState {..} EngineState {..} = \case
+stepGameStatePure (textureArea textureUse -> area) gs@GameState {..} EngineState {..} = \case
   CursorPosEvent _ ->
     let Pos x y = esCursorPos
         gridify :: Double -> Double
@@ -68,7 +65,7 @@ stepGameStatePure (textureArea -> area) gs@GameState {..} EngineState {..} = \ca
               case gsUIMode of
                 TexturePlacementMode texture ->
                   case (`setMember` esMousePressed) of
-                    f | f MouseButton'1 && texture == floor_plate -> Board $ mapInsert placement texture (unBoard gsFloor)
+                    f | f MouseButton'1 && texture == FloorPlate -> Board $ mapInsert placement texture (unBoard gsFloor)
                     f | f MouseButton'2 -> Board $ mapDelete placement (unBoard gsFloor)
                     _ -> gsFloor
                 TextureMoveMode -> gsFloor,
@@ -76,7 +73,7 @@ stepGameStatePure (textureArea -> area) gs@GameState {..} EngineState {..} = \ca
               case gsUIMode of
                 TexturePlacementMode texture ->
                   case (`setMember` esMousePressed) of
-                    f | f MouseButton'1 && texture /= floor_plate -> Board $ mapInsert placement texture (unBoard gsRoom)
+                    f | f MouseButton'1 && texture /= FloorPlate -> Board $ mapInsert placement texture (unBoard gsRoom)
                     f | f MouseButton'2 -> Board $ mapDelete placement (unBoard gsRoom)
                     _ -> gsRoom
                 TextureMoveMode -> gsRoom
@@ -84,8 +81,8 @@ stepGameStatePure (textureArea -> area) gs@GameState {..} EngineState {..} = \ca
   KeyEvent key KeyState'Pressed ->
     gs
       { gsUIMode = case key of
-          Key'1 -> TexturePlacementMode floor_plate
-          Key'2 -> TexturePlacementMode top_wall
+          Key'1 -> TexturePlacementMode FloorPlate
+          Key'2 -> TexturePlacementMode TopWall
           Key'3 -> TextureMoveMode
           _ -> gsUIMode
       }
@@ -97,7 +94,7 @@ stepGameStatePure (textureArea -> area) gs@GameState {..} EngineState {..} = \ca
             velocityX = if MovementAction Left' `setMember` esActions then - distancePerSec else if MovementAction Right' `setMember` esActions then distancePerSec else 0
             velocityY = if MovementAction Up `setMember` esActions then - distancePerSec else if MovementAction Down `setMember` esActions then distancePerSec else 0
          in gs
-              { gsMainCharacter = move esTimePassed (area main_character gsMainCharacter) gsMainCharacterPrevious velocityX velocityY $ area floor_plate <$> (keys $ unBoard gsRoom),
+              { gsMainCharacter = move esTimePassed (area MainCharacter gsMainCharacter) gsMainCharacterPrevious velocityX velocityY $ area FloorPlate <$> (keys $ unBoard gsRoom),
                 gsMainCharacterPrevious = gsMainCharacter
               }
   _ -> gs

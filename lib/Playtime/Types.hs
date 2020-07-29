@@ -5,23 +5,23 @@ module Playtime.Types where
 import Codec.Picture.Types (Image, PixelRGBA8)
 import Data.Aeson (FromJSON, ToJSON)
 import GHC.Num
+import GHC.Real
 import qualified Graphics.Rendering.OpenGL.GL as GL (TextureObject)
 import qualified "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.IO
 import My.Prelude
-import Playtime.Textures
 
 data EngineConfig = EngineConfig
   { ecDim :: Dimensions,
     ecScale :: Scale,
-    ecVisualize :: (TextureId -> Texture) -> EngineState -> IO (Dimensions, [TexturePlacements]),
+    ecVisualize :: EngineState -> IO [TexturePlacements Texture],
     ecStepGameState :: EngineState -> Event -> IO (),
     ecCheckIfContinue :: EngineState -> IO Bool,
     ecGameDebugInfo :: EngineState -> IO [[Char]]
   }
 
 -- Event Types
-data Color = RGBA Int Int Int Int deriving (Eq, Ord, Show, Generic, NFData)
+data Color = RGBA Int Int Int Int deriving (Eq, Ord, Show, Generic, ToJSON, FromJSON, NFData)
 
 data Event
   = RenderEvent SystemTime
@@ -72,12 +72,11 @@ data Texture = Texture
     tImage :: Image PixelRGBA8
   }
 
-data FillType = Solid | Border Float deriving (Show, Eq, Generic, NFData)
+data FillType = Solid | Border Float
 
-data TexturePlacements
+data TexturePlacements a
   = Rectangle FillType Area Color
-  | TexturePlacements TextureId Area
-  deriving (Show, Eq, Generic, NFData)
+  | TexturePlacements a Area
 
 data Pos = Pos {x :: Double, y :: Double} deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON)
 
@@ -122,6 +121,11 @@ instance Num Scale where
   abs (Scale x y) = Scale (abs x) (abs y)
   signum (Scale x y) = Scale (signum x) (signum y)
   fromInteger i = Scale (fromInteger i) (fromInteger i)
+
+instance Fractional Scale where
+  Scale a b / Scale a' b' = Scale (a / a') (b / b')
+  recip (Scale a b) = Scale (recip a) (recip b)
+  fromRational r = Scale (fromRational r) (fromRational r)
 
 instance Num Pos where
   (Pos lx ly) + (Pos rx ry) = Pos (lx + rx) (ly + ry)

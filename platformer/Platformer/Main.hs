@@ -1,55 +1,36 @@
 module Platformer.Main where
 
-import qualified Data.Map as Map
+import Codec.Picture (readPng)
 import My.IO
 import My.Prelude
 import Platformer.GameState
 import Platformer.Visualize
 import Playtime
 
---   foldl (.) id (flap [applyToEngineState, applyToGameState] event')
-
 gameDir :: FilePath
 gameDir = "platformer"
 
-srcFiles :: [FilePath]
-srcFiles =
-  [ gameDir </> "Platformer/Main.hs",
-    gameDir </> "Platformer/GameState.hs",
-    gameDir </> "Platformer/Visualize.hs"
-  ]
-
---   foldl (.) id (flap [applyToEngineState, applyToGameState] event')
 main :: IO ()
 main =
-  playtimeLiveCode makeEngineConfig "Platformer.Main" "makeEngineConfig" (gameDir </> "Platformer") srcFiles
-
-dim :: Dimensions
-dim = Dimensions {width = 320, height = 240}
+  playtimeLiveCode
+    makeEngineConfig
+    "Platformer.Main"
+    "makeEngineConfig"
+    (gameDir </> "Platformer")
+    [ gameDir </> "Platformer/Main.hs",
+      gameDir </> "Platformer/GameState.hs",
+      gameDir </> "Platformer/Visualize.hs"
+    ]
 
 makeEngineConfig :: LiveCodeState -> IO EngineConfig
 makeEngineConfig liveCodeState = do
-  recoveredGameState <- startLiveCode liveCodeState
-  gameStateMVar <- newMVar $ fromMaybe (makeInitialGameState dim) recoveredGameState
+  let dim = Dimensions {width = 320, height = 240}
+      loadTx = \(TextureId name) -> either fail pure =<< (readPng $ gameDir </> "assets" </> name)
+      stepGameState textures es@EngineState {..} old_gs event = do
+        let new_gs = stepGameStatePure textures old_gs es event
+        saveMay es new_gs
+        fromMaybe new_gs <$> loadMay es
+  wireEngineConfig dim 1 all_textures liveCodeState stepGameState visualize loadTx $ makeInitialGameState dim
 
-  pure $
-    EngineConfig
-      { ecDim = dim,
-        ecScale = 3,
-        ecVisualize = \tx es -> visualize tx es <$> readMVar gameStateMVar,
-        ecStepGameState = \es event -> modifyMVar_ gameStateMVar $ \gs -> do
-          let new_gs = stepGameStatePure gs es event
-          liveCodeSwitch liveCodeState new_gs
-          pure new_gs,
-        ecCheckIfContinue = pure . not . gameExitRequested,
-        ecGameDebugInfo = \_ -> do
-          GameState {..} <- readMVar gameStateMVar
-          let Pos x' y' = gsMainCharacterPosition
-          pure $
-            [ "collisions: " <> show gsCollisions,
-              "main char: " <> show (x', y'),
-              "gsVelocityX: " <> show gsVelocityX,
-              "gsVelocityY: " <> show gsVelocityY,
-              "sprite count room: " <> show (Map.size $ unBoard gsRoom)
-            ]
-      }
+all_textures :: [TextureId]
+all_textures = tuId <$> [main_character, floor_plate]

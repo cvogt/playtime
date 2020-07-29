@@ -11,7 +11,7 @@ import Playtime
 import System.Random
 
 data GameState = GameState
-  { gsMainCharacterPosition :: Pos,
+  { gsMainCharacter :: Pos,
     gsEnemies :: [Pos],
     gsStars :: [(Double, Pos)],
     gsBullets :: [Pos]
@@ -24,6 +24,18 @@ maxStarSize = 4
 numEnemies :: Int
 numEnemies = 10
 
+newtype TextureId = TextureId [Char] deriving (Eq, Ord, Show)
+
+data TextureUse = TextureUse {tuScale :: Scale, tuId :: TextureId}
+
+plane, enemy, bullet :: TextureUse
+plane = TextureUse 1 $ TextureId "plane.png"
+enemy = TextureUse 0.1 $ TextureId "enemy_red.png"
+bullet = TextureUse 0.025 $ TextureId "haskell_love_logo.png"
+
+textureArea :: (TextureId -> Texture) -> TextureUse -> Pos -> Area
+textureArea textures (TextureUse scale (textures -> Texture dim _ _)) pos = Area pos $ scale |*| dim
+
 makeInitialGameState :: Dimensions -> IO GameState
 makeInitialGameState Dimensions {width, height} = do
   let randInts = sequence $ replicate 510 randomIO
@@ -33,19 +45,19 @@ makeInitialGameState Dimensions {width, height} = do
 
   pure
     GameState
-      { gsMainCharacterPosition = Pos 10 200,
+      { gsMainCharacter = Pos 10 200,
         gsEnemies = mempty,
         gsStars = fmap int2Double sizes `zip` (uncurry Pos <$> fmap int2Double xs `zip` fmap int2Double ys),
         gsBullets = mempty
       }
 
-stepGameStatePure :: [Int] -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure randInts gs@GameState {..} EngineState {..} = \case
+stepGameStatePure :: [Int] -> (TextureId -> Texture) -> GameState -> EngineState -> Event -> GameState
+stepGameStatePure randInts (textureArea -> area) gs@GameState {..} EngineState {..} = \case
   KeyEvent Key'Space KeyState'Pressed ->
     gs
       { gsBullets =
           gsBullets
-            <> relativePoss gsMainCharacterPosition [(300, 100), (300, 145), (325, 200), (325, 290), (300, 340), (300, 390)]
+            <> relativePoss gsMainCharacter [(300, 100), (300, 145), (325, 200), (325, 290), (300, 340), (300, 390)]
       }
   RenderEvent _ ->
     let distancePerSec = 200
@@ -60,9 +72,9 @@ stepGameStatePure randInts gs@GameState {..} EngineState {..} = \case
           flip filter gsEnemies $ \enemyPos ->
             (x enemyPos > - enemyWidth &&)
               $ not
-              $ any (flip Area 50 enemyPos `collidesWith`) (bulletTrajectory =<< gsBullets)
+              $ any (area enemy enemyPos `collidesWith`) (bulletTrajectory =<< gsBullets)
           where
-            bulletTrajectory bullet = flip Area 12 <$> trajectoryPixels bullet esTimePassed 0 bulletVelocity
+            bulletTrajectory pos = area bullet <$> trajectoryPixels pos esTimePassed 0 bulletVelocity
         newEnemies = survivingEnemies <> (Pos 1100 . modY <$> take numAdded randInts)
           where
             numAdded = numEnemies - length survivingEnemies
@@ -73,7 +85,7 @@ stepGameStatePure randInts gs@GameState {..} EngineState {..} = \case
             moveY = subtract $ esTimePassed * 0 * (size + 1)
             modX = flip mod' (width + maxStarSize)
      in gs
-          { gsMainCharacterPosition = gsMainCharacterPosition |+| Dimensions (esTimePassed * velocityX) (esTimePassed * velocityY),
+          { gsMainCharacter = gsMainCharacter |+| Dimensions (esTimePassed * velocityX) (esTimePassed * velocityY),
             gsEnemies = updateX (subtract $ esTimePassed * 100) <$> newEnemies,
             gsStars = stepStar <$> gsStars,
             gsBullets = filterX (< 1024) gsBullets <&> updateX (+ bulletStep)

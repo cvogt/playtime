@@ -21,6 +21,6 @@ pico2Double pico = int2Double (fromIntegral pico) / 1000 / 1000 / 1000 / 1000
 avg :: Foldable t => t Integer -> Double
 avg xs = (fromInteger @Double $ sum xs) / (int2Double $ length xs)
 
-translate :: Pos -> TexturePlacements -> TexturePlacements
+translate :: Pos -> TexturePlacements a -> TexturePlacements a
 translate (Pos xd yd) (TexturePlacements t (Area (Pos x y) dim)) = TexturePlacements t $ Area (Pos (x + xd) (y + yd)) dim
 translate (Pos xd yd) (Rectangle mode (Area (Pos x y) dim) c) = Rectangle mode (Area (Pos (x + xd) (y + yd)) dim) c

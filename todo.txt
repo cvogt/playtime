@@ -1,7 +1,15 @@
 SVG support
 -- https://svg-clipart.com/svg/symbol/mKBXkcQ-flame-vector.svg
 -- https://hackage.haskell.org/package/rasterific-svg-0.3.3.2/docs/Graphics-Rasterific-Svg.html
-
+----------
+Vector libs to check out
+https://hackage.haskell.org/package/fixed-vector-1.2.0.0
+https://hackage.haskell.org/package/linear-1.21.1
+https://www.stackage.org/haddock/lts-16.6/apecs-physics-0.4.4/index.html
+----------
+Game engines to check out
+https://aas.sh/blog/making-a-game-with-haskell-and-apecs/
+--------
 TODO brainstorming:
 
 1. milestone:

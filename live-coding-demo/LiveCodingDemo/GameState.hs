@@ -1,7 +1,7 @@
 module LiveCodingDemo.GameState where
 
 import Data.Aeson (FromJSON, ToJSON)
-import Data.List (zip)
+import Data.List as L (zip)
 import GHC.Float (double2Int, int2Double)
 import GHC.Real (mod)
 import My.IO
@@ -14,8 +14,7 @@ data GameState = GameState
   { gsPlayer :: Pos,
     gsBullets :: [Pos],
     gsStars :: [Pos],
-    gsEnemies :: [Pos],
-    gsDebug :: [Char]
+    gsEnemies :: [Pos]
   }
   deriving (Show, Generic, NFData, ToJSON, FromJSON)
 
@@ -28,12 +27,23 @@ makeInitialGameState Dimensions {width} = do
       { gsStars = uncurry Pos <$> (take 500 randDoubles `zip` drop 500 randDoubles),
         gsEnemies = [],
         gsBullets = [],
-        gsPlayer = Pos 100 100,
-        gsDebug = "DEBUG"
+        gsPlayer = Pos 100 100
       }
 
-stepGameStatePure :: [Int] -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure randInts gs@GameState {..} EngineState {..} = \case
+newtype TextureId = TextureId [Char] deriving (Eq, Ord, Show)
+
+data TextureUse = TextureUse {tuScale :: Scale, tuId :: TextureId}
+
+plane, enemy, bullet :: TextureUse
+plane = TextureUse 1 $ TextureId "plane.png"
+enemy = TextureUse 0.1 $ TextureId "enemy_red.png"
+bullet = TextureUse 0.025 $ TextureId "haskell_love_logo.png"
+
+textureArea :: (TextureId -> Texture) -> TextureUse -> Pos -> Area
+textureArea textures (TextureUse scale (textures -> Texture dim _ _)) pos = Area pos $ scale |*| dim
+
+stepGameStatePure :: [Int] -> (TextureId -> Texture) -> GameState -> EngineState -> Event -> GameState
+stepGameStatePure randInts (textureArea -> area) gs@GameState {..} EngineState {..} = \case
   KeyEvent Key'Space KeyState'Pressed ->
     let Dimensions {width} = esLogicalDimensions
         _randDoubles = int2Double . (`mod` double2Int width) <$> randInts
@@ -47,20 +57,17 @@ stepGameStatePure randInts gs@GameState {..} EngineState {..} = \case
         moveX = if Key'A `setMember` esKeysPressed then subtract step else if Key'D `setMember` esKeysPressed then (+ step) else id
         moveY = if Key'W `setMember` esKeysPressed then subtract step else if Key'S `setMember` esKeysPressed then (+ step) else id
         randDoubles = int2Double . (`mod` double2Int height) <$> randInts
-        bulletVelocityX = 200
-        killed = catMaybes $ do
-          bulletArea <- join $ gsBullets <&> \pos -> flip Area 100 <$> trajectoryPixels pos esTimePassed bulletVelocityX 0
-          enemy <- gsEnemies
-          pure $ if Area enemy 100 `collidesWith` bulletArea then Just enemy else Nothing
-        newEnemies = take (10 - length gsEnemies) $ uncurry Pos <$> ((toList $ repeat 1200) `zip` drop 10 randDoubles)
+        bulletVelocityX = 300
+        (bullets, killed) = unzip $ fmap (both (\(Area pos _) -> pos)) $ filter (uncurry collidesWith) $ (,) <$> (area bullet <$> gsBullets) <*> (area enemy <$> gsEnemies)
+        newEnemies = take (10 - length gsEnemies) $ uncurry Pos <$> ((toList $ repeat 1023) `zip` drop 10 randDoubles)
         newEnemies' = filter (not . (`elem` killed)) $ gsEnemies <> newEnemies
      in gs
           { gsPlayer = updateY moveY $ updateX moveX gsPlayer,
             gsEnemies =
               updateX (subtract $ 50 * esTimePassed) . updateX (`mod'` width) <$> newEnemies',
             gsBullets =
-              updateX (+ bulletVelocityX * esTimePassed) <$> filter ((< 1024) . x) gsBullets,
+              updateX (+ bulletVelocityX * esTimePassed) <$> filter ((< 1024) . x) (gsBullets \\ bullets),
             gsStars =
-              updateX (subtract $ 5 * esTimePassed) . updateX (`mod'` width) <$> gsStars
+              updateX (subtract $ 20 * esTimePassed) . updateX (`mod'` width) <$> gsStars
           }
   _ -> gs

@@ -51,16 +51,15 @@ import Data.Bifunctor (Bifunctor, bimap, first, second)
 import Data.Bool ((&&), Bool (False, True), not, otherwise, (||))
 import Data.Char (Char)
 import Data.Data (toConstr)
-import Data.Either (Either (Left, Right), either)
+import Data.Either (Either (Left, Right), either, isLeft, isRight)
 import Data.Eq (Eq ((/=), (==)))
 -- UNSAFE, DO NOT IMPORT: foldl1, foldr1
-
 import Data.Fixed (mod') -- mod' is incorrect for large Doubles and always returns 0.
-import Data.Foldable (Foldable, all, any, elem, find, fold, foldl, foldr, forM_, for_, length, mapM_, null, sum, toList, traverse_)
+import Data.Foldable (Foldable, all, any, elem, find, fold, foldl, foldlM, foldr, foldrM, forM_, for_, length, mapM_, null, sum, toList, traverse_)
 import Data.Function (($), (.), flip, id)
 import Data.Functor (($>), (<$), (<$>), (<&>), Functor, fmap)
 import Data.Int (Int)
-import Data.List (concat, drop, dropWhile, filter, nub, replicate, reverse, sort, sortBy, sortOn, take, takeWhile)
+import Data.List ((\\), concat, drop, dropWhile, filter, nub, replicate, reverse, sort, sortBy, sortOn, take, takeWhile, unzip)
 import qualified Data.List.NonEmpty
 import Data.List.NonEmpty (NonEmpty ((:|)), groupAllWith, groupBy, groupWith, head, iterate, last, repeat, unfoldr)
 import Data.Map (Map, keys, mapKeys)
@@ -76,13 +75,13 @@ import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8', encodeUtf8)
 import Data.Time.Clock.System (SystemTime)
 import Data.Traversable (for, forM, sequence, traverse)
-import Data.Tuple (fst, snd, uncurry)
+import Data.Tuple (fst, snd, swap, uncurry)
 import Foreign (ForeignPtr)
 import GHC.Float ((**), Double, Float, divideDouble)
 import GHC.Generics (Generic)
 import GHC.Integer (Integer)
 import GHC.Num ((*), (+), (-), Num, abs, subtract)
-import GHC.Real (Integral)
+import GHC.Real (Fractional, Integral)
 import GHC.Show (Show (show))
 import Safe (headMay, lastMay)
 import Safe.Foldable (foldl1Safe, foldr1Safe)
@@ -101,11 +100,17 @@ mapInsert = Data.Map.insert
 mapLookup :: Ord k => k -> Map k a -> Maybe a
 mapLookup = Data.Map.lookup
 
+mapNull :: Map k a -> Bool
+mapNull = Data.Map.null
+
 mapToList :: Map k a -> [(k, a)]
 mapToList = Data.Map.toList
 
 mapSingleton :: k -> a -> Map k a
 mapSingleton = Data.Map.singleton
+
+mapUnion :: Ord k => Map k a -> Map k a -> Map k a
+mapUnion = Data.Map.union
 
 setDelete :: Ord a => a -> Set a -> Set a
 setDelete = Data.Set.delete

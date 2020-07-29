@@ -3,7 +3,6 @@ module Playtime
     module Playtime.EngineState,
     module Playtime.Geometry,
     module Playtime.SaveLoad,
-    module Playtime.Textures,
     module Playtime.Types,
     module Playtime.Util,
     GLFW.Key (..),
@@ -12,6 +11,7 @@ module Playtime
     startLiveCode,
     liveCodeSwitch,
     debugPrint,
+    wireEngineConfig,
   )
 where
 
@@ -27,7 +27,7 @@ import Playtime.GLFW
 import Playtime.Geometry
 import Playtime.LiveCode
 import Playtime.SaveLoad
-import Playtime.Textures
+import Playtime.Setup
 import Playtime.Types
 import Playtime.Util
 
@@ -58,23 +58,23 @@ playtime' lcsMay ecMVar = do
 
   -- open gl rendering loop
   withGLFW esWindowSize "Playtime" $ \window -> do
-    textures <- loadTextures
-    setEventCallback window $ void . stepStates cs
+    setEventCallback window $ void . stepStates window cs
 
     whileM $ trackTimeM csTimeRender $ do
       GLFW.pollEvents
       EngineConfig {ecVisualize} <- readMVar ecMVar
-      es <- stepStates cs . RenderEvent =<< getSystemTime
+      es <- stepStates window cs . RenderEvent =<< getSystemTime
       pure es
-        >>= trackTimeM csSpritePlacementTime . ecVisualize textures
-        >>= trackTimeM csTimeGL . renderGL textures window
+        >>= ecVisualize
+        >>= trackTimeM csTimeGL . renderGL window ecDim
       ecCheckIfContinue es
   where
-    stepStates :: ConcurrentState -> Event -> IO EngineState
-    stepStates ConcurrentState {..} event =
+    stepStates :: GLFW.Window -> ConcurrentState -> Event -> IO EngineState
+    stepStates window ConcurrentState {..} event =
       modifyMVar csEngineState $ \old_es ->
         trackTimeM csTimeStep $ do
           EngineConfig {ecStepGameState} <- readMVar ecMVar
+          GLFW.makeContextCurrent $ Just window -- needed in order to load textures in event handler threads
           let new_es = stepEngineState old_es event
           ecStepGameState new_es event
           pure (new_es, new_es)

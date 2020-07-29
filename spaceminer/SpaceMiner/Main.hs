@@ -1,6 +1,6 @@
 module Main where
 
-import qualified Data.Map as Map
+import Codec.Picture (readPng)
 import My.IO
 import My.Prelude
 import Playtime
@@ -27,29 +27,12 @@ main =
 
 makeEngineConfig :: LiveCodeState -> IO EngineConfig
 makeEngineConfig liveCodeState = do
-  recoveredGameState <- startLiveCode liveCodeState
-  gameStateMVar <- newMVar $ fromMaybe (makeInitialGameState dim) recoveredGameState
+  let loadTx = \(TextureId name) -> either fail pure =<< (readPng $ gameDir </> "assets" </> name)
+      stepGameState textures es@EngineState {..} old_gs event = do
+        let new_gs = stepGameStatePure textures old_gs es event
+        saveMay es new_gs
+        fromMaybe new_gs <$> loadMay es
+  wireEngineConfig dim 3 all_textures liveCodeState stepGameState visualize loadTx $ makeInitialGameState dim
 
-  pure $
-    EngineConfig
-      { ecDim = dim,
-        ecScale = 3,
-        ecVisualize = \tx es -> visualize tx es <$> readMVar gameStateMVar,
-        ecStepGameState = \es event -> modifyMVar_ gameStateMVar $ \old_gs -> do
-          let new_gs = stepGameStatePure old_gs es event
-          liveCodeSwitch liveCodeState new_gs
-          saveMay es new_gs
-          fromMaybe new_gs <$> loadMay es,
-        ecCheckIfContinue = pure . not . gameExitRequested,
-        ecGameDebugInfo = \_ -> do
-          GameState {..} <- readMVar gameStateMVar
-          let Pos x' y' = gsMainCharacterPosition
-          pure $
-            [ "collisions: " <> show gsCollisions,
-              "candidates: " <> show gsCandidates,
-              "main char: " <> show (x', y'),
-              "last places sprite location: " <> show gsLastPlacement,
-              "sprite count floor: " <> show (Map.size $ unBoard gsFloor),
-              "sprite count room: " <> show (Map.size $ unBoard gsRoom)
-            ]
-      }
+all_textures :: [TextureId]
+all_textures = tuId <$> [inventory, red_resource, top_wall, main_character, floor_plate]

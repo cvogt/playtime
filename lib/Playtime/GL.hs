@@ -1,7 +1,6 @@
 module Playtime.GL where
 
 import Codec.Picture (DynamicImage (ImageRGBA8), Image (Image), readPng)
-import qualified Data.Map as Map (lookup)
 import Data.Vector.Storable (unsafeWith)
 import GHC.Err (error)
 import GHC.Float (double2Float, int2Double, int2Float)
@@ -12,14 +11,13 @@ import qualified Graphics.Rendering.OpenGL.GLU.Errors as GLU
 import qualified "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.IO
 import My.Prelude
-import Playtime.Textures
 import Playtime.Types
 
-renderGL :: (TextureId -> Texture) -> GLFW.Window -> (Dimensions, [TexturePlacements]) -> IO ()
-renderGL textures window (Dimensions {width, height}, texturePlacements) = do
+renderGL :: GLFW.Window -> Dimensions -> [TexturePlacements Texture] -> IO ()
+renderGL window Dimensions {width = w, height = h} texturePlacements = do
   GL.matrixMode $= GL.Projection
   GL.loadIdentity
-  GL.ortho 0 width height 0 0 1
+  GL.ortho 0 w h 0 0 1
   GL.clear [GL.ColorBuffer, GL.DepthBuffer]
 
   GL.matrixMode $= GL.Modelview 0
@@ -43,8 +41,10 @@ renderGL textures window (Dimensions {width, height}, texturePlacements) = do
       GL.renderPrimitive mode $ do
         let Corners c1 c2 c3 c4 = corners area
         forM_ [c1, c2, c2, c3, c3, c4, c4, c1] vertex
-    (TexturePlacements textureId area) -> do
-      let Texture _ glObject _ = textures textureId
+    (TexturePlacements (Texture dim glObject _) area@(Area _ dim')) -> do
+      if abs ((width dim / height dim) - (width dim' / height dim')) > 0.001
+        then error $ show (dim, dim')
+        else pure ()
       GL.currentColor $= GL.Color4 @Float 255 255 255 1
       GL.texture GL.Texture2D $= GL.Enabled
       GL.textureFilter GL.Texture2D $= ((GL.Nearest, Nothing), GL.Nearest)
@@ -63,19 +63,15 @@ renderGL textures window (Dimensions {width, height}, texturePlacements) = do
     vertex (Pos x y) = GL.vertex $ GL.Vertex2 (double2Float x) (double2Float y)
     checkErrorsGLU csg = void $ error . ("GLU.errors " <>) . (csg <>) . (": " <>) . show <$> GL.get GLU.errors
 
-loadTextures :: IO (TextureId -> Texture)
-loadTextures = do
-  m' <- sequence $ loadIntoOpenGL <$> textureNameMap
-  pure $ \key -> fromMaybe (error $ "failed to load texture: " <> show key) $ Map.lookup key m'
-  where
-    loadIntoOpenGL :: FilePath -> IO Texture
-    loadIntoOpenGL name = do
-      readPng (assetsDir </> name <> ".png") >>= \case
-        Right (ImageRGBA8 img@(Image width height dat)) -> unsafeWith dat $ \ptr -> do
-          let txSize = GL.TextureSize2D (fromIntegral width) (fromIntegral height)
-          [texture] <- GL.genObjectNames 1
-          GL.textureBinding GL.Texture2D $= Just texture
-          GL.texImage2D GL.Texture2D GL.NoProxy 0 GL.RGBA8 txSize 0 $ GL.PixelData GL.RGBA GL.UnsignedByte ptr
-          pure $ Texture (Dimensions (int2Double width) (int2Double height)) texture img
-        Left msg -> error $ "loadIntoOpenGL error: " <> msg
-        _ -> error "loadIntoOpenGL error: We currently only support png graphic files JuicyPixles reads as ImageRGBA8."
+loadTextureId :: FilePath -> ExceptT [Char] IO Texture
+loadTextureId file = ExceptT (first ("loadTextureId: " <>) <$> readPng file) >>= loadTexture
+
+loadTexture :: DynamicImage -> ExceptT [Char] IO Texture
+loadTexture img = ExceptT $ case img of
+  ImageRGBA8 img'@(Image width height dat) -> unsafeWith dat $ \ptr -> do
+    let txSize = GL.TextureSize2D (fromIntegral width) (fromIntegral height)
+    [texture] <- GL.genObjectNames 1
+    GL.textureBinding GL.Texture2D $= Just texture
+    GL.texImage2D GL.Texture2D GL.NoProxy 0 GL.RGBA8 txSize 0 $ GL.PixelData GL.RGBA GL.UnsignedByte ptr
+    pure $ Right $ Texture (Dimensions (int2Double width) (int2Double height)) texture img'
+  _ -> pure $ Left $ "loadTexture error: We currently only support png graphic files JuicyPixles reads as ImageRGBA8."

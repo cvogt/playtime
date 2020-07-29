@@ -11,6 +11,10 @@ module Playtime.LiveCode where
 -- https://codeutopia.net/blog/2011/08/20/adventures-in-haskell-dynamic-loading-and-compiling-of-modules/
 -- https://gist.github.com/jhartikainen/1158986
 -- https://bluishcoder.co.nz/2008/11/25/dynamic-compilation-and-loading-of.html
+--
+-- Related work discovered later:
+-- - https://github.com/lukexi/halive
+-- - https://hackage.haskell.org/package/rapid
 
 import Bag (bagToList)
 import Control.Concurrent.MVar (newEmptyMVar, putMVar)
@@ -50,21 +54,21 @@ liveCodeSwitch lcs@LiveCodeState {..} gameState = do
           void $ swapMVar lcsCompiling True
           Playtime.LiveCode.compileAndEval lcsSrcFiles lcsModule lcsExpression >>= \case
             Left compileErrors -> pure $ Just compileErrors
-            Right makeEngineConfig' -> do
+            Right wireEngineConfig -> do
               void $ swapMVar lcsGameState $ toJSON gameState
-              void $ swapMVar lcsEngineConfig =<< makeEngineConfig' lcs
+              void $ swapMVar lcsEngineConfig =<< wireEngineConfig lcs
               pure Nothing -- doesn't clear compile errors because EngineConfig has already been replaced
       void $ swapMVar lcsCompiling False
 
 makeLiveCodeState :: (LiveCodeState -> IO EngineConfig) -> [Char] -> [Char] -> FilePath -> [FilePath] -> IO LiveCodeState
-makeLiveCodeState makeEngineConfig' lcsModule lcsExpression lcsWatchDir lcsSrcFiles = do
+makeLiveCodeState wireEngineConfig lcsModule lcsExpression lcsWatchDir lcsSrcFiles = do
   lcsChangeDetected <- newMVar False
   lcsCompiling <- newMVar False
   lcsCompileError <- newMVar Nothing
   lcsGameState <- newMVar Null
   lcsEngineConfig <- newEmptyMVar
   let lcs = LiveCodeState {..}
-  putMVar lcsEngineConfig =<< makeEngineConfig' lcs
+  putMVar lcsEngineConfig =<< wireEngineConfig lcs
   pure lcs
 
 data LiveCodeState = LiveCodeState

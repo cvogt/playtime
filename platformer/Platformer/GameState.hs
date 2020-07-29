@@ -7,14 +7,27 @@ import "GLFW-b" Graphics.UI.GLFW
 import My.Prelude
 import Playtime
 
-newtype Board = Board {unBoard :: Map Pos TextureId} deriving newtype (Show, Semigroup, Monoid, NFData)
+main_character, floor_plate :: TextureUse
+main_character = TextureUse 1 $ TextureId "main_character.png"
+floor_plate = TextureUse 1 $ TextureId "floor_plate.png"
+
+textureArea :: (TextureId -> Texture) -> TextureUse -> Pos -> Area
+textureArea textures (TextureUse scale (textures -> Texture dim _ _)) pos = Area pos $ scale |*| dim
+
+data TextureUse = TextureUse {tuScale :: Scale, tuId :: TextureId} deriving (Eq, Ord, Show, Generic, NFData, ToJSON, FromJSON)
+
+newtype TextureId = TextureId [Char]
+  deriving (Eq, Ord, Show)
+  deriving newtype (NFData, ToJSON, FromJSON)
+
+newtype Board = Board {unBoard :: Map Pos TextureUse} deriving newtype (Show, Semigroup, Monoid, NFData)
 
 data GameState = GameState
   { gsCollisions :: Corners (Maybe Area),
     gsVelocityY :: Double,
     gsVelocityX :: Double,
-    gsMainCharacterPosition :: Pos,
-    gsMainCharacterPositionPrevious :: Pos,
+    gsMainCharacter :: Pos,
+    gsMainCharacterPrevious :: Pos,
     gsPenetrable :: Board,
     gsRoom :: Board
   }
@@ -29,40 +42,40 @@ makeInitialGameState Dimensions {width} =
     { gsCollisions = Corners Nothing Nothing Nothing Nothing,
       gsVelocityY = 0,
       gsVelocityX = 0,
-      gsMainCharacterPosition = Pos (width / 2) 0,
-      gsMainCharacterPositionPrevious = Pos (width / 2) 0,
+      gsMainCharacter = Pos (width / 2) 0,
+      gsMainCharacterPrevious = Pos (width / 2) 0,
       gsPenetrable = Board $ mempty,
       gsRoom =
         Board
-          $ mapInsert (Pos 240 188) FloorPlate
-          $ mapInsert (Pos 240 176) FloorPlate
+          $ mapInsert (Pos 240 188) floor_plate
+          $ mapInsert (Pos 240 176) floor_plate
           $ mapKeys (uncurry Pos)
           $ mapFromList
           $ concat
           $ take 10
           $ toList
           $ (iterate (+ 12) 200 <&>)
-          $ (\r -> take 60 $ toList $ (iterate (+ 12) 0 `NEL.zip` repeat r) `NEL.zip` (repeat FloorPlate))
+          $ (\r -> take 60 $ toList $ (iterate (+ 12) 0 `NEL.zip` repeat r) `NEL.zip` (repeat floor_plate))
     }
 
-stepGameStatePure :: GameState -> EngineState -> Event -> GameState
-stepGameStatePure gs@GameState {..} EngineState {..} = \case
+stepGameStatePure :: (TextureId -> Texture) -> GameState -> EngineState -> Event -> GameState
+stepGameStatePure (textureArea -> area) gs@GameState {..} EngineState {..} = \case
   KeyEvent Key'Space KeyState'Pressed -> gs {gsVelocityY = -220}
   RenderEvent _ ->
     let speedX = 100
-        newMainCharacterPosition =
+        newMainCharacter =
           move
             esTimePassed
-            (Area gsMainCharacterPosition 12)
-            gsMainCharacterPositionPrevious
+            (area main_character gsMainCharacter)
+            gsMainCharacterPrevious
             gsVelocityX
             gsVelocityY
-            $ flip Area 12 <$> (keys $ unBoard gsRoom)
+            $ area floor_plate <$> (keys $ unBoard gsRoom)
      in gs
-          { gsMainCharacterPosition = newMainCharacterPosition,
-            gsMainCharacterPositionPrevious = gsMainCharacterPosition,
+          { gsMainCharacter = newMainCharacter,
+            gsMainCharacterPrevious = gsMainCharacter,
             gsVelocityY =
-              if gsVelocityY /= 0 && y gsMainCharacterPosition == y newMainCharacterPosition
+              if gsVelocityY /= 0 && y gsMainCharacter == y newMainCharacter
                 then 0
                 else gsVelocityY + 9.81 * esTimePassed * 55,
             gsVelocityX =

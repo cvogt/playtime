@@ -5,8 +5,7 @@ import My.Prelude
 import Playtime.Types
 
 data ConcurrentState = ConcurrentState
-  { csSpritePlacementTime :: MVar [(SystemTime, SystemTime)],
-    csEngineState :: MVar EngineState,
+  { csEngineState :: MVar EngineState,
     csTimeStep :: MVar [(SystemTime, SystemTime)],
     csTimeGL :: MVar [(SystemTime, SystemTime)],
     csTimeRender :: MVar [(SystemTime, SystemTime)]
@@ -14,7 +13,6 @@ data ConcurrentState = ConcurrentState
 
 makeInitialConcurrentState :: EngineState -> IO ConcurrentState
 makeInitialConcurrentState es = do
-  csSpritePlacementTime <- newMVar []
   csEngineState <- newMVar es
   csTimeStep <- newMVar []
   csTimeGL <- newMVar []

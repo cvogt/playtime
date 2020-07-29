@@ -7,23 +7,24 @@ import My.Prelude
 import Playtime
 import SpaceMiner.GameState
 
-visualize :: (TextureId -> Texture) -> EngineState -> GameState -> (Dimensions, [TexturePlacements])
+visualize :: (TextureId -> Texture) -> EngineState -> GameState -> [TexturePlacements TextureId]
 visualize textures EngineState {..} GameState {..} =
-  (esLogicalDimensions, sprites <> highlightMouserOver)
+  highlightMouserOver <> sprites
   where
     sprites =
-      floor <> room
-        <> [ texturePlacements MainCharacter 1 gsMainCharacterPosition,
-             texturePlacements MainCharacter 2 0,
-             texturePlacements MainCharacter 2 50,
+      inventoryUI
+        <> [ texturePlacements main_character gsMainCharacter,
+             texturePlacements main_character 0,
+             texturePlacements main_character 50,
              rectangle (Border 3) 90 24 $ RGBA 255 0 0 255,
              rectangle Solid (Pos 90 114) 24 $ RGBA 255 255 0 255
            ]
-        <> inventory
-    texturePlacements :: TextureId -> Scale -> Pos -> TexturePlacements
-    texturePlacements textureId scale pos =
+        <> room
+        <> floor
+    texturePlacements :: TextureUse -> Pos -> TexturePlacements TextureId
+    texturePlacements (TextureUse scale textureId) pos =
       let Texture dim _ _ = textures textureId in TexturePlacements textureId $ Area (pos) $ scale |*| dim
-    rectangle :: FillType -> Pos -> Dimensions -> Color -> TexturePlacements
+    rectangle :: FillType -> Pos -> Dimensions -> Color -> TexturePlacements TextureId
     rectangle fillType pos dimensions color = Rectangle fillType (Area pos dimensions) color
     highlightMouserOver = case findMouseOver of
       Nothing -> []
@@ -43,12 +44,12 @@ visualize textures EngineState {..} GameState {..} =
               transparentPixel = case pixelAt img (double2Int px) (double2Int py) of PixelRGBA8 _ _ _ a -> a == 0
            in esCursorPos `isWithin` area && not transparentPixel
         Rectangle _ area _ -> esCursorPos `isWithin` area
-    floor = (Map.toList $ unBoard gsFloor) <&> \(pos, t) -> texturePlacements t 1 pos
-    room = (Map.toList $ unBoard gsRoom) <&> \(pos, t) -> texturePlacements t 1 pos
+    floor = (Map.toList $ unBoard gsFloor) <&> \(pos, t) -> texturePlacements t pos
+    room = (Map.toList $ unBoard gsRoom) <&> \(pos, t) -> texturePlacements t pos
     -- backup of grouping logic as reminder if needed: (groupWith snd $ Map.toList $ unBoard gsFloor) <&> \ne@((_, t) :| _) ->
-    inventory =
+    inventoryUI =
       translate (Pos 200 100)
-        <$> [ texturePlacements Inventory 1 0,
-              texturePlacements RedResource 1 18,
-              texturePlacements MainCharacter 1 3
+        <$> [ texturePlacements inventory 0,
+              texturePlacements red_resource 18,
+              texturePlacements main_character 3
             ]

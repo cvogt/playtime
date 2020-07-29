@@ -37,14 +37,12 @@ forkDebugTerminal :: ConcurrentState -> MVar EngineConfig -> Maybe LiveCodeState
 forkDebugTerminal ConcurrentState {..} engineConfigMVar lcsMay = do
   -- FIXME: cursor stays hidden after termination
   forkIO $ do
-    flip iterateM_ (0, 0, 0, 0) $ \(oldAvgTimeStep, oldAvgTexturePlacementTime, oldAvgRenderLoopTime, oldAvgTotalLoopTime) -> do
+    flip iterateM_ (0, 0, 0) $ \(oldAvgTimeStep, oldAvgRenderLoopTime, oldAvgTotalLoopTime) -> do
       engineState@EngineState {..} <- readMVar csEngineState
       timeStep <- modifyMVar csTimeStep $ \t -> pure ([], t)
-      texturePlacementTimes <- modifyMVar csSpritePlacementTime $ \t -> pure ([], t)
       renderLoopTimes <- modifyMVar csTimeGL $ \t -> pure ([], t)
       totalLoopTimes <- modifyMVar csTimeRender $ \t -> pure ([], t)
       let newAvgTimeStep = if not $ null timeStep then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> timeStep) else oldAvgTimeStep
-          newAvgTexturePlacementTime = if not $ null texturePlacementTimes then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> texturePlacementTimes) else oldAvgTexturePlacementTime
           newAvgRenderLoopTime = if not $ null renderLoopTimes then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> renderLoopTimes) else oldAvgRenderLoopTime
           newAvgTotalLoopTime = if not $ null totalLoopTimes then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> totalLoopTimes) else oldAvgTotalLoopTime
       gameDebugInfo <- ecGameDebugInfo <$> readMVar engineConfigMVar
@@ -60,7 +58,6 @@ forkDebugTerminal ConcurrentState {..} engineConfigMVar lcsMay = do
           <> ( take width
                  <$> [ "fps: " <> show newAvgTotalLoopTime,
                        "1/renderLoopTime: " <> show newAvgRenderLoopTime,
-                       "1/texturePlacementTime: " <> show newAvgTexturePlacementTime,
                        "1/timeStep: " <> show newAvgTimeStep,
                        replicate width '-',
                        "esCursorPos: " <> show esCursorPos,
@@ -74,7 +71,7 @@ forkDebugTerminal ConcurrentState {..} engineConfigMVar lcsMay = do
              )
 
       threadDelay $ 200 * 1000 -- FIXME: changing this to 100 * make process freeze on exit
-      pure (oldAvgTimeStep, newAvgTexturePlacementTime, newAvgRenderLoopTime, newAvgTotalLoopTime)
+      pure (oldAvgTimeStep, newAvgRenderLoopTime, newAvgTotalLoopTime)
 
 debugPrint :: ToJSON a => a -> [[Char]]
 debugPrint a = case toJSON a of

@@ -22,7 +22,7 @@ makeEngineConfig :: Maybe LiveCodeState -> IO EngineConfig
 makeEngineConfig liveCodeState = do
   wireEngineConfig
     dim
-    1
+    3
     liveCodeState
     (stepGameState . textureArea textures)
     (visualize . textureSprites textures)

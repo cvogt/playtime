@@ -88,6 +88,21 @@ rectangle' ft c a = Rectangle a $ Right (ft, c)
 textureSprites :: (a -> (Scale, b)) -> (b -> Texture) -> a -> Pos -> Sprite
 textureSprites textures f (second f . textures -> (scale, tx@(Texture dim _ _))) pos = Rectangle (pos, scale |*| dim) (Left tx)
 
+
+instance Num Scale' where
+  (lx, ly) + (rx, ry) = (lx + rx, ly + ry)
+  (lx, ly) - (rx, ry) = (lx - rx, ly - ry)
+  (lx, ly) * (rx, ry) = (lx * rx, ly * ry)
+  negate (x, y) = (- x, - y)
+  abs (x, y) = (abs x, abs y)
+  signum (x, y) = (signum x, signum y)
+  fromInteger i = (fromInteger i, fromInteger i)
+
+instance Fractional Scale' where
+  (a, b) / (a', b') = (a / a', b / b')
+  recip (a, b) = (recip a, recip b)
+  fromRational r = (fromRational r, fromRational r)
+
 data Pos = Pos {x :: Double, y :: Double} deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON)
 
 data Scale = Scale {sx :: Double, sy :: Double} deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON)
@@ -95,18 +110,6 @@ data Scale = Scale {sx :: Double, sy :: Double} deriving (Eq, Ord, Show, Generic
 data Dimensions = Dimensions {width :: Double, height :: Double} deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON)
 
 type Area = (Pos, Dimensions)
-
-(|*|) :: Scale -> Dimensions -> Dimensions
-(|*|) Scale {sx, sy} Dimensions {width, height} = Dimensions {width = width * sx, height = height * sy}
-
-(|+|) :: Pos -> Dimensions -> Pos
-(|+|) Pos {x, y} Dimensions {width, height} = Pos {x = x + width, y = y + height}
-
-(|/|) :: Dimensions -> Dimensions -> Scale
-(|/|) Dimensions {width = w1, height = h1} Dimensions {width = w2, height = h2} = Scale {sx = w1 `divideDouble` w2, sy = h1 `divideDouble` h2}
-
-(|-|) :: Pos -> Pos -> Dimensions
-(|-|) Pos {x = x1, y = y1} Pos {x = x2, y = y2} = Dimensions {width = x1 - x2, height = y1 - y2}
 
 isWithin :: Pos -> Area -> Bool
 isWithin (Pos cx cy) (Pos x y, Dimensions width height) = x <= cx && y <= cy && cx <= (x + width) && cy <= (y + height)
@@ -124,7 +127,7 @@ data Corners a = Corners {nw :: a, sw :: a, se :: a, ne :: a} deriving (Eq, Ord,
 instance Foldable Corners where foldr f b (Corners ne se sw nw) = foldr f b [ne, se, sw, nw]
 
 corners :: Area -> Corners Pos
-corners (pos, dim) = cornerScales <&> \scale -> pos |+| (scale |*| dim)
+corners (pos, dim) = cornerScales <&> \scale -> pos |+| (scale |*| dim :: Dimensions)
 
 instance Num Scale where
   (Scale lx ly) + (Scale rx ry) = Scale (lx + rx) (ly + ry)
@@ -157,3 +160,108 @@ instance Num Dimensions where
   abs (Dimensions x y) = Dimensions (abs x) (abs y)
   signum (Dimensions x y) = Dimensions (signum x) (signum y)
   fromInteger i = Dimensions (fromInteger i) (fromInteger i)
+
+{-
+The following are type-safe types and functions for coordinate and vector arithmetics.
+
+After several bugs accidentally adding a height to an x coordinate,
+this will prevent them going forward.
+
+Coordinate type safety is achieve by distinguishing X and Y coordinates using a Phantom type.
+We are also distinguishing absolute and relative coordiantes as well as factor from each other.
+
+This prevents things like adding absolute coordinates to each other, which is non-sensible,
+and limiting allowed operatings to sensible one such as adding a relative coordinate to an
+absolute one.
+
+Vector arithmetic type-safety distinguishe
+-}
+
+instance AdditionElementWise Pos Dimensions Pos where
+  (|+|) Pos {x, y} Dimensions {width, height} = Pos {x = x + width, y = y + height}
+
+instance SubtractionElementWise Pos Pos Dimensions where
+  (|-|) Pos {x = x1, y = y1} Pos {x = x2, y = y2} = Dimensions {width = x1 - x2, height = y1 - y2}
+
+instance MultiplicationElementWise Scale Dimensions Dimensions where
+  (|*|) Scale {sx, sy} Dimensions {width, height} = Dimensions {width = width * sx, height = height * sy}
+
+instance DivisionElementWise Dimensions Dimensions Scale where
+  (|/|) Dimensions {width = w1, height = h1} Dimensions {width = w2, height = h2} = Scale {sx = w1 `divideDouble` w2, sy = h1 `divideDouble` h2}
+
+data X
+
+data Y
+
+newtype Absolute a = Absolute Double deriving (Eq, Ord, Show)
+  deriving newtype (Num, Fractional, NFData, FromJSON, ToJSON)
+
+newtype Relative a = Relative Double deriving (Eq, Ord, Show)
+  deriving newtype (Num, Fractional, NFData, FromJSON, ToJSON)
+
+newtype Factor a = Factor Double deriving (Eq, Ord, Show)
+  deriving newtype (Num, Fractional, NFData, FromJSON, ToJSON)
+
+type Vector2 t = (t X, t Y)
+
+type Pos' = Vector2 Absolute
+
+type Dim' = Vector2 Relative
+
+type Scale' = Vector2 Factor
+
+type Rect = (Dim', Pos')
+
+class AdditionElementWise a b c where (|+|) :: a -> b -> c
+
+class SubtractionElementWise a b c where (|-|) :: a -> b -> c
+
+class MultiplicationElementWise a b c where (|*|) :: a -> b -> c
+
+class DivisionElementWise a b c where (|/|) :: a -> b -> c
+
+infixl 7 |*|, |/|
+
+infixl 6 |+|, |-|
+
+instance AdditionElementWise (Absolute a) (Relative a) (Absolute a) where
+  (Absolute l) |+| (Relative r) = Absolute $ l * r
+
+instance AdditionElementWise (Relative a) (Absolute a) (Absolute a) where
+  (|+|) = flip (|+|)
+
+instance SubtractionElementWise (Absolute a) (Absolute a) (Relative a) where
+  (Absolute l) |-| (Absolute r) = Relative $ l * r
+
+instance MultiplicationElementWise (Factor a) (Relative a) (Relative a) where
+  (Factor l) |*| (Relative r) = Relative $ l * r
+
+instance MultiplicationElementWise (Relative a) (Factor a) (Relative a) where
+  (|*|) = flip (|*|)
+
+instance DivisionElementWise (Relative a) (Relative a) (Factor a) where
+  (Relative l) |/| (Relative r) = Factor $ l * r
+
+instance
+  (AdditionElementWise a b c, AdditionElementWise a' b' c') =>
+  AdditionElementWise (a, a') (b, b') (c, c')
+  where
+  (a, a') |+| (b, b') = (a |+| b, a' |+| b')
+
+instance
+  (SubtractionElementWise a b c, SubtractionElementWise a' b' c') =>
+  SubtractionElementWise (a, a') (b, b') (c, c')
+  where
+  (a, a') |-| (b, b') = (a |-| b, a' |-| b')
+
+instance
+  (MultiplicationElementWise a b c, MultiplicationElementWise a' b' c') =>
+  MultiplicationElementWise (a, a') (b, b') (c, c')
+  where
+  (a, a') |*| (b, b') = (a |*| b, a' |*| b')
+
+instance
+  (DivisionElementWise a b c, DivisionElementWise a' b' c') =>
+  DivisionElementWise (a, a') (b, b') (c, c')
+  where
+  (a, a') |/| (b, b') = (a |/| b, a' |/| b')

@@ -2,8 +2,6 @@ module LiveCodingDemo.GameState where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.List as L (zip)
-import GHC.Float (double2Int, int2Double)
-import GHC.Real (mod)
 import My.Prelude
 import Playtime
 
@@ -33,8 +31,8 @@ textures = \case
   Enemy -> (0.1, "enemy_red.png")
   Heart -> (0.025, "haskell_love_logo.png")
 
-stepGameStatePure :: [Int] -> (TextureId -> Pos -> Area) -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure randInts area gs@GameState {..} EngineState {..} = \case
+stepGameStatePure :: Int -> (TextureId -> Pos -> Area) -> GameState -> EngineState -> Event -> GameState
+stepGameStatePure (mkStdGen -> rng) area gs@GameState {..} EngineState {..} = \case
   KeyEvent Key'Space KeyState'Pressed ->
     let
      in -- (width,_) = esLogicalDimensions
@@ -48,11 +46,12 @@ stepGameStatePure randInts area gs@GameState {..} EngineState {..} = \case
         (width, height) = esLogicalDimensions
         moveX = if Key'A `setMember` esKeysPressed then (|- step) else if Key'D `setMember` esKeysPressed then (|+ step) else id
         moveY = if Key'W `setMember` esKeysPressed then (|- step) else if Key'S `setMember` esKeysPressed then (|+ step) else id
-        randDoubles = Absolute . int2Double . (flip mod $ double2Int $ unRelative height) <$> randInts
+        maxEnemies = 10
+        randY = fst $ randomsAbsoluteY rng maxEnemies height
         bulletVelocityX :: Relative X
         bulletVelocityX = 300
         (bullets, killed) = unzip $ fmap (both (\(_, pos) -> pos)) $ filter (uncurry collidesWith) $ (,) <$> (area Heart <$> gsBullets) <*> (area Enemy <$> gsEnemies)
-        newEnemies = take (10 - length gsEnemies) $ (repeat 1023) `zip` drop 10 randDoubles
+        newEnemies = take (maxEnemies - length gsEnemies) $ (repeat 1023) `zip` randY
         newEnemies' = filter (not . (`elem` killed)) $ gsEnemies <> newEnemies
      in gs
           { gsPlayer = updateY moveY $ updateX moveX gsPlayer,

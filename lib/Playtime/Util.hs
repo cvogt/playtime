@@ -36,7 +36,17 @@ randomsR = randomsR' . ([],)
     randomsR' (acc, g') n r = randomsR' (first (: acc) $ randomR r g') (n -1) r
 
 randomPoss :: StdGen -> Int -> Dim -> ([Pos], StdGen)
-randomPoss g n (Relative width, Relative height) =
+randomPoss g n (width, height) =
+  let (xs, g') = randomsAbsoluteX g n width
+      (ys, g'') = randomsAbsoluteY g' n height
+   in (xs `zip` ys, g'')
+
+randomsAbsoluteX :: StdGen -> Int -> Relative X -> ([Absolute X], StdGen)
+randomsAbsoluteX g n (Relative width) =
   let (xs, g') = randomsR g n (0, double2Int width)
-      (ys, g'') = randomsR g' n (0, double2Int height)
-   in ((xAbsolute . int2Double <$> xs) `zip` (yAbsolute . int2Double <$> ys), g'')
+   in (xAbsolute . int2Double <$> xs, g')
+
+randomsAbsoluteY :: StdGen -> Int -> Relative Y -> ([Absolute Y], StdGen)
+randomsAbsoluteY g n (Relative height) =
+  let (ys, g') = randomsR g n (0, double2Int height)
+   in (yAbsolute . int2Double <$> ys, g')

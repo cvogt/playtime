@@ -36,7 +36,7 @@ makeEngineConfig liveCodeState = do
       pre <- preIO
       let new_gs = stepGameStatePure pre area old_gs es event
       postIO es new_gs
-    preIO = sequence $ replicate 1500 randomIO
+    preIO :: IO Int = randomIO
     postIO es new_gs = do
       post_gs <-
         if Key'R `setMember` esKeysPressed es

@@ -57,7 +57,7 @@ liveCodeSwitch lcs@LiveCodeState {..} gameState = do
             Left compileErrors -> pure $ Just compileErrors
             Right wireEngineConfig -> do
               void $ swapMVar lcsGameState $ toJSON gameState
-              void $ swapMVar lcsEngineConfig =<< wireEngineConfig lcs
+              void $ swapMVar lcsEngineConfig =<< wireEngineConfig (Just lcs)
               pure Nothing -- doesn't clear compile errors because EngineConfig has already been replaced
       void $ swapMVar lcsCompiling False
 

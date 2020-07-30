@@ -15,4 +15,6 @@ spaceminer-run:
 spaceminer-compile:
 	stack build :spaceminer --file-watch
 watch:
-	stack build --file-watch
+	stack test --file-watch --no-run-tests
+watch-test:
+	stack test --file-watch

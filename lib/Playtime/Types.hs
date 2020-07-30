@@ -91,11 +91,11 @@ textureSprites :: (a -> (Scale, b)) -> (b -> Texture) -> a -> Pos -> Sprite
 textureSprites textures f (second f . textures -> (scale, tx@(Texture dim _ _))) pos = Rectangle (scale *| dim, pos) (Left tx)
 
 isWithin :: Pos -> Area -> Bool
-isWithin (cx, cy) ((width, height), (x, y)) = x <= cx && y <= cy && cx <= (x |+| width) && cy <= (y |+| height)
+isWithin (cx, cy) ((width, height), (x, y)) = x <= cx && y <= cy && cx <= (x |+ width) && cy <= (y |+ height)
 
 collidesWith :: Area -> Area -> Bool
 collidesWith (da, a1) (db, b1) =
-  let a2 = a1 |+| da; b2 = b1 |+| db
+  let a2 = a1 |+ da; b2 = b1 |+ db
    in fst a1 < fst b2 && fst a2 > fst b1 && snd a1 < snd b2 && snd a2 > snd b1
 
 cornerScales :: Corners Scale
@@ -106,7 +106,7 @@ data Corners a = Corners {nw :: a, sw :: a, se :: a, ne :: a} deriving (Eq, Ord,
 instance Foldable Corners where foldr f b (Corners ne se sw nw) = foldr f b [ne, se, sw, nw]
 
 corners :: Area -> Corners Pos
-corners (dim, pos) = cornerScales <&> \scale -> pos |+| scale *| dim
+corners (dim, pos) = cornerScales <&> \scale -> pos |+ scale *| dim
 
 {-
 The following are type-safe types and functions for coordinate and vector arithmetics.
@@ -185,7 +185,7 @@ instance (Fractional a, Fractional b) => Fractional (a, b) where
   recip (a, b) = (recip a, recip b)
   fromRational r = (fromRational r, fromRational r)
 
-class AdditionPairWise a b where (|+|) :: a -> b -> a
+class AdditionPairWise a b where (|+) :: a -> b -> a
 
 class SubtractionPairWise a b where (|-|) :: a -> a -> b
 
@@ -205,28 +205,28 @@ class Modulo'PairWise a b where (|%%|) :: a -> b -> a
 
 infixl 7 |*|, *|, |/|, |%|, |%%|
 
-infixl 6 |+|, |-|, |-
+infixl 6 |+, |-|, |-
 
 instance AdditionPairWise (Absolute a) (Relative a) where
-  (Absolute l) |+| (Relative r) = Absolute $ l + r
+  (Absolute l) |+ (Relative r) = Absolute $ l + r
 
-instance AdditionPairWise (Relative a) (Relative a) where (Relative l) |+| (Relative r) = Relative $ l + r
+instance AdditionPairWise (Relative a) (Relative a) where (Relative l) |+ (Relative r) = Relative $ l + r
 
-instance AdditionPairWise Pos (Relative X) where (a, a') |+| r = (a |+| r, a')
+instance AdditionPairWise Pos (Relative X) where (a, a') |+ r = (a |+ r, a')
 
-instance AdditionPairWise Pos (Relative Y) where (a, a') |+| r = (a, a' |+| r)
+instance AdditionPairWise Pos (Relative Y) where (a, a') |+ r = (a, a' |+ r)
 
-instance AdditionPairWise Dim Dim where (|+|) = pairWise (|+|) (|+|)
+instance AdditionPairWise Dim Dim where (|+) = pairWise (|+) (|+)
 
-instance AdditionPairWise Pos Dim where (|+|) = pairWise (|+|) (|+|)
+instance AdditionPairWise Pos Dim where (|+) = pairWise (|+) (|+)
 
-instance AdditionPairWise (Absolute X) Dim where l |+| dim = l |+| fst dim
+instance AdditionPairWise (Absolute X) Dim where l |+ dim = l |+ fst dim
 
-instance AdditionPairWise (Absolute Y) Dim where l |+| dim = l |+| snd dim
+instance AdditionPairWise (Absolute Y) Dim where l |+ dim = l |+ snd dim
 
-instance AdditionPairWise (Relative X) Dim where l |+| dim = l |+| fst dim
+instance AdditionPairWise (Relative X) Dim where l |+ dim = l |+ fst dim
 
-instance AdditionPairWise (Relative Y) Dim where l |+| dim = l |+| snd dim
+instance AdditionPairWise (Relative Y) Dim where l |+ dim = l |+ snd dim
 
 instance SubtractionPairWise (Absolute a) (Relative a) where (Absolute l) |-| (Absolute r) = Relative $ l - r
 

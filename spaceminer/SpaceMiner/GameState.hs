@@ -46,8 +46,8 @@ makeInitialGameState dim =
       gsFloor = mempty,
       gsRoom = mempty,
       gsLastPlacement = originPos,
-      gsMainCharacter = originPos |+| dim |/ (2 :: Scale),
-      gsMainCharacterPrevious = originPos |+| dim |/ (2 :: Scale)
+      gsMainCharacter = originPos |+ dim |/ (2 :: Scale),
+      gsMainCharacterPrevious = originPos |+ dim |/ (2 :: Scale)
     }
 
 stepGameStatePure :: (TextureId -> Pos -> Area) -> GameState -> EngineState -> Event -> GameState
@@ -87,8 +87,8 @@ stepGameStatePure area gs@GameState {..} EngineState {..} = \case
       then gs {gsFloor = mempty, gsRoom = mempty}
       else
         let distancePerSec = 100 :: Dim
-            velocityX = if MovementAction Left' `setMember` esActions then 0 |- distancePerSec else if MovementAction Right' `setMember` esActions then 0 |+| distancePerSec else 0
-            velocityY = if MovementAction Up `setMember` esActions then 0 |- distancePerSec else if MovementAction Down `setMember` esActions then 0 |+| distancePerSec else 0
+            velocityX = if MovementAction Left' `setMember` esActions then 0 |- distancePerSec else if MovementAction Right' `setMember` esActions then 0 |+ distancePerSec else 0
+            velocityY = if MovementAction Up `setMember` esActions then 0 |- distancePerSec else if MovementAction Down `setMember` esActions then 0 |+ distancePerSec else 0
          in gs
               { gsMainCharacter = move esTimePassed (area MainCharacter gsMainCharacter) gsMainCharacterPrevious velocityX velocityY $ area FloorPlate <$> (keys $ unBoard gsRoom),
                 gsMainCharacterPrevious = gsMainCharacter

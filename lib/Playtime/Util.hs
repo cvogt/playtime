@@ -21,7 +21,7 @@ avg :: Foldable t => t Integer -> Double
 avg xs = (fromInteger @Double $ sum xs) / (int2Double $ length xs)
 
 translate :: Dim -> Sprite -> Sprite
-translate offset (Rectangle (dim, pos) v) = Rectangle (dim, pos |+| offset) v
+translate offset (Rectangle (dim, pos) v) = Rectangle (dim, pos |+ offset) v
 
 allEnumValues :: forall a. (Enum a, Bounded a) => [a]
 allEnumValues = enumFrom (minBound :: a)

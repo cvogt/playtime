@@ -58,9 +58,8 @@ stepEngineState (clearOneTimeEffects -> gs@EngineState {..}) = \case
           -- FIXME: we still get distortion if aspect ration of resized window is different
           --        we should be able to fix that by adding black borders as needed
           let scale = esLogicalDimensions |/| esWindowSize :: Scale
-              relPos = pos |-| originPos :: Dim
-              rel = scale *| relPos
-           in originPos |+| rel
+              relPos = (pos |-| originPos) :: Dim
+           in originPos |+ scale *| relPos
       }
   KeyEvent key KeyState'Pressed ->
     let pressed = setInsert key esKeysPressed

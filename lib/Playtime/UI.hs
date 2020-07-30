@@ -33,7 +33,7 @@ dragAndDrop EngineState {..} gs mb areas setPoss dragAndDrop' setDragAndDrop =
               & (setPoss $ catMaybes [dragAndDrop' <&> \(DragAndDrop pos _) -> pos] <> poss)
         CursorPosEvent cursor ->
           gs
-            & (setDragAndDrop $ dragAndDrop' <&> (\(DragAndDrop _ offset) -> DragAndDrop (cursor |+| offset) offset))
+            & (setDragAndDrop $ dragAndDrop' <&> (\(DragAndDrop _ offset) -> DragAndDrop (cursor |+ offset) offset))
         _ -> gs
 
 showDragAndDrop :: Maybe DragAndDrop -> (Pos -> a) -> [a]

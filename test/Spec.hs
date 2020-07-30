@@ -56,16 +56,16 @@ main = do
     $ (12, (156.1, 107.01540000000021)) `collidesWith` (12, (144, 108))
 
   -- VECTOR ARITHMETICS TESTS
-  assert "Absolute |+| Relative" $ xAbsolute 1 |+| xRelative 1 == xAbsolute 2
-  assert "Relative |+| Relative" $ xRelative 1 |+| xRelative 1 == xRelative 2
-  assert "Pos |+| Relative X" $ (1 :: Pos) |+| xRelative 1 == ((2, 1) :: Pos)
-  assert "Pos |+| Relative Y" $ (1 :: Pos) |+| yRelative 1 == ((1, 2) :: Pos)
-  assert "Dim |+| Dim" $ ((1, 2) :: Dim) |+| ((1, 2) :: Dim) == ((2, 4) :: Dim)
-  assert "Dim |+| Dim" $ ((1, 2) :: Pos) |+| ((1, 2) :: Dim) == ((2, 4) :: Pos)
-  assert "Absolute X |+| Dim" $ xAbsolute 1 |+| ((1, 2) :: Dim) == xAbsolute 2
-  assert "Absolute Y |+| Dim" $ yAbsolute 1 |+| ((1, 2) :: Dim) == yAbsolute 3
-  assert "Relative X |+| Dim" $ xRelative 1 |+| ((1, 2) :: Dim) == xRelative 2
-  assert "Relative Y |+| Dim" $ yRelative 1 |+| ((1, 2) :: Dim) == yRelative 3
+  assert "Absolute |+ Relative" $ xAbsolute 1 |+ xRelative 1 == xAbsolute 2
+  assert "Relative |+ Relative" $ xRelative 1 |+ xRelative 1 == xRelative 2
+  assert "Pos |+ Relative X" $ (1 :: Pos) |+ xRelative 1 == ((2, 1) :: Pos)
+  assert "Pos |+ Relative Y" $ (1 :: Pos) |+ yRelative 1 == ((1, 2) :: Pos)
+  assert "Dim |+ Dim" $ ((1, 2) :: Dim) |+ ((1, 2) :: Dim) == ((2, 4) :: Dim)
+  assert "Dim |+ Dim" $ ((1, 2) :: Pos) |+ ((1, 2) :: Dim) == ((2, 4) :: Pos)
+  assert "Absolute X |+ Dim" $ xAbsolute 1 |+ ((1, 2) :: Dim) == xAbsolute 2
+  assert "Absolute Y |+ Dim" $ yAbsolute 1 |+ ((1, 2) :: Dim) == yAbsolute 3
+  assert "Relative X |+ Dim" $ xRelative 1 |+ ((1, 2) :: Dim) == xRelative 2
+  assert "Relative Y |+ Dim" $ yRelative 1 |+ ((1, 2) :: Dim) == yRelative 3
 
   assert "Absolute |-| Absolute" $ xAbsolute 2 |-| xAbsolute 1 == xRelative 1
   assert "Pos |-| Pos" $ ((3, 5) :: Pos) |-| ((1, 2) :: Pos) == ((2, 3) :: Dim)

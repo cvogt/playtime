@@ -56,8 +56,8 @@ trajectoryPixels objectPos timePassed ((timePassed *|) -> (velocityX, velocityY)
     stepY = velocityY |/ (Factor @Y $ int2Double steps)
     candidatesXY :: Absolute a -> Relative a -> Relative a -> [Absolute a]
     candidatesXY base velocity step =
-      (<> [base |+| velocity]) . toList $
+      (<> [base |+ velocity]) . toList $
         Absolute . int2Double
           . (if step < 0 then floor else ceiling)
           . unAbsolute
-          <$> iterateN steps (|+| step) base
+          <$> iterateN steps (|+ step) base

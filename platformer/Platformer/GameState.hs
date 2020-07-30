@@ -36,8 +36,8 @@ makeInitialGameState dim =
     { gsCollisions = Corners Nothing Nothing Nothing Nothing,
       gsVelocityY = 0,
       gsVelocityX = 0,
-      gsMainCharacter = originPos |+| dim |*| ((0.5, 0) :: Scale),
-      gsMainCharacterPrevious = originPos |+| dim |*| ((0.5, 0) :: Scale),
+      gsMainCharacter = originPos |+ dim |*| ((0.5, 0) :: Scale),
+      gsMainCharacterPrevious = originPos |+ dim |*| ((0.5, 0) :: Scale),
       gsPenetrable = Board $ mempty,
       gsRoom =
         Board
@@ -46,8 +46,8 @@ makeInitialGameState dim =
           $ mapFromList
           $ concat
           $ take 10
-          $ (iterate (|+| yRelative 12) (yAbsolute 200) <&>)
-          $ (\r -> take 60 $ (iterate (|+| xRelative 12) (xAbsolute 0) `zip` repeat r) `zip` (repeat FloorPlate))
+          $ (iterate (|+ yRelative 12) (yAbsolute 200) <&>)
+          $ (\r -> take 60 $ (iterate (|+ xRelative 12) (xAbsolute 0) `zip` repeat r) `zip` (repeat FloorPlate))
     }
 
 stepGameStatePure :: (TextureId -> Pos -> Area) -> GameState -> EngineState -> Event -> GameState
@@ -69,7 +69,7 @@ stepGameStatePure area gs@GameState {..} EngineState {..} = \case
             gsVelocityY =
               if gsVelocityY /= 0 && snd gsMainCharacter == snd newMainCharacter
                 then 0
-                else gsVelocityY |+| (9.81 :: Scale) |*| esTimePassed *| (55 :: Dim),
+                else gsVelocityY |+ (9.81 :: Scale) |*| esTimePassed *| (55 :: Dim),
             gsVelocityX =
               if Key'A `setMember` esKeysPressed
                 then - speedX

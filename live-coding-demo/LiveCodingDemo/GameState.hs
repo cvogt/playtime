@@ -52,8 +52,8 @@ stepGameStatePure randInts area gs@GameState {..} EngineState {..} = \case
     let velocity = (200, 200) :: Dim
         step = esTimePassed *| velocity
         (width, height) = esLogicalDimensions
-        moveX = if Key'A `setMember` esKeysPressed then (|- step) else if Key'D `setMember` esKeysPressed then (|+| step) else id
-        moveY = if Key'W `setMember` esKeysPressed then (|- step) else if Key'S `setMember` esKeysPressed then (|+| step) else id
+        moveX = if Key'A `setMember` esKeysPressed then (|- step) else if Key'D `setMember` esKeysPressed then (|+ step) else id
+        moveY = if Key'W `setMember` esKeysPressed then (|- step) else if Key'S `setMember` esKeysPressed then (|+ step) else id
         randDoubles = Absolute . int2Double . (flip mod $ double2Int $ unRelative height) <$> randInts
         bulletVelocityX :: Relative X
         bulletVelocityX = 300
@@ -65,7 +65,7 @@ stepGameStatePure randInts area gs@GameState {..} EngineState {..} = \case
             gsEnemies =
               (|- (50 :: Relative X) |*| esTimePassed) . (|%%| width) <$> newEnemies',
             gsBullets =
-              (|+| bulletVelocityX |*| esTimePassed) <$> filter ((< 1024) . fst) (gsBullets \\ bullets),
+              (|+ bulletVelocityX |*| esTimePassed) <$> filter ((< 1024) . fst) (gsBullets \\ bullets),
             gsStars =
               (|- (20 :: Relative X) |*| esTimePassed) . (|%%| width) <$> gsStars
           }

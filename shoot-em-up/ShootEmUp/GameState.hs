@@ -68,7 +68,7 @@ stepGameStatePure' randInts area gs@GameState {..} EngineState {..} = \case
     gs
       { gsBullets =
           gsBullets
-            <> ((gsMainCharacter |+|) <$> [(300, 100) :: Dim, (300, 145), (325, 200), (325, 290), (300, 340), (300, 390)])
+            <> ((gsMainCharacter |+) <$> [(300, 100) :: Dim, (300, 145), (325, 200), (325, 290), (300, 340), (300, 390)])
       }
   RenderEvent _ ->
     let distancePerSec = 200
@@ -104,12 +104,12 @@ stepGameStatePure' randInts area gs@GameState {..} EngineState {..} = \case
         stepStar :: (Dim, Pos) -> (Dim, Pos)
         stepStar (size, pos) = (size,) $ modu $ move' pos
           where
-            move' = (|- ((5, 0) :: Scale) |*| esTimePassed *| (size |+| (1 :: Dim)))
-            modu = (|%%| (esLogicalDimensions |+| gsMaxStarSize))
+            move' = (|- ((5, 0) :: Scale) |*| esTimePassed *| (size |+ (1 :: Dim)))
+            modu = (|%%| (esLogicalDimensions |+ gsMaxStarSize))
      in gs
-          { gsMainCharacter = gsMainCharacter |+| esTimePassed *| velocity,
+          { gsMainCharacter = gsMainCharacter |+ esTimePassed *| velocity,
             gsEnemies = (|- esTimePassed *| (100 :: Relative X)) <$> newEnemies,
             gsStars = stepStar <$> gsStars,
-            gsBullets = filterX (< 1024) gsBullets <&> (|+| bulletStep)
+            gsBullets = filterX (< 1024) gsBullets <&> (|+ bulletStep)
           }
   _ -> gs

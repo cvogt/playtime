@@ -24,14 +24,14 @@ makeEngineConfig liveCodeState = do
     dim
     1
     liveCodeState
-    stepGameState
-    visualize
+    (stepGameState . textureArea textures)
+    (visualize . textureSprites textures)
     loadTexture
     (snd . textures <$> allEnumValues)
     $ makeInitialGameState dim
   where
-    stepGameState loadedTextures es@EngineState {..} old_gs event = do
-      let new_gs = stepGameStatePure loadedTextures old_gs es event
+    stepGameState area es@EngineState {..} old_gs event = do
+      let new_gs = stepGameStatePure area old_gs es event
       saveMay es new_gs
       fromMaybe new_gs <$> loadMay es
     loadTexture = \name -> either fail pure =<< (readPng $ gameDir </> "assets" </> name)

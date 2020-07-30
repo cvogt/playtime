@@ -5,8 +5,8 @@ import My.Prelude
 import Platformer.GameState
 import Playtime
 
-visualize :: (FilePath -> Texture) -> EngineState -> GameState -> [Sprite]
-visualize (textureSprite textures -> sprite) EngineState {..} GameState {..} =
+visualize :: (TextureId -> Pos -> Sprite) -> EngineState -> GameState -> [Sprite]
+visualize sprite EngineState {..} GameState {..} =
   [sprite MainCharacter gsMainCharacter] <> room
   where
     room = (Map.toList $ unBoard gsRoom) <&> \(pos, t) -> sprite t pos

@@ -7,11 +7,10 @@ import My.Prelude
 import Playtime
 import SpaceMiner.GameState
 
-visualize :: (FilePath -> Texture) -> EngineState -> GameState -> [Sprite]
-visualize loadedTextures EngineState {..} GameState {..} =
+visualize :: (TextureId -> Pos -> Sprite) -> EngineState -> GameState -> [Sprite]
+visualize sprite EngineState {..} GameState {..} =
   highlightMouserOver <> sprites
   where
-    sprite = textureSprite textures loadedTextures
     sprites =
       inventoryUI
         <> [ sprite MainCharacter gsMainCharacter,

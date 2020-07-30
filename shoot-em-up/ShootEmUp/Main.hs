@@ -36,12 +36,19 @@ makeEngineConfig liveCodeState = do
     $ try @SomeException
     $ putMVar popSound =<< load (gameDir </> "assets/bubble_pop.ogg") -- https://freesound.org/people/blue2107/sounds/59978/
   makeInitialGameState dim
-    >>= wireEngineConfig dim 1 liveCodeState (stepGameState popSound) visualize loadTx (snd . textures <$> allEnumValues)
+    >>= wireEngineConfig
+      dim
+      1
+      liveCodeState
+      (stepGameState popSound . textureArea textures)
+      (visualize . textureSprites textures)
+      loadTx
+      (snd . textures <$> allEnumValues)
   where
     loadTx = \name -> either fail pure =<< (readPng $ gameDir </> "assets" </> name)
-    stepGameState popSound loadedTextures es@EngineState {..} old_gs event = do
+    stepGameState popSound area es@EngineState {..} old_gs event = do
       pre <- preIO
-      let new_gs = stepGameStatePure pre loadedTextures old_gs es event
+      let new_gs = stepGameStatePure pre area old_gs es event
       postIO es new_gs popSound
     preIO = sequence $ replicate 10 randomIO
     postIO es new_gs popSound = do

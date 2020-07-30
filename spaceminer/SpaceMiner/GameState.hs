@@ -50,8 +50,8 @@ makeInitialGameState Dimensions {width, height} =
       gsMainCharacterPrevious = Pos (width / 2) (height / 2)
     }
 
-stepGameStatePure :: (FilePath -> Texture) -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure (textureArea textures -> area) gs@GameState {..} EngineState {..} = \case
+stepGameStatePure :: (TextureId -> Pos -> Area) -> GameState -> EngineState -> Event -> GameState
+stepGameStatePure area gs@GameState {..} EngineState {..} = \case
   CursorPosEvent _ ->
     let Pos x y = esCursorPos
         gridify :: Double -> Double

@@ -12,7 +12,6 @@ textureArea textureScale textures i pos =
       Texture dim _ _ = textures b
    in (pos,) $ scale |*| dim
 
-
 relativePos :: Pos -> Double -> Double -> Pos
 relativePos Pos {x, y} xd yd = Pos {x = x + xd, y = y + yd}
 

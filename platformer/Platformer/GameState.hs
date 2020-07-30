@@ -53,8 +53,8 @@ makeInitialGameState Dimensions {width} =
           $ (\r -> take 60 $ toList $ (iterate (+ 12) 0 `NEL.zip` repeat r) `NEL.zip` (repeat FloorPlate))
     }
 
-stepGameStatePure :: (FilePath -> Texture) -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure (textureArea textures -> area) gs@GameState {..} EngineState {..} = \case
+stepGameStatePure :: (TextureId -> Pos -> Area) -> GameState -> EngineState -> Event -> GameState
+stepGameStatePure area gs@GameState {..} EngineState {..} = \case
   KeyEvent Key'Space KeyState'Pressed -> gs {gsVelocityY = -220}
   RenderEvent _ ->
     let speedX = 100

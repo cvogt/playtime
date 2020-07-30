@@ -4,8 +4,8 @@ import LiveCodingDemo.GameState
 import My.Prelude
 import Playtime
 
-visualize :: (FilePath -> Texture) -> EngineState -> GameState -> [Sprite]
-visualize (textureSprite textures -> sprite) EngineState {..} GameState {..} =
+visualize :: (TextureId -> Pos -> Sprite) -> EngineState -> GameState -> [Sprite]
+visualize sprite EngineState {..} GameState {..} =
   let
    in [sprite Plane gsPlayer]
         <> (sprite Heart <$> gsBullets)

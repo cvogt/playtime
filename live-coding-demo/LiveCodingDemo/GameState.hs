@@ -38,8 +38,8 @@ textures = \case
   Enemy -> (0.1, "enemy_red.png")
   Heart -> (0.025, "haskell_love_logo.png")
 
-stepGameStatePure :: [Int] -> (FilePath -> Texture) -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure randInts (textureArea textures -> area) gs@GameState {..} EngineState {..} = \case
+stepGameStatePure :: [Int] -> (TextureId -> Pos -> Area) -> GameState -> EngineState -> Event -> GameState
+stepGameStatePure randInts area gs@GameState {..} EngineState {..} = \case
   KeyEvent Key'Space KeyState'Pressed ->
     let Dimensions {width} = esLogicalDimensions
         _randDoubles = int2Double . (`mod` double2Int width) <$> randInts

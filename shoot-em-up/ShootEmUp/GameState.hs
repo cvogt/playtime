@@ -52,23 +52,23 @@ makeInitialGameState Dimensions {width, height} = do
         gsDragAndDrop = Nothing
       }
 
-stepGameStatePure :: [Int] -> (FilePath -> Texture) -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure pre loadedTextures old_gs es event =
+stepGameStatePure :: [Int] -> (TextureId -> Pos -> Area) -> GameState -> EngineState -> Event -> GameState
+stepGameStatePure pre area old_gs es event =
   foldl
     (&)
     old_gs
     [ \gs -> dragAndDrop es gs MouseButton'1 (getBulletAreas gs) setBullets (getDragAndDrop gs) setDragAndDrop event,
       \gs -> deleteOnClick es gs MouseButton'2 (getBulletAreas gs) setBullets event,
-      \gs -> stepGameStatePure' pre loadedTextures gs es event
+      \gs -> stepGameStatePure' pre area gs es event
     ]
   where
     setBullets bullets gs = gs {gsBullets = bullets}
-    getBulletAreas gs = textureArea textures loadedTextures Heart <$> gsBullets gs
+    getBulletAreas gs = area Heart <$> gsBullets gs
     getDragAndDrop gs = gsDragAndDrop gs
     setDragAndDrop v gs = gs {gsDragAndDrop = v}
 
-stepGameStatePure' :: [Int] -> (FilePath -> Texture) -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure' randInts (textureArea textures -> area) gs@GameState {..} EngineState {..} = \case
+stepGameStatePure' :: [Int] -> (TextureId -> Pos -> Area) -> GameState -> EngineState -> Event -> GameState
+stepGameStatePure' randInts area gs@GameState {..} EngineState {..} = \case
   KeyEvent Key'Space KeyState'Pressed ->
     gs
       { gsBullets =

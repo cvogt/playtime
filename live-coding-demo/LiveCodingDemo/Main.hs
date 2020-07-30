@@ -22,11 +22,18 @@ main =
 makeEngineConfig :: Maybe LiveCodeState -> IO EngineConfig
 makeEngineConfig liveCodeState = do
   makeInitialGameState dim
-    >>= wireEngineConfig dim 1 liveCodeState stepGameState visualize loadTexture (snd . textures <$> allEnumValues)
+    >>= wireEngineConfig
+      dim
+      1
+      liveCodeState
+      (stepGameState . textureArea textures)
+      (visualize . textureSprites textures)
+      loadTexture
+      (snd . textures <$> allEnumValues)
   where
-    stepGameState loadedTextures es@EngineState {..} old_gs event = do
+    stepGameState area es@EngineState {..} old_gs event = do
       pre <- preIO
-      let new_gs = stepGameStatePure pre loadedTextures old_gs es event
+      let new_gs = stepGameStatePure pre area old_gs es event
       postIO es new_gs
     preIO = sequence $ replicate 1500 randomIO
     postIO es new_gs = do

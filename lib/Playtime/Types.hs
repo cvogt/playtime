@@ -76,11 +76,17 @@ data FillType = Solid | Border Float
 
 data Sprite = Rectangle Area (Either Texture (FillType, Color))
 
+spriteArea :: Sprite -> Area
+spriteArea (Rectangle area _) = area
+
 rectangle :: FillType -> Color -> Dimensions -> Pos -> Sprite
 rectangle ft c d p = Rectangle (p, d) $ Right (ft, c)
 
-textureSprite :: (a -> (Scale, b)) -> (b -> Texture) -> a -> Pos -> Sprite
-textureSprite textures f (second f . textures -> (scale, tx@(Texture dim _ _))) pos = Rectangle (pos, scale |*| dim) (Left tx)
+rectangle' :: FillType -> Color -> Area -> Sprite
+rectangle' ft c a = Rectangle a $ Right (ft, c)
+
+textureSprites :: (a -> (Scale, b)) -> (b -> Texture) -> a -> Pos -> Sprite
+textureSprites textures f (second f . textures -> (scale, tx@(Texture dim _ _))) pos = Rectangle (pos, scale |*| dim) (Left tx)
 
 data Pos = Pos {x :: Double, y :: Double} deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON)
 

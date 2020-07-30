@@ -37,26 +37,24 @@ data GameState = GameState
 gridsize :: Num n => n
 gridsize = 12
 
-makeInitialGameState :: Dimensions -> GameState
-makeInitialGameState Dimensions {width, height} =
+makeInitialGameState :: Dim -> GameState
+makeInitialGameState dim =
   GameState
     { gsUIMode = TexturePlacementMode FloorPlate,
       gsCandidates = mempty,
       gsCollisions = (Nothing, Nothing, Nothing, Nothing),
       gsFloor = mempty,
       gsRoom = mempty,
-      gsLastPlacement = Pos 0 0,
-      gsMainCharacter = Pos (width / 2) (height / 2),
-      gsMainCharacterPrevious = Pos (width / 2) (height / 2)
+      gsLastPlacement = originPos,
+      gsMainCharacter = originPos |+| dim |/ (2 :: Scale),
+      gsMainCharacterPrevious = originPos |+| dim |/ (2 :: Scale)
     }
 
 stepGameStatePure :: (TextureId -> Pos -> Area) -> GameState -> EngineState -> Event -> GameState
 stepGameStatePure area gs@GameState {..} EngineState {..} = \case
   CursorPosEvent _ ->
-    let Pos x y = esCursorPos
-        gridify :: Double -> Double
+    let placement = bimap (Absolute . gridify . unAbsolute) (Absolute . gridify . unAbsolute) esCursorPos
         gridify = (* gridsize) . int2Double . floor . (/ gridsize)
-        placement = Pos (gridify x) (gridify y)
      in gs
           { gsLastPlacement = placement,
             gsFloor =
@@ -88,9 +86,9 @@ stepGameStatePure area gs@GameState {..} EngineState {..} = \case
     if OneTimeEffect Reset `setMember` esActions
       then gs {gsFloor = mempty, gsRoom = mempty}
       else
-        let distancePerSec = 100
-            velocityX = if MovementAction Left' `setMember` esActions then - distancePerSec else if MovementAction Right' `setMember` esActions then distancePerSec else 0
-            velocityY = if MovementAction Up `setMember` esActions then - distancePerSec else if MovementAction Down `setMember` esActions then distancePerSec else 0
+        let distancePerSec = 100 :: Dim
+            velocityX = if MovementAction Left' `setMember` esActions then 0 |- distancePerSec else if MovementAction Right' `setMember` esActions then 0 |+| distancePerSec else 0
+            velocityY = if MovementAction Up `setMember` esActions then 0 |- distancePerSec else if MovementAction Down `setMember` esActions then 0 |+| distancePerSec else 0
          in gs
               { gsMainCharacter = move esTimePassed (area MainCharacter gsMainCharacter) gsMainCharacterPrevious velocityX velocityY $ area FloorPlate <$> (keys $ unBoard gsRoom),
                 gsMainCharacterPrevious = gsMainCharacter

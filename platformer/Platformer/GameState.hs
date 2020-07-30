@@ -1,8 +1,7 @@
 module Platformer.GameState where
 
 import Data.Aeson (FromJSON (parseJSON), ToJSON (toJSON))
-import qualified Data.List.NonEmpty as NEL (zip)
-import GHC.Real ((/))
+import Data.List (zip)
 import "GLFW-b" Graphics.UI.GLFW
 import My.Prelude
 import Playtime
@@ -19,8 +18,8 @@ newtype Board = Board {unBoard :: Map Pos TextureId} deriving newtype (Show, Sem
 
 data GameState = GameState
   { gsCollisions :: Corners (Maybe Area),
-    gsVelocityY :: Double,
-    gsVelocityX :: Double,
+    gsVelocityY :: Relative Y,
+    gsVelocityX :: Relative X,
     gsMainCharacter :: Pos,
     gsMainCharacterPrevious :: Pos,
     gsPenetrable :: Board,
@@ -31,26 +30,24 @@ data GameState = GameState
 gridsize :: Num n => n
 gridsize = 12
 
-makeInitialGameState :: Dimensions -> GameState
-makeInitialGameState Dimensions {width} =
+makeInitialGameState :: Dim -> GameState
+makeInitialGameState dim =
   GameState
     { gsCollisions = Corners Nothing Nothing Nothing Nothing,
       gsVelocityY = 0,
       gsVelocityX = 0,
-      gsMainCharacter = Pos (width / 2) 0,
-      gsMainCharacterPrevious = Pos (width / 2) 0,
+      gsMainCharacter = originPos |+| dim |*| ((0.5, 0) :: Scale),
+      gsMainCharacterPrevious = originPos |+| dim |*| ((0.5, 0) :: Scale),
       gsPenetrable = Board $ mempty,
       gsRoom =
         Board
-          $ mapInsert (Pos 240 188) FloorPlate
-          $ mapInsert (Pos 240 176) FloorPlate
-          $ mapKeys (uncurry Pos)
+          $ mapInsert (240, 188) FloorPlate
+          $ mapInsert (240, 176) FloorPlate
           $ mapFromList
           $ concat
           $ take 10
-          $ toList
-          $ (iterate (+ 12) 200 <&>)
-          $ (\r -> take 60 $ toList $ (iterate (+ 12) 0 `NEL.zip` repeat r) `NEL.zip` (repeat FloorPlate))
+          $ (iterate (|+| yRelative 12) (yAbsolute 200) <&>)
+          $ (\r -> take 60 $ (iterate (|+| xRelative 12) (xAbsolute 0) `zip` repeat r) `zip` (repeat FloorPlate))
     }
 
 stepGameStatePure :: (TextureId -> Pos -> Area) -> GameState -> EngineState -> Event -> GameState
@@ -70,9 +67,9 @@ stepGameStatePure area gs@GameState {..} EngineState {..} = \case
           { gsMainCharacter = newMainCharacter,
             gsMainCharacterPrevious = gsMainCharacter,
             gsVelocityY =
-              if gsVelocityY /= 0 && y gsMainCharacter == y newMainCharacter
+              if gsVelocityY /= 0 && snd gsMainCharacter == snd newMainCharacter
                 then 0
-                else gsVelocityY + 9.81 * esTimePassed * 55,
+                else gsVelocityY |+| (9.81 :: Scale) |*| esTimePassed *| (55 :: Dim),
             gsVelocityX =
               if Key'A `setMember` esKeysPressed
                 then - speedX

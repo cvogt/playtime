@@ -4,7 +4,7 @@ import Codec.Picture (DynamicImage (ImageRGBA8), Image (Image))
 import Data.Vector.Storable (unsafeWith)
 import GHC.Err (error)
 import GHC.Float (double2Float, int2Double, int2Float)
-import GHC.Real ((/), fromIntegral)
+import GHC.Real ((/))
 import Graphics.Rendering.OpenGL (($=))
 import qualified Graphics.Rendering.OpenGL.GL as GL
 import qualified Graphics.Rendering.OpenGL.GLU.Errors as GLU
@@ -13,8 +13,8 @@ import My.IO
 import My.Prelude
 import Playtime.Types
 
-renderGL :: GLFW.Window -> Dimensions -> [Sprite] -> IO ()
-renderGL window Dimensions {width = w, height = h} texturePlacements = do
+renderGL :: GLFW.Window -> Dim -> [Sprite] -> IO ()
+renderGL window (Relative w, Relative h) texturePlacements = do
   GL.matrixMode $= GL.Projection
   GL.loadIdentity
   GL.ortho 0 w h 0 0 1
@@ -29,7 +29,7 @@ renderGL window Dimensions {width = w, height = h} texturePlacements = do
 
   checkErrorsGLU "before"
 
-  for_ texturePlacements $ \(Rectangle area tpe) -> case tpe of
+  for_ (reverse texturePlacements) $ \(Rectangle area tpe) -> case tpe of
     Right (fillType, (RGBA r g b a)) -> do
       GL.texture GL.Texture2D $= GL.Disabled
       GL.currentColor $= GL.Color4 (int2Float r / 255) (int2Float g / 255) (int2Float b / 255) (int2Float a / 255)
@@ -59,8 +59,8 @@ renderGL window Dimensions {width = w, height = h} texturePlacements = do
   checkErrorsGLU "after"
   GLFW.swapBuffers window
   where
-    texCoord (Scale sx sy) = GL.texCoord $ GL.TexCoord2 (double2Float sx) (double2Float sy) -- remember 1 makes this match the size of the vertex/quad
-    vertex (Pos x y) = GL.vertex $ GL.Vertex2 (double2Float x) (double2Float y)
+    texCoord (Factor sx, Factor sy) = GL.texCoord $ GL.TexCoord2 (double2Float sx) (double2Float sy) -- remember 1 makes this match the size of the vertex/quad
+    vertex (Absolute x, Absolute y) = GL.vertex $ GL.Vertex2 (double2Float x) (double2Float y)
     checkErrorsGLU csg = void $ error . ("GLU.errors " <>) . (csg <>) . (": " <>) . show <$> GL.get GLU.errors
 
 -- loadTextureId :: FilePath -> ExceptT [Char] IO Texture
@@ -73,5 +73,5 @@ loadTexture img = ExceptT $ case img of
     [texture] <- GL.genObjectNames 1
     GL.textureBinding GL.Texture2D $= Just texture
     GL.texImage2D GL.Texture2D GL.NoProxy 0 GL.RGBA8 txSize 0 $ GL.PixelData GL.RGBA GL.UnsignedByte ptr
-    pure $ Right $ Texture (Dimensions (int2Double width) (int2Double height)) texture img'
+    pure $ Right $ Texture (Relative $ int2Double width, Relative $ int2Double height) texture img'
   _ -> pure $ Left $ "loadTexture error: We currently only support png graphic files JuicyPixles reads as ImageRGBA8."

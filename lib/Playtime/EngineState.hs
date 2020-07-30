@@ -6,10 +6,10 @@ import My.Prelude
 import Playtime.Types
 import Playtime.Util
 
-makeInitialEngineState :: Scale -> Dimensions -> SystemTime -> EngineState
+makeInitialEngineState :: Scale -> Dim -> SystemTime -> EngineState
 makeInitialEngineState scale dim time =
   EngineState
-    { esCursorPos = Pos 0 0,
+    { esCursorPos = originPos,
       esFps = 0,
       esKeysPressed = mempty,
       esMousePressed = mempty,
@@ -18,7 +18,7 @@ makeInitialEngineState scale dim time =
       esActions = mempty,
       esTimes = [],
       esTimePassed = 0,
-      esWindowSize = scale |*| dim
+      esWindowSize = scale *| dim
     }
 
 groupKeyBindings :: [([Key], Action)] -> Map Key [(Set Key, Action)]
@@ -50,15 +50,17 @@ clearOneTimeEffects es =
 
 stepEngineState :: EngineState -> Event -> EngineState
 stepEngineState (clearOneTimeEffects -> gs@EngineState {..}) = \case
-  WindowSizeEvent width height -> gs {esWindowSize = Dimensions (int2Double width) (int2Double height)}
-  CursorPosEvent (Pos x y) ->
+  WindowSizeEvent width height -> gs {esWindowSize = (Relative $ int2Double width, Relative $ int2Double height)}
+  CursorPosEvent pos ->
     gs
       { esCursorPos =
           -- this ratio calculation leads to proper relative scaling on window resize
           -- FIXME: we still get distortion if aspect ration of resized window is different
           --        we should be able to fix that by adding black borders as needed
-          let Scale {sx, sy} = esLogicalDimensions |/| esWindowSize
-           in Pos (sx * x) (sy * y)
+          let scale = esLogicalDimensions |/| esWindowSize :: Scale
+              relPos = pos |-| originPos :: Dim
+              rel = scale *| relPos
+           in originPos |+| rel
       }
   KeyEvent key KeyState'Pressed ->
     let pressed = setInsert key esKeysPressed
@@ -78,7 +80,7 @@ stepEngineState (clearOneTimeEffects -> gs@EngineState {..}) = \case
         halfsec = 500 * 1000 * 1000 * 1000
      in gs
           { esLastLoopTime = time,
-            esTimePassed = pico2Double picosecs,
+            esTimePassed = let s = pico2Double picosecs in (Factor s, Factor s),
             esTimes = if sum esTimes > halfsec then [] else picosecs : esTimes,
             esFps = if sum esTimes > halfsec then avg esTimes else esFps
           }

@@ -7,8 +7,8 @@ import Playtime
 import SpaceMiner.GameState
 import SpaceMiner.Visualize
 
-dim :: Dimensions
-dim = Dimensions {width = 320, height = 240}
+dim :: Dim
+dim = (320, 240)
 
 gameDir :: FilePath
 gameDir = "spaceminer"

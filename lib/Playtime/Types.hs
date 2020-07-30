@@ -1,9 +1,11 @@
+{-# LANGUAGE RankNTypes #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Playtime.Types where
 
 import Codec.Picture.Types (Image, PixelRGBA8)
 import Data.Aeson (FromJSON, ToJSON)
+import GHC.Float
 import GHC.Num
 import GHC.Real
 import qualified Graphics.Rendering.OpenGL.GL as GL (TextureObject)
@@ -12,7 +14,7 @@ import My.IO
 import My.Prelude
 
 data EngineConfig = EngineConfig
-  { ecDim :: Dimensions,
+  { ecDim :: Dim,
     ecScale :: Scale,
     ecVisualize :: EngineState -> IO [Sprite],
     ecStepGameState :: EngineState -> Event -> IO (),
@@ -54,20 +56,20 @@ movementAction _ = Nothing
 data EngineState = EngineState
   { esCursorPos :: Pos,
     esFps :: Double,
-    esLogicalDimensions :: Dimensions,
+    esLogicalDimensions :: Dim,
     esKeysPressed :: Set GLFW.Key,
     esMousePressed :: Set GLFW.MouseButton,
     esLastLoopTime :: SystemTime,
     esActions :: Set Action,
     esTimes :: [Integer],
-    esTimePassed :: Double,
-    esWindowSize :: Dimensions
+    esTimePassed :: Scale,
+    esWindowSize :: Dim
   }
   deriving (Show, Generic, NFData)
 
 -- Textures Types
 data Texture = Texture
-  { tDimensions :: Dimensions,
+  { tDimensions :: Dim,
     tGLObject :: GL.TextureObject,
     tImage :: Image PixelRGBA8
   }
@@ -79,87 +81,32 @@ data Sprite = Rectangle Area (Either Texture (FillType, Color))
 spriteArea :: Sprite -> Area
 spriteArea (Rectangle area _) = area
 
-rectangle :: FillType -> Color -> Dimensions -> Pos -> Sprite
-rectangle ft c d p = Rectangle (p, d) $ Right (ft, c)
+rectangle :: FillType -> Color -> Dim -> Pos -> Sprite
+rectangle ft c d p = Rectangle (d, p) $ Right (ft, c)
 
 rectangle' :: FillType -> Color -> Area -> Sprite
 rectangle' ft c a = Rectangle a $ Right (ft, c)
 
 textureSprites :: (a -> (Scale, b)) -> (b -> Texture) -> a -> Pos -> Sprite
-textureSprites textures f (second f . textures -> (scale, tx@(Texture dim _ _))) pos = Rectangle (pos, scale |*| dim) (Left tx)
-
-
-instance Num Scale' where
-  (lx, ly) + (rx, ry) = (lx + rx, ly + ry)
-  (lx, ly) - (rx, ry) = (lx - rx, ly - ry)
-  (lx, ly) * (rx, ry) = (lx * rx, ly * ry)
-  negate (x, y) = (- x, - y)
-  abs (x, y) = (abs x, abs y)
-  signum (x, y) = (signum x, signum y)
-  fromInteger i = (fromInteger i, fromInteger i)
-
-instance Fractional Scale' where
-  (a, b) / (a', b') = (a / a', b / b')
-  recip (a, b) = (recip a, recip b)
-  fromRational r = (fromRational r, fromRational r)
-
-data Pos = Pos {x :: Double, y :: Double} deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON)
-
-data Scale = Scale {sx :: Double, sy :: Double} deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON)
-
-data Dimensions = Dimensions {width :: Double, height :: Double} deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON)
-
-type Area = (Pos, Dimensions)
+textureSprites textures f (second f . textures -> (scale, tx@(Texture dim _ _))) pos = Rectangle (scale *| dim, pos) (Left tx)
 
 isWithin :: Pos -> Area -> Bool
-isWithin (Pos cx cy) (Pos x y, Dimensions width height) = x <= cx && y <= cy && cx <= (x + width) && cy <= (y + height)
+isWithin (cx, cy) ((width, height), (x, y)) = x <= cx && y <= cy && cx <= (x |+| width) && cy <= (y |+| height)
 
 collidesWith :: Area -> Area -> Bool
-collidesWith (a1, da) (b1, db) =
+collidesWith (da, a1) (db, b1) =
   let a2 = a1 |+| da; b2 = b1 |+| db
-   in x a1 < x b2 && x a2 > x b1 && y a1 < y b2 && y a2 > y b1
+   in fst a1 < fst b2 && fst a2 > fst b1 && snd a1 < snd b2 && snd a2 > snd b1
 
 cornerScales :: Corners Scale
-cornerScales = Corners (Scale 0 0) (Scale 0 1) (Scale 1 1) (Scale 1 0)
+cornerScales = Corners (0, 0) (0, 1) (1, 1) (1, 0)
 
 data Corners a = Corners {nw :: a, sw :: a, se :: a, ne :: a} deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON, Functor) -- ne aka north east = upper left corner, etc
 
 instance Foldable Corners where foldr f b (Corners ne se sw nw) = foldr f b [ne, se, sw, nw]
 
 corners :: Area -> Corners Pos
-corners (pos, dim) = cornerScales <&> \scale -> pos |+| (scale |*| dim :: Dimensions)
-
-instance Num Scale where
-  (Scale lx ly) + (Scale rx ry) = Scale (lx + rx) (ly + ry)
-  (Scale lx ly) - (Scale rx ry) = Scale (lx - rx) (ly - ry)
-  (Scale lx ly) * (Scale rx ry) = Scale (lx * rx) (ly * ry)
-  negate (Scale x y) = Scale (- x) (- y)
-  abs (Scale x y) = Scale (abs x) (abs y)
-  signum (Scale x y) = Scale (signum x) (signum y)
-  fromInteger i = Scale (fromInteger i) (fromInteger i)
-
-instance Fractional Scale where
-  Scale a b / Scale a' b' = Scale (a / a') (b / b')
-  recip (Scale a b) = Scale (recip a) (recip b)
-  fromRational r = Scale (fromRational r) (fromRational r)
-
-instance Num Pos where
-  (Pos lx ly) + (Pos rx ry) = Pos (lx + rx) (ly + ry)
-  (Pos lx ly) - (Pos rx ry) = Pos (lx - rx) (ly - ry)
-  (Pos lx ly) * (Pos rx ry) = Pos (lx * rx) (ly * ry)
-  negate (Pos x y) = Pos (- x) (- y)
-  abs (Pos x y) = Pos (abs x) (abs y)
-  signum (Pos x y) = Pos (signum x) (signum y)
-  fromInteger i = Pos (fromInteger i) (fromInteger i)
-
-instance Num Dimensions where
-  (Dimensions lx ly) + (Dimensions rx ry) = Dimensions (lx + rx) (ly + ry)
-  (Dimensions lx ly) - (Dimensions rx ry) = Dimensions (lx - rx) (ly - ry)
-  (Dimensions lx ly) * (Dimensions rx ry) = Dimensions (lx * rx) (ly * ry)
-  negate (Dimensions x y) = Dimensions (- x) (- y)
-  abs (Dimensions x y) = Dimensions (abs x) (abs y)
-  signum (Dimensions x y) = Dimensions (signum x) (signum y)
-  fromInteger i = Dimensions (fromInteger i) (fromInteger i)
+corners (dim, pos) = cornerScales <&> \scale -> pos |+| scale *| dim
 
 {-
 The following are type-safe types and functions for coordinate and vector arithmetics.
@@ -177,91 +124,222 @@ absolute one.
 Vector arithmetic type-safety distinguishe
 -}
 
-instance AdditionElementWise Pos Dimensions Pos where
-  (|+|) Pos {x, y} Dimensions {width, height} = Pos {x = x + width, y = y + height}
-
-instance SubtractionElementWise Pos Pos Dimensions where
-  (|-|) Pos {x = x1, y = y1} Pos {x = x2, y = y2} = Dimensions {width = x1 - x2, height = y1 - y2}
-
-instance MultiplicationElementWise Scale Dimensions Dimensions where
-  (|*|) Scale {sx, sy} Dimensions {width, height} = Dimensions {width = width * sx, height = height * sy}
-
-instance DivisionElementWise Dimensions Dimensions Scale where
-  (|/|) Dimensions {width = w1, height = h1} Dimensions {width = w2, height = h2} = Scale {sx = w1 `divideDouble` w2, sy = h1 `divideDouble` h2}
+originPos :: Pos
+originPos = (0, 0)
 
 data X
 
 data Y
 
-newtype Absolute a = Absolute Double deriving (Eq, Ord, Show)
+newtype Absolute a = Absolute {unAbsolute :: Double}
+  deriving (Eq, Ord, Show)
   deriving newtype (Num, Fractional, NFData, FromJSON, ToJSON)
 
-newtype Relative a = Relative Double deriving (Eq, Ord, Show)
+newtype Relative a = Relative {unRelative :: Double}
+  deriving (Eq, Ord, Show)
   deriving newtype (Num, Fractional, NFData, FromJSON, ToJSON)
 
-newtype Factor a = Factor Double deriving (Eq, Ord, Show)
+newtype Factor a = Factor {unFactor :: Double}
+  deriving (Eq, Ord, Show)
   deriving newtype (Num, Fractional, NFData, FromJSON, ToJSON)
 
 type Vector2 t = (t X, t Y)
 
-type Pos' = Vector2 Absolute
+type Pos = Vector2 Absolute
 
-type Dim' = Vector2 Relative
+type Dim = Vector2 Relative
 
-type Scale' = Vector2 Factor
+type Scale = Vector2 Factor
 
-type Rect = (Dim', Pos')
+type Area = (Dim, Pos)
 
-class AdditionElementWise a b c where (|+|) :: a -> b -> c
+xRelative :: Double -> Relative X
+xRelative = Relative
 
-class SubtractionElementWise a b c where (|-|) :: a -> b -> c
+yRelative :: Double -> Relative Y
+yRelative = Relative
 
-class MultiplicationElementWise a b c where (|*|) :: a -> b -> c
+xAbsolute :: Double -> Absolute X
+xAbsolute = Absolute
 
-class DivisionElementWise a b c where (|/|) :: a -> b -> c
+yAbsolute :: Double -> Absolute Y
+yAbsolute = Absolute
 
-infixl 7 |*|, |/|
+xFactor :: Double -> Factor X
+xFactor = Factor
 
-infixl 6 |+|, |-|
+yFactor :: Double -> Factor Y
+yFactor = Factor
 
-instance AdditionElementWise (Absolute a) (Relative a) (Absolute a) where
-  (Absolute l) |+| (Relative r) = Absolute $ l * r
+instance (Num a, Num b) => Num (a, b) where
+  (lx, ly) + (rx, ry) = (lx + rx, ly + ry)
+  (lx, ly) - (rx, ry) = (lx - rx, ly - ry)
+  (lx, ly) * (rx, ry) = (lx * rx, ly * ry)
+  negate (x, y) = (- x, - y)
+  abs (x, y) = (abs x, abs y)
+  signum (x, y) = (signum x, signum y)
+  fromInteger i = (fromInteger i, fromInteger i)
 
-instance AdditionElementWise (Relative a) (Absolute a) (Absolute a) where
-  (|+|) = flip (|+|)
+instance (Fractional a, Fractional b) => Fractional (a, b) where
+  (a, b) / (a', b') = (a / a', b / b')
+  recip (a, b) = (recip a, recip b)
+  fromRational r = (fromRational r, fromRational r)
 
-instance SubtractionElementWise (Absolute a) (Absolute a) (Relative a) where
-  (Absolute l) |-| (Absolute r) = Relative $ l * r
+class AdditionPairWise a b where (|+|) :: a -> b -> a
 
-instance MultiplicationElementWise (Factor a) (Relative a) (Relative a) where
-  (Factor l) |*| (Relative r) = Relative $ l * r
+class SubtractionPairWise a b where (|-|) :: a -> a -> b
 
-instance MultiplicationElementWise (Relative a) (Factor a) (Relative a) where
-  (|*|) = flip (|*|)
+class SubtractionPairWiseLeft a b where (|-) :: a -> b -> a
 
-instance DivisionElementWise (Relative a) (Relative a) (Factor a) where
-  (Relative l) |/| (Relative r) = Factor $ l * r
+class MultiplicationPairWise a b where (|*|) :: a -> b -> a
 
-instance
-  (AdditionElementWise a b c, AdditionElementWise a' b' c') =>
-  AdditionElementWise (a, a') (b, b') (c, c')
-  where
-  (a, a') |+| (b, b') = (a |+| b, a' |+| b')
+class MultiplicationPairWiseRight a b where (*|) :: a -> b -> b
 
-instance
-  (SubtractionElementWise a b c, SubtractionElementWise a' b' c') =>
-  SubtractionElementWise (a, a') (b, b') (c, c')
-  where
-  (a, a') |-| (b, b') = (a |-| b, a' |-| b')
+class DivisionPairWise a b where (|/|) :: a -> a -> b
 
-instance
-  (MultiplicationElementWise a b c, MultiplicationElementWise a' b' c') =>
-  MultiplicationElementWise (a, a') (b, b') (c, c')
-  where
-  (a, a') |*| (b, b') = (a |*| b, a' |*| b')
+class DivisionPairWiseLeft a b where (|/) :: a -> b -> a
 
-instance
-  (DivisionElementWise a b c, DivisionElementWise a' b' c') =>
-  DivisionElementWise (a, a') (b, b') (c, c')
-  where
-  (a, a') |/| (b, b') = (a |/| b, a' |/| b')
+class ModuloPairWise a b where (|%|) :: a -> b -> a
+
+class Modulo'PairWise a b where (|%%|) :: a -> b -> a
+
+infixl 7 |*|, *|, |/|, |%|, |%%|
+
+infixl 6 |+|, |-|, |-
+
+instance AdditionPairWise (Absolute a) (Relative a) where
+  (Absolute l) |+| (Relative r) = Absolute $ l + r
+
+instance AdditionPairWise (Relative a) (Relative a) where (Relative l) |+| (Relative r) = Relative $ l + r
+
+instance AdditionPairWise Pos (Relative X) where (a, a') |+| r = (a |+| r, a')
+
+instance AdditionPairWise Pos (Relative Y) where (a, a') |+| r = (a, a' |+| r)
+
+instance AdditionPairWise Dim Dim where (|+|) = pairWise (|+|) (|+|)
+
+instance AdditionPairWise Pos Dim where (|+|) = pairWise (|+|) (|+|)
+
+instance AdditionPairWise (Absolute X) Dim where l |+| dim = l |+| fst dim
+
+instance AdditionPairWise (Absolute Y) Dim where l |+| dim = l |+| snd dim
+
+instance AdditionPairWise (Relative X) Dim where l |+| dim = l |+| fst dim
+
+instance AdditionPairWise (Relative Y) Dim where l |+| dim = l |+| snd dim
+
+instance SubtractionPairWise (Absolute a) (Relative a) where (Absolute l) |-| (Absolute r) = Relative $ l - r
+
+instance SubtractionPairWise Pos Dim where (|-|) = pairWise (|-|) (|-|)
+
+instance SubtractionPairWiseLeft (Absolute a) (Relative a) where (Absolute l) |- (Relative r) = Absolute $ l - r
+
+instance SubtractionPairWiseLeft (Relative a) (Relative a) where (Relative l) |- (Relative r) = Relative $ l - r
+
+instance SubtractionPairWiseLeft (Absolute X) Dim where l |- dim = l |- fst dim
+
+instance SubtractionPairWiseLeft (Absolute Y) Dim where l |- dim = l |- snd dim
+
+instance SubtractionPairWiseLeft (Relative X) Dim where l |- dim = l |- fst dim
+
+instance SubtractionPairWiseLeft (Relative Y) Dim where l |- dim = l |- snd dim
+
+instance SubtractionPairWiseLeft Pos (Relative X) where pos |- r = (fst pos |- r, snd pos)
+
+instance SubtractionPairWiseLeft Pos (Relative Y) where pos |- r = (fst pos, snd pos |- r)
+
+instance SubtractionPairWiseLeft Pos Dim where (|-) = pairWise (|-) (|-)
+
+instance MultiplicationPairWiseRight (Factor a) (Relative a) where (Factor l) *| (Relative r) = Relative $ l * r
+
+instance MultiplicationPairWise (Relative a) (Factor a) where (Relative r) |*| (Factor l) = Relative $ l * r
+
+instance MultiplicationPairWise (Factor a) (Factor a) where (Factor l) |*| (Factor r) = Factor $ l * r
+
+instance MultiplicationPairWise (Factor X) Scale where l |*| scale = l |*| fst scale
+
+instance MultiplicationPairWise (Factor Y) Scale where l |*| scale = l |*| snd scale
+
+instance MultiplicationPairWise (Relative X) Scale where l |*| scale = l |*| fst scale
+
+instance MultiplicationPairWise (Relative Y) Scale where l |*| scale = l |*| snd scale
+
+instance MultiplicationPairWiseRight Scale (Relative X) where scale *| r = fst scale *| r
+
+instance MultiplicationPairWiseRight Scale (Relative Y) where scale *| r = snd scale *| r
+
+instance MultiplicationPairWiseRight (Factor X) Dim where scale *| r = (scale *| fst r, snd r)
+
+instance MultiplicationPairWiseRight (Factor Y) Dim where scale *| r = (fst r, scale *| snd r)
+
+instance MultiplicationPairWise Scale Scale where (|*|) = pairWise (|*|) (|*|)
+
+instance MultiplicationPairWise Dim Scale where (|*|) = pairWise (|*|) (|*|)
+
+instance MultiplicationPairWiseRight Scale Dim where (*|) = pairWise (*|) (*|)
+
+instance DivisionPairWise (Relative a) (Factor a) where (Relative l) |/| (Relative r) = Factor $ l / r
+
+instance DivisionPairWise Dim Scale where (|/|) = pairWise (|/|) (|/|)
+
+instance DivisionPairWiseLeft (Relative a) (Factor a) where (Relative l) |/ (Factor r) = Relative $ l / r
+
+instance DivisionPairWiseLeft Dim Scale where (|/) = pairWise (|/) (|/)
+
+instance ModuloPairWise (Absolute a) (Relative a) where
+  (Absolute l) |%| (Relative r) = Absolute $ int2Double $ double2Int l `mod` double2Int r
+
+instance ModuloPairWise (Relative X) Dim where
+  (Relative l) |%| r = Relative $ int2Double $ double2Int l `mod` double2Int (unRelative $ fst r)
+
+instance ModuloPairWise (Relative Y) Dim where
+  (Relative l) |%| r = Relative $ int2Double $ double2Int l `mod` double2Int (unRelative $ snd r)
+
+instance ModuloPairWise Dim (Relative X) where
+  l |%| (Relative r) = (x, snd l)
+    where
+      x = Relative $ int2Double $ double2Int (unRelative $ fst l) `mod` double2Int r
+
+instance ModuloPairWise Dim (Relative Y) where
+  l |%| (Relative r) = (fst l, y)
+    where
+      y = Relative $ int2Double $ double2Int (unRelative $ snd l) `mod` double2Int r
+
+instance ModuloPairWise Pos (Relative X) where
+  l |%| (Relative r) = (x, snd l)
+    where
+      x = Absolute $ int2Double $ double2Int (unAbsolute $ fst l) `mod` double2Int r
+
+instance ModuloPairWise Pos (Relative Y) where
+  l |%| (Relative r) = (fst l, y)
+    where
+      y = Absolute $ int2Double $ double2Int (unAbsolute $ snd l) `mod` double2Int r
+
+instance ModuloPairWise Pos Dim where (|%|) = pairWise (|%|) (|%|)
+
+instance ModuloPairWise Dim Dim where (|%|) = pairWise (|%|) (|%|)
+
+instance ModuloPairWise (Relative a) (Relative a) where
+  (Relative l) |%| (Relative r) = Relative $ int2Double $ double2Int l `mod` double2Int r
+
+instance Modulo'PairWise (Absolute a) (Relative a) where (Absolute l) |%%| (Relative r) = Absolute $ l `mod'` r
+
+instance Modulo'PairWise (Relative a) (Relative a) where (Relative l) |%%| (Relative r) = Relative $ l `mod'` r
+
+--FIXME replace mod' with mod + (v - floor v)
+instance Modulo'PairWise Pos (Relative X) where
+  l |%%| (Relative r) = (x, snd l)
+    where
+      x = Absolute $ (unAbsolute $ fst l) `mod'` r
+
+instance Modulo'PairWise Pos (Relative Y) where
+  l |%%| (Relative r) = (fst l, y)
+    where
+      y = Absolute $ (unAbsolute $ snd l) `mod'` r
+
+instance Modulo'PairWise Pos Dim where (|%%|) = pairWise (|%%|) (|%%|)
+
+instance Modulo'PairWise Dim Dim where (|%%|) = pairWise (|%%|) (|%%|)
+
+pairWise :: (a -> b -> c) -> (a' -> b' -> c') -> (a, a') -> (b, b') -> (c, c')
+pairWise f g (a, a') (b, b') = (f a b, g a' b')

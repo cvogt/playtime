@@ -8,8 +8,8 @@ import My.Prelude
 import Playtime
 import System.Random
 
-dim :: Dimensions
-dim = Dimensions {width = 320, height = 240}
+dim :: Dim
+dim = (1024, 768)
 
 gameDir :: FilePath
 gameDir = "live-coding-demo"

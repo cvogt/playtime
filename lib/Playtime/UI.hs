@@ -5,7 +5,7 @@ import "GLFW-b" Graphics.UI.GLFW
 import My.Prelude
 import Playtime.Types
 
-data DragAndDrop = DragAndDrop Pos Dimensions deriving (Show, Generic, NFData, ToJSON, FromJSON)
+data DragAndDrop = DragAndDrop Pos Dim deriving (Show, Generic, NFData, ToJSON, FromJSON)
 
 dragAndDrop ::
   EngineState ->
@@ -18,15 +18,14 @@ dragAndDrop ::
   Event ->
   gs
 dragAndDrop EngineState {..} gs mb areas setPoss dragAndDrop' setDragAndDrop =
-  let toPos = \(pos, _) -> pos
-      poss = toPos <$> areas
+  let poss = snd <$> areas
    in \case
         MouseEvent mb' MouseButtonState'Pressed
           | mb == mb' ->
             let clicked = find (isWithin esCursorPos) areas
              in gs
-                  & (setDragAndDrop $ clicked <&> \(pos, _) -> DragAndDrop pos $ pos |-| esCursorPos)
-                  & (setPoss $ poss \\ catMaybes [toPos <$> clicked])
+                  & (setDragAndDrop $ clicked <&> \(_, pos) -> DragAndDrop pos $ pos |-| esCursorPos)
+                  & (setPoss $ poss \\ catMaybes [snd <$> clicked])
         MouseEvent mb' MouseButtonState'Released
           | mb == mb' ->
             gs
@@ -42,11 +41,10 @@ showDragAndDrop dragAndDrop' sprite' = catMaybes [dragAndDrop' <&> (\(DragAndDro
 
 deleteOnClick :: EngineState -> gs -> MouseButton -> [Area] -> ([Pos] -> gs -> gs) -> Event -> gs
 deleteOnClick EngineState {..} gs mb areas setPoss =
-  let toPos = \(pos, _) -> pos
-      poss = toPos <$> areas
+  let poss = snd <$> areas
    in \case
         MouseEvent mb' MouseButtonState'Pressed
           | mb == mb' ->
             let clicked = find (isWithin esCursorPos) areas
-             in gs & (setPoss $ poss \\ catMaybes [toPos <$> clicked])
+             in gs & (setPoss $ poss \\ catMaybes [snd <$> clicked])
         _ -> gs

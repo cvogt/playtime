@@ -17,30 +17,26 @@ visualize sprite EngineState {..} GameState {..} =
              sprite MainCharacter 0,
              sprite MainCharacter 50,
              rectangle (Border 3) (RGBA 255 0 0 255) 24 90,
-             rectangle Solid (RGBA 255 255 0 255) 24 (Pos 90 114)
+             rectangle Solid (RGBA 255 255 0 255) 24 (90, 114)
            ]
         <> room
         <> floor
     highlightMouserOver = case findMouseOver of
       Nothing -> []
       Just (Rectangle area _) -> highlight area
-    highlight (pos, dim) = [rectangle (Border 3) (RGBA 0 255 0 255) (dim + 4) (pos -2)]
+    highlight (dim, pos) = [rectangle (Border 3) (RGBA 0 255 0 255) (dim + 4) (pos -2)]
     findMouseOver =
       flip find (reverse sprites) $ \case
-        Rectangle area@(pos, dim') (Left (Texture dim _ img)) ->
-          let Pos cx cy = esCursorPos
-              Pos {x, y} = pos
-              Scale {sx, sy} = dim' |/| dim
-              px = (cx - x) `divideDouble` sx
-              py = (cy - y) `divideDouble` sy
-              transparentPixel = case pixelAt img (double2Int px) (double2Int py) of PixelRGBA8 _ _ _ a -> a == 0
+        Rectangle area@(dim', pos) (Left (Texture dim _ img)) ->
+          let p = (esCursorPos |-| pos :: Dim) |*| (dim |/| dim' :: Scale)
+              transparentPixel = case pixelAt img (double2Int . unRelative $ fst p) (double2Int . unRelative $ snd p) of PixelRGBA8 _ _ _ a -> a == 0
            in esCursorPos `isWithin` area && not transparentPixel
         Rectangle area _ -> esCursorPos `isWithin` area
     floor = (Map.toList $ unBoard gsFloor) <&> \(pos, t) -> sprite t pos
     room = (Map.toList $ unBoard gsRoom) <&> \(pos, t) -> sprite t pos
     -- backup of grouping logic as reminder if needed: (groupWith snd $ Map.toList $ unBoard gsFloor) <&> \ne@((_, t) :| _) ->
     inventoryUI =
-      translate (Pos 200 100)
+      translate (200, 100)
         <$> [ sprite Inventory 0,
               sprite RedResource 18,
               sprite MainCharacter 3

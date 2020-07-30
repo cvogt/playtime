@@ -48,7 +48,7 @@ module My.Prelude
 where
 
 import Codec.Archive.Tar.Entry (getDirectoryContentsRecursive) -- is there a more appropriate recursive directory listing functon?
-import Control.Applicative ((<*>), (<|>), Alternative, Applicative, pure)
+import Control.Applicative ((<*>), (<|>), Alternative, Applicative, ZipList (ZipList, getZipList), pure)
 import Control.DeepSeq (NFData)
 import Control.Monad ((<=<), (=<<), (>>), (>>=), Monad, fail, filterM, foldM, forever, join, mfilter, return, unless, void, when)
 import Control.Monad.Except (ExceptT (ExceptT), runExceptT)
@@ -64,14 +64,14 @@ import Data.Foldable (Foldable, all, any, elem, find, fold, foldl, foldlM, foldr
 import Data.Function (($), (&), (.), flip, id)
 import Data.Functor (($>), (<$), (<$>), (<&>), Functor, fmap)
 import Data.Int (Int)
-import Data.List ((\\), concat, drop, dropWhile, filter, nub, replicate, reverse, sort, sortBy, sortOn, take, takeWhile, unzip)
+import Data.List ((\\), concat, drop, dropWhile, filter, iterate, nub, repeat, replicate, reverse, sort, sortBy, sortOn, take, takeWhile, unzip)
 import qualified Data.List
 import qualified Data.List.NonEmpty
-import Data.List.NonEmpty (NonEmpty ((:|)), groupAllWith, groupBy, groupWith, head, iterate, last, repeat, unfoldr)
+import Data.List.NonEmpty (NonEmpty ((:|)), groupAllWith, groupBy, groupWith, head, last, unfoldr)
 import Data.Map (Map, keys, mapKeys)
 import qualified Data.Map
 import Data.Maybe (Maybe (Just, Nothing), catMaybes, fromMaybe, isJust, isNothing, maybe)
-import Data.Monoid ((<>), Monoid, mempty)
+import Data.Monoid ((<>), Any, Monoid, mempty)
 import Data.Ord (Ord ((<), (<=), (>), (>=)), max, min)
 import Data.Semigroup (Semigroup)
 import Data.Sequence (iterateN)
@@ -87,10 +87,10 @@ import GHC.Enum (Bounded, Enum, enumFrom, minBound)
 import GHC.Float ((**), Double, Float, divideDouble)
 import GHC.Generics (Generic)
 import GHC.Integer (Integer)
-import GHC.Num ((*), (+), (-), Num, abs, subtract)
-import GHC.Real (Fractional, Integral)
+import GHC.Num ((*), (+), (-), Num, abs, fromInteger, subtract)
+import GHC.Real (Fractional, Integral, fromIntegral)
 import GHC.Show (Show (show))
-import Protolude ((<<$>>))
+import Protolude ((<<$>>), (<<*>>))
 import Safe (headMay, lastMay)
 import Safe.Foldable (foldl1Safe, foldr1Safe)
 -- FIXME: replace next with uniform once stack upgraded random

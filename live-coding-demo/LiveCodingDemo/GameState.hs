@@ -18,16 +18,17 @@ data GameState = GameState
   }
   deriving (Show, Generic, NFData, ToJSON, FromJSON)
 
-makeInitialGameState :: Dimensions -> IO GameState
-makeInitialGameState Dimensions {width} = do
-  randInts :: [Int] <- sequence $ replicate 1000 randomIO
-  let randDoubles = int2Double . (`mod` double2Int width) <$> randInts
+makeInitialGameState :: Dim -> IO GameState
+makeInitialGameState dim = do
+  let maxStarSize = 4
+  starX <- fmap (fmap fromIntegral) $ sequence $ replicate 510 $ randomRIO (0, maxStarSize + (double2Int $ unRelative $ fst dim))
+  starY <- fmap (fmap fromIntegral) $ sequence $ replicate 510 $ randomRIO (0, maxStarSize + (double2Int $ unRelative $ snd dim))
   pure
     GameState
-      { gsStars = uncurry Pos <$> (take 500 randDoubles `zip` drop 500 randDoubles),
+      { gsStars = starX `zip` starY,
         gsEnemies = [],
         gsBullets = [],
-        gsPlayer = Pos 100 100
+        gsPlayer = (100, 100)
       }
 
 data TextureId = Heart | Plane | Enemy deriving (Eq, Ord, Show, Data, Bounded, Enum, Generic, NFData, ToJSON, FromJSON)
@@ -41,29 +42,31 @@ textures = \case
 stepGameStatePure :: [Int] -> (TextureId -> Pos -> Area) -> GameState -> EngineState -> Event -> GameState
 stepGameStatePure randInts area gs@GameState {..} EngineState {..} = \case
   KeyEvent Key'Space KeyState'Pressed ->
-    let Dimensions {width} = esLogicalDimensions
-        _randDoubles = int2Double . (`mod` double2Int width) <$> randInts
-     in gs
-          { gsBullets = gsBullets <> (uncurry Pos <$> ((toList $ repeat $ x gsPlayer + 300) `zip` ((+ y gsPlayer) <$>) [50, 100, 150, 200, 250, 300]))
+    let
+     in -- (width,_) = esLogicalDimensions
+        --_randDoubles = int2Double . (|%| width) <$> randInts
+        gs
+          { gsBullets = gsBullets <> ((repeat $ fst gsPlayer + 300) `zip` ((+ snd gsPlayer) <$>) [50, 100, 150, 200, 250, 300])
           }
   RenderEvent _ ->
-    let velocity = 200
-        step = esTimePassed * velocity
-        Dimensions {height, width} = esLogicalDimensions
-        moveX = if Key'A `setMember` esKeysPressed then subtract step else if Key'D `setMember` esKeysPressed then (+ step) else id
-        moveY = if Key'W `setMember` esKeysPressed then subtract step else if Key'S `setMember` esKeysPressed then (+ step) else id
-        randDoubles = int2Double . (`mod` double2Int height) <$> randInts
+    let velocity = (200, 200) :: Dim
+        step = esTimePassed *| velocity
+        (width, height) = esLogicalDimensions
+        moveX = if Key'A `setMember` esKeysPressed then (|- step) else if Key'D `setMember` esKeysPressed then (|+| step) else id
+        moveY = if Key'W `setMember` esKeysPressed then (|- step) else if Key'S `setMember` esKeysPressed then (|+| step) else id
+        randDoubles = Absolute . int2Double . (flip mod $ double2Int $ unRelative height) <$> randInts
+        bulletVelocityX :: Relative X
         bulletVelocityX = 300
-        (bullets, killed) = unzip $ fmap (both (\(pos, _) -> pos)) $ filter (uncurry collidesWith) $ (,) <$> (area Heart <$> gsBullets) <*> (area Enemy <$> gsEnemies)
-        newEnemies = take (10 - length gsEnemies) $ uncurry Pos <$> ((toList $ repeat 1023) `zip` drop 10 randDoubles)
+        (bullets, killed) = unzip $ fmap (both (\(_, pos) -> pos)) $ filter (uncurry collidesWith) $ (,) <$> (area Heart <$> gsBullets) <*> (area Enemy <$> gsEnemies)
+        newEnemies = take (10 - length gsEnemies) $ (repeat 1023) `zip` drop 10 randDoubles
         newEnemies' = filter (not . (`elem` killed)) $ gsEnemies <> newEnemies
      in gs
           { gsPlayer = updateY moveY $ updateX moveX gsPlayer,
             gsEnemies =
-              updateX (subtract $ 50 * esTimePassed) . updateX (`mod'` width) <$> newEnemies',
+              (|- (50 :: Relative X) |*| esTimePassed) . (|%%| width) <$> newEnemies',
             gsBullets =
-              updateX (+ bulletVelocityX * esTimePassed) <$> filter ((< 1024) . x) (gsBullets \\ bullets),
+              (|+| bulletVelocityX |*| esTimePassed) <$> filter ((< 1024) . fst) (gsBullets \\ bullets),
             gsStars =
-              updateX (subtract $ 20 * esTimePassed) . updateX (`mod'` width) <$> gsStars
+              (|- (20 :: Relative X) |*| esTimePassed) . (|%%| width) <$> gsStars
           }
   _ -> gs

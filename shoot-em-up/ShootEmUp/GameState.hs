@@ -2,8 +2,7 @@ module ShootEmUp.GameState where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.List (zip)
-import GHC.Float (double2Int, int2Double)
-import GHC.Real (mod)
+import GHC.Float (double2Int)
 import "GLFW-b" Graphics.UI.GLFW
 import My.IO
 import My.Prelude
@@ -13,14 +12,12 @@ import System.Random
 data GameState = GameState
   { gsMainCharacter :: Pos,
     gsEnemies :: [Pos],
-    gsStars :: [(Double, Pos)],
+    gsStars :: [(Dim, Pos)],
     gsBullets :: [Pos],
+    gsMaxStarSize :: Dim,
     gsDragAndDrop :: Maybe DragAndDrop
   }
   deriving (Show, Generic, NFData, ToJSON, FromJSON)
-
-maxStarSize :: Num n => n
-maxStarSize = 4
 
 numEnemies :: Int
 numEnemies = 10
@@ -34,21 +31,19 @@ textures = \case
   Enemy -> (0.1, "enemy_red.png")
   Heart -> (0.025, "haskell_love_logo.png")
 
-makeInitialGameState :: Dimensions -> IO GameState
-makeInitialGameState Dimensions {width, height} = do
-  let randInts = sequence $ replicate 510 randomIO
-  let randInts' = sequence $ replicate 510 randomIO
-  let randInts'' = sequence $ replicate 510 randomIO
-  sizes <- fmap (`mod` maxStarSize) <$> randInts
-  xs <- fmap (`mod` double2Int (width + maxStarSize)) <$> randInts'
-  ys <- fmap (`mod` double2Int height) <$> randInts''
-
+makeInitialGameState :: Dim -> IO GameState
+makeInitialGameState dim = do
+  let maxStarSize = 4
+  starX <- fmap (fmap fromIntegral) $ sequence $ replicate 510 $ randomRIO (0, maxStarSize + (double2Int $ unRelative $ fst dim))
+  starY <- fmap (fmap fromIntegral) $ sequence $ replicate 510 $ randomRIO (0, maxStarSize + (double2Int $ unRelative $ snd dim))
+  starSize <- fmap (fmap fromIntegral) $ sequence $ replicate 510 $ randomRIO (0, maxStarSize)
   pure
     GameState
-      { gsMainCharacter = Pos 10 200,
+      { gsMainCharacter = (10, 200),
         gsEnemies = mempty,
-        gsStars = fmap int2Double sizes `zip` (uncurry Pos <$> fmap int2Double xs `zip` fmap int2Double ys),
+        gsStars = starSize `zip` (starX `zip` starY),
         gsBullets = mempty,
+        gsMaxStarSize = fromIntegral maxStarSize,
         gsDragAndDrop = Nothing
       }
 
@@ -73,37 +68,48 @@ stepGameStatePure' randInts area gs@GameState {..} EngineState {..} = \case
     gs
       { gsBullets =
           gsBullets
-            <> relativePoss gsMainCharacter [(300, 100), (300, 145), (325, 200), (325, 290), (300, 340), (300, 390)]
+            <> ((gsMainCharacter |+|) <$> [(300, 100) :: Dim, (300, 145), (325, 200), (325, 290), (300, 340), (300, 390)])
       }
   RenderEvent _ ->
     let distancePerSec = 200
-        Dimensions {width, height} = esLogicalDimensions
-        velocityX = if MovementAction Left' `setMember` esActions then - distancePerSec else if MovementAction Right' `setMember` esActions then distancePerSec else 0
-        velocityY = if MovementAction Up `setMember` esActions then - distancePerSec else if MovementAction Down `setMember` esActions then distancePerSec else 0
-        bulletVelocity = 300
-        bulletStep = esTimePassed * bulletVelocity
-        enemyHeight = 50
-        enemyWidth = 50
+        (_, height) = esLogicalDimensions
+        velocity :: Dim
+        velocity =
+          distancePerSec
+            |*| ( if
+                      | MovementAction Left' `setMember` esActions -> -1
+                      | MovementAction Right' `setMember` esActions -> 1
+                      | True -> 0 :: Factor X,
+                  if
+                      | MovementAction Up `setMember` esActions -> -1
+                      | MovementAction Down `setMember` esActions -> 1
+                      | True -> 0 :: Factor Y
+                )
+        bulletVelocity = (300, 0)
+        bulletStep :: Dim
+        bulletStep = esTimePassed *| bulletVelocity
+        enemyDim = fst . area Enemy
         survivingEnemies =
           flip filter gsEnemies $ \enemyPos ->
-            (x enemyPos > - enemyWidth &&)
+            (fst enemyPos > - fst (originPos |- enemyDim enemyPos) &&)
               $ not
               $ any (area Enemy enemyPos `collidesWith`) (bulletTrajectory =<< gsBullets)
           where
-            bulletTrajectory pos = area Heart <$> trajectoryPixels pos esTimePassed 0 bulletVelocity
-        newEnemies = survivingEnemies <> (Pos 1100 . modY <$> take numAdded randInts)
+            bulletTrajectory pos = area Heart <$> trajectoryPixels pos esTimePassed bulletVelocity
+        newEnemies = survivingEnemies <> (modu . (1100,) . fromIntegral <$> take numAdded randInts)
           where
             numAdded = numEnemies - length survivingEnemies
-            modY = int2Double . flip mod (double2Int $ height - enemyHeight)
-        stepStar (size, pos) = (size,) $ updateY (modX . moveY) $ updateX (modX . moveX) pos
+            modu :: Pos -> Pos
+            modu pos = pos |%| (height |- enemyDim pos)
+        stepStar :: (Dim, Pos) -> (Dim, Pos)
+        stepStar (size, pos) = (size,) $ modu $ move' pos
           where
-            moveX = subtract $ esTimePassed * 5 * (size + 1)
-            moveY = subtract $ esTimePassed * 0 * (size + 1)
-            modX = flip mod' (width + maxStarSize)
+            move' = (|- ((5, 0) :: Scale) |*| esTimePassed *| (size |+| (1 :: Dim)))
+            modu = (|%%| (esLogicalDimensions |+| gsMaxStarSize))
      in gs
-          { gsMainCharacter = gsMainCharacter |+| Dimensions (esTimePassed * velocityX) (esTimePassed * velocityY),
-            gsEnemies = updateX (subtract $ esTimePassed * 100) <$> newEnemies,
+          { gsMainCharacter = gsMainCharacter |+| esTimePassed *| velocity,
+            gsEnemies = (|- esTimePassed *| (100 :: Relative X)) <$> newEnemies,
             gsStars = stepStar <$> gsStars,
-            gsBullets = filterX (< 1024) gsBullets <&> updateX (+ bulletStep)
+            gsBullets = filterX (< 1024) gsBullets <&> (|+| bulletStep)
           }
   _ -> gs

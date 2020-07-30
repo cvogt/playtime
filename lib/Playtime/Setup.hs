@@ -18,7 +18,7 @@ import Playtime.Types
 wireEngineConfig ::
   forall a gs.
   (Ord a, Show a, ToJSON gs, FromJSON gs) =>
-  Dimensions ->
+  Dim ->
   Scale ->
   Maybe LiveCodeState ->
   ((a -> Texture) -> EngineState -> gs -> Event -> IO gs) ->

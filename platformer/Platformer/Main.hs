@@ -7,8 +7,8 @@ import Platformer.GameState
 import Platformer.Visualize
 import Playtime
 
-dim :: Dimensions
-dim = Dimensions {width = 320, height = 240}
+dim :: Dim
+dim = (320, 240)
 
 gameDir :: FilePath
 gameDir = "platformer"

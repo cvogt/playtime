@@ -11,8 +11,8 @@ import ShootEmUp.GameState
 import ShootEmUp.Visualize
 import System.Random
 
-dim :: Dimensions
-dim = Dimensions {width = 1024, height = 768}
+dim :: Dim
+dim = (1024, 768)
 
 gameDir :: FilePath
 gameDir = "shoot-em-up"

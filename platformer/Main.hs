@@ -8,21 +8,23 @@ import Platformer.GameState
 import qualified Platformer.Main
 import Playtime
 
+dim :: Dim
+dim = (320, 240)
+
 main :: IO ()
 main = do
   putStrLn "running tests"
-  tests
+  -- tests
   putStrLn "starting main"
   Platformer.Main.main
 
 tests :: IO ()
 tests = do
-  let dim = Dimensions {width = 320, height = 240}
-      igs =
+  let igs =
         (makeInitialGameState dim)
           { gsVelocityY = 0.33,
-            gsMainCharacter = Pos 0 (-7),
-            gsRoom = Board $ mapFromList $ (,FloorPlate) <$> [Pos (-6) 5, Pos 6 5]
+            gsMainCharacter = (0, (-7)),
+            gsRoom = Board $ mapFromList $ (,FloorPlate) <$> [(-6, 5), (6, 5)]
           }
   time <- getSystemTime
   let egs = makeInitialEngineState 3 dim time

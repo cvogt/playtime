@@ -7,6 +7,9 @@ import Platformer.GameState
 import Platformer.Visualize
 import Playtime
 
+dim :: Dimensions
+dim = Dimensions {width = 320, height = 240}
+
 gameDir :: FilePath
 gameDir = "platformer"
 
@@ -17,10 +20,18 @@ main =
 
 makeEngineConfig :: Maybe LiveCodeState -> IO EngineConfig
 makeEngineConfig liveCodeState = do
-  let dim = Dimensions {width = 320, height = 240}
-      loadTx = \(tuId . textureUse -> TextureFile name) -> either fail pure =<< (readPng $ gameDir </> "assets" </> name)
-      stepGameState textures es@EngineState {..} old_gs event = do
-        let new_gs = stepGameStatePure textures old_gs es event
-        saveMay es new_gs
-        fromMaybe new_gs <$> loadMay es
-  wireEngineConfig dim 1 liveCodeState stepGameState visualize loadTx $ makeInitialGameState dim
+  wireEngineConfig
+    dim
+    1
+    liveCodeState
+    stepGameState
+    visualize
+    loadTexture
+    (snd . textures <$> allEnumValues)
+    $ makeInitialGameState dim
+  where
+    stepGameState loadedTextures es@EngineState {..} old_gs event = do
+      let new_gs = stepGameStatePure loadedTextures old_gs es event
+      saveMay es new_gs
+      fromMaybe new_gs <$> loadMay es
+    loadTexture = \name -> either fail pure =<< (readPng $ gameDir </> "assets" </> name)

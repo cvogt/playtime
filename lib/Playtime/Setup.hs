@@ -17,22 +17,21 @@ import Playtime.Types
 
 wireEngineConfig ::
   forall a gs.
-  (Ord a, Show a, Enum a, Bounded a, ToJSON gs, FromJSON gs) =>
+  (Ord a, Show a, ToJSON gs, FromJSON gs) =>
   Dimensions ->
   Scale ->
   Maybe LiveCodeState ->
   ((a -> Texture) -> EngineState -> gs -> Event -> IO gs) ->
-  ((a -> Texture) -> EngineState -> gs -> [TexturePlacements a]) ->
+  ((a -> Texture) -> EngineState -> gs -> [Sprite]) ->
   (a -> IO DynamicImage) ->
+  [a] ->
   gs ->
   IO EngineConfig
-wireEngineConfig ecDim ecScale liveCodeState stepGameState visualize loadTx initialGameState = do
+wireEngineConfig ecDim ecScale liveCodeState stepGameState visualize loadTx allTextures initialGameState = do
   recoveredGameState <- for liveCodeState startLiveCode
   gameStateMVar <- newMVar $ fromMaybe initialGameState $ join recoveredGameState
   loadedTexturesMVar <- newMVar mempty
-  let allTextures :: [a]
-      allTextures = enumFrom (minBound :: a) -- this produces a list of all constructors of an enum ADT
-      ecStepGameState = \es event -> do
+  let ecStepGameState = \es event -> do
         modifyMVar_ gameStateMVar $ \old_gs -> do
           loadedTextures <-
             modifyMVar loadedTexturesMVar $ \loadedTextures' -> do
@@ -47,7 +46,9 @@ wireEngineConfig ecDim ecScale liveCodeState stepGameState visualize loadTx init
       ecVisualize = \es -> do
         loadedTextures <- readMVar loadedTexturesMVar
         visualizations <- visualize (lt loadedTextures) es <$> readMVar gameStateMVar
-        updateTextureCache loadedTexturesMVar visualizations loadTx
+        -- NOTE: resurrect this when implementing dynamically loaded textures
+        -- updateTextureCache loadedTexturesMVar visualizations loadTx
+        pure visualizations
       ecCheckIfContinue = pure . not . gameExitRequested
       ecGameDebugInfo = \EngineState {..} -> debugPrint <$> readMVar gameStateMVar
   pure $ EngineConfig {..}
@@ -57,15 +58,15 @@ lt loadedTextures t =
   fromMaybe (error $ "error loading texture " <> show t <> ", did you forget putting it into all_textures?") $
     mapLookup t loadedTextures
 
-updateTextureCache :: Ord a => MVar (Map a Texture) -> [TexturePlacements a] -> (a -> IO DynamicImage) -> IO [TexturePlacements Texture]
-updateTextureCache loadedTexturesMVar visualizations f' =
-  modifyMVar loadedTexturesMVar $ \loadedTextures -> do
-    let f (acc, loadedTextures') = \case
-          TexturePlacements ref area ->
-            case mapLookup ref loadedTextures' of
-              Nothing -> do
-                texture <- either fail pure =<< (runExceptT . loadTexture) =<< f' ref
-                pure (TexturePlacements texture area : acc, mapInsert ref texture loadedTextures')
-              Just texture -> pure (TexturePlacements texture area : acc, loadedTextures')
-          Rectangle t a c -> pure (Rectangle t a c : acc, loadedTextures')
-    swap <$> foldlM f ([], loadedTextures) visualizations
+-- updateTextureCache :: Ord a => MVar (Map a Texture) -> [Sprite] -> (a -> IO DynamicImage) -> IO ()
+-- updateTextureCache loadedTexturesMVar visualizations f' =
+--   modifyMVar loadedTexturesMVar $ \loadedTextures -> do
+--     let f (acc, loadedTextures') = \(Sprite area t) -> case t of
+--           DynamicSprite ref ->
+--             case mapLookup ref loadedTextures' of
+--               Nothing -> do
+--                 texture <- either fail pure =<< (runExceptT . loadTexture) =<< f' ref
+--                 pure (TexturePlacements texture area : acc, mapInsert ref texture loadedTextures')
+--               Just texture -> pure (TexturePlacements texture area : acc, loadedTextures')
+--           s@Rectangle{} -> pure (s : acc, loadedTextures')
+--     swap <$> foldlM f ([], loadedTextures) visualizations

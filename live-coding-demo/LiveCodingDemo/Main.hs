@@ -8,6 +8,9 @@ import My.Prelude
 import Playtime
 import System.Random
 
+dim :: Dimensions
+dim = Dimensions {width = 320, height = 240}
+
 gameDir :: FilePath
 gameDir = "live-coding-demo"
 
@@ -18,15 +21,16 @@ main =
 
 makeEngineConfig :: Maybe LiveCodeState -> IO EngineConfig
 makeEngineConfig liveCodeState = do
-  let dim = Dimensions {width = 1024, height = 768}
-  initialGameState <- makeInitialGameState dim
-  let loadTx = \(tuId . textureUse -> TextureFile name) -> either fail pure =<< (readPng $ gameDir </> "assets" </> name)
-      stepGameState textures es@EngineState {..} old_gs event = do
-        pre <- sequence $ replicate 1500 randomIO
-        let new_gs =
-              if Key'R `setMember` esKeysPressed
-                then initialGameState
-                else stepGameStatePure pre textures old_gs es event
-        saveMay es new_gs
-        fromMaybe new_gs <$> loadMay es
-  wireEngineConfig dim 1 liveCodeState stepGameState visualize loadTx initialGameState
+  makeInitialGameState dim
+    >>= wireEngineConfig dim 1 liveCodeState stepGameState visualize loadTexture (snd . textures <$> allEnumValues)
+  where
+    stepGameState loadedTextures es@EngineState {..} old_gs event = do
+      pre <- preIO
+      let new_gs = stepGameStatePure pre loadedTextures old_gs es event
+      postIO es new_gs
+    preIO = sequence $ replicate 1500 randomIO
+    postIO es new_gs = do
+      post_gs <- if Key'R `setMember` esKeysPressed es then makeInitialGameState dim else pure new_gs
+      saveMay es post_gs
+      fromMaybe post_gs <$> loadMay es
+    loadTexture = \name -> either fail pure =<< (readPng $ gameDir </> "assets" </> name)

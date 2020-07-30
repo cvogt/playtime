@@ -10,15 +10,13 @@ import Playtime
 data TextureId = Inventory | RedResource | TopWall | MainCharacter | FloorPlate
   deriving (Eq, Ord, Show, Data, Bounded, Enum, Generic, NFData, ToJSON, FromJSON)
 
-newtype TextureFile = TextureFile FilePath deriving (Eq, Ord, Show)
-
-textureUse :: TextureId -> TextureUse TextureFile
-textureUse = \case
-  Inventory -> TextureUse 1 $ TextureFile "inventory.png"
-  RedResource -> TextureUse 1 $ TextureFile "red_resource.png"
-  TopWall -> TextureUse 1 $ TextureFile "top_wall.png"
-  MainCharacter -> TextureUse 1 $ TextureFile "main_character.png"
-  FloorPlate -> TextureUse 1 $ TextureFile "floor_plate.png"
+textures :: TextureId -> (Scale, FilePath)
+textures = \case
+  Inventory -> (1, "inventory.png")
+  RedResource -> (1, "red_resource.png")
+  TopWall -> (1, "top_wall.png")
+  MainCharacter -> (1, "main_character.png")
+  FloorPlate -> (1, "floor_plate.png")
 
 newtype Board = Board {unBoard :: Map Pos TextureId} deriving newtype (Show, Semigroup, Monoid, NFData)
 
@@ -52,8 +50,8 @@ makeInitialGameState Dimensions {width, height} =
       gsMainCharacterPrevious = Pos (width / 2) (height / 2)
     }
 
-stepGameStatePure :: (TextureId -> Texture) -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure (textureArea textureUse -> area) gs@GameState {..} EngineState {..} = \case
+stepGameStatePure :: (FilePath -> Texture) -> GameState -> EngineState -> Event -> GameState
+stepGameStatePure (textureArea textures -> area) gs@GameState {..} EngineState {..} = \case
   CursorPosEvent _ ->
     let Pos x y = esCursorPos
         gridify :: Double -> Double

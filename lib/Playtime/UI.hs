@@ -18,14 +18,14 @@ dragAndDrop ::
   Event ->
   gs
 dragAndDrop EngineState {..} gs mb areas setPoss dragAndDrop' setDragAndDrop =
-  let toPos = \(Area pos _) -> pos
+  let toPos = \(pos, _) -> pos
       poss = toPos <$> areas
    in \case
         MouseEvent mb' MouseButtonState'Pressed
           | mb == mb' ->
             let clicked = find (isWithin esCursorPos) areas
              in gs
-                  & (setDragAndDrop $ clicked <&> \(Area pos _) -> DragAndDrop pos $ pos |-| esCursorPos)
+                  & (setDragAndDrop $ clicked <&> \(pos, _) -> DragAndDrop pos $ pos |-| esCursorPos)
                   & (setPoss $ poss \\ catMaybes [toPos <$> clicked])
         MouseEvent mb' MouseButtonState'Released
           | mb == mb' ->
@@ -42,7 +42,7 @@ showDragAndDrop dragAndDrop' sprite' = catMaybes [dragAndDrop' <&> (\(DragAndDro
 
 deleteOnClick :: EngineState -> gs -> MouseButton -> [Area] -> ([Pos] -> gs -> gs) -> Event -> gs
 deleteOnClick EngineState {..} gs mb areas setPoss =
-  let toPos = \(Area pos _) -> pos
+  let toPos = \(pos, _) -> pos
       poss = toPos <$> areas
    in \case
         MouseEvent mb' MouseButtonState'Pressed

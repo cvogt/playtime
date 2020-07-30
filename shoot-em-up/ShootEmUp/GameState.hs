@@ -28,13 +28,11 @@ numEnemies = 10
 data TextureId = Enemy | Heart | Plane
   deriving (Eq, Ord, Show, Data, Bounded, Enum, Generic, NFData, ToJSON, FromJSON)
 
-newtype TextureFile = TextureFile FilePath deriving (Eq, Ord, Show)
-
-textureUse :: TextureId -> TextureUse TextureFile
-textureUse = \case
-  Plane -> TextureUse 1 $ TextureFile "plane.png"
-  Enemy -> TextureUse 0.1 $ TextureFile "enemy_red.png"
-  Heart -> TextureUse 0.025 $ TextureFile "haskell_love_logo.png"
+textures :: TextureId -> (Scale, FilePath)
+textures = \case
+  Plane -> (1, "plane.png")
+  Enemy -> (0.1, "enemy_red.png")
+  Heart -> (0.025, "haskell_love_logo.png")
 
 makeInitialGameState :: Dimensions -> IO GameState
 makeInitialGameState Dimensions {width, height} = do
@@ -54,23 +52,23 @@ makeInitialGameState Dimensions {width, height} = do
         gsDragAndDrop = Nothing
       }
 
-stepGameStatePure :: [Int] -> (TextureId -> Texture) -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure pre textures old_gs es event =
+stepGameStatePure :: [Int] -> (FilePath -> Texture) -> GameState -> EngineState -> Event -> GameState
+stepGameStatePure pre loadedTextures old_gs es event =
   foldl
     (&)
     old_gs
     [ \gs -> dragAndDrop es gs MouseButton'1 (getBulletAreas gs) setBullets (getDragAndDrop gs) setDragAndDrop event,
       \gs -> deleteOnClick es gs MouseButton'2 (getBulletAreas gs) setBullets event,
-      \gs -> stepGameStatePure' pre textures gs es event
+      \gs -> stepGameStatePure' pre loadedTextures gs es event
     ]
   where
     setBullets bullets gs = gs {gsBullets = bullets}
-    getBulletAreas gs = textureArea textureUse textures Heart <$> gsBullets gs
+    getBulletAreas gs = textureArea textures loadedTextures Heart <$> gsBullets gs
     getDragAndDrop gs = gsDragAndDrop gs
     setDragAndDrop v gs = gs {gsDragAndDrop = v}
 
-stepGameStatePure' :: [Int] -> (TextureId -> Texture) -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure' randInts (textureArea textureUse -> area) gs@GameState {..} EngineState {..} = \case
+stepGameStatePure' :: [Int] -> (FilePath -> Texture) -> GameState -> EngineState -> Event -> GameState
+stepGameStatePure' randInts (textureArea textures -> area) gs@GameState {..} EngineState {..} = \case
   KeyEvent Key'Space KeyState'Pressed ->
     gs
       { gsBullets =

@@ -6,16 +6,12 @@ import GHC.Real ((/), ceiling, floor)
 import My.Prelude
 import Playtime.Types
 
-data TextureUse a = TextureUse {tuScale :: Scale, tuId :: a}
+textureArea :: (a -> (Scale, b)) -> (b -> Texture) -> a -> Pos -> Area
+textureArea textureScale textures i pos =
+  let (scale, b) = textureScale i
+      Texture dim _ _ = textures b
+   in (pos,) $ scale |*| dim
 
-textureArea :: (a -> TextureUse b) -> (a -> Texture) -> a -> Pos -> Area
-textureArea textureUse textures i pos =
-  let TextureUse scale _ = textureUse i
-      Texture dim _ _ = textures i
-   in Area pos $ scale |*| dim
-
-sprite :: (a -> Pos -> Area) -> a -> Pos -> TexturePlacements a
-sprite area i pos = TexturePlacements i $ area i pos
 
 relativePos :: Pos -> Double -> Double -> Pos
 relativePos Pos {x, y} xd yd = Pos {x = x + xd, y = y + yd}
@@ -36,7 +32,7 @@ filterX :: (Double -> Bool) -> [Pos] -> [Pos]
 filterX f = filter (f . x)
 
 move :: Double -> Area -> Pos -> Double -> Double -> [Area] -> Pos
-move timePassed (Area objectPos objectDim) previousPos velocityX velocityY obstacles =
+move timePassed (objectPos, objectDim) previousPos velocityX velocityY obstacles =
   case lastMay unobstructed of
     Nothing -> objectPos
     Just pos ->
@@ -49,7 +45,7 @@ move timePassed (Area objectPos objectDim) previousPos velocityX velocityY obsta
             Nothing -> pos
             Just pos' -> pos'
   where
-    nonColliding p = not $ any (Area p objectDim `collidesWith`) obstacles
+    nonColliding p = not $ any ((p, objectDim) `collidesWith`) obstacles
     candidates = trajectoryPixels objectPos timePassed velocityX velocityY
     unobstructed = takeWhile nonColliding candidates
 

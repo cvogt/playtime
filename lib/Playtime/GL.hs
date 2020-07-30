@@ -1,6 +1,6 @@
 module Playtime.GL where
 
-import Codec.Picture (DynamicImage (ImageRGBA8), Image (Image), readPng)
+import Codec.Picture (DynamicImage (ImageRGBA8), Image (Image))
 import Data.Vector.Storable (unsafeWith)
 import GHC.Err (error)
 import GHC.Float (double2Float, int2Double, int2Float)
@@ -13,7 +13,7 @@ import My.IO
 import My.Prelude
 import Playtime.Types
 
-renderGL :: GLFW.Window -> Dimensions -> [TexturePlacements Texture] -> IO ()
+renderGL :: GLFW.Window -> Dimensions -> [Sprite] -> IO ()
 renderGL window Dimensions {width = w, height = h} texturePlacements = do
   GL.matrixMode $= GL.Projection
   GL.loadIdentity
@@ -29,8 +29,8 @@ renderGL window Dimensions {width = w, height = h} texturePlacements = do
 
   checkErrorsGLU "before"
 
-  for_ texturePlacements $ \case
-    (Rectangle fillType area (RGBA r g b a)) -> do
+  for_ texturePlacements $ \(Rectangle area tpe) -> case tpe of
+    Right (fillType, (RGBA r g b a)) -> do
       GL.texture GL.Texture2D $= GL.Disabled
       GL.currentColor $= GL.Color4 (int2Float r / 255) (int2Float g / 255) (int2Float b / 255) (int2Float a / 255)
       mode <- case fillType of
@@ -41,10 +41,10 @@ renderGL window Dimensions {width = w, height = h} texturePlacements = do
       GL.renderPrimitive mode $ do
         let Corners c1 c2 c3 c4 = corners area
         forM_ [c1, c2, c2, c3, c3, c4, c4, c1] vertex
-    (TexturePlacements (Texture dim glObject _) area@(Area _ dim')) -> do
-      if abs ((width dim / height dim) - (width dim' / height dim')) > 0.001
-        then error $ show (dim, dim')
-        else pure ()
+    Left (Texture _ glObject _) -> do
+      -- if abs ((width dim / height dim) - (width dim' / height dim')) > 0.001
+      --   then error $ show (dim, dim')
+      --   else pure ()
       GL.currentColor $= GL.Color4 @Float 255 255 255 1
       GL.texture GL.Texture2D $= GL.Enabled
       GL.textureFilter GL.Texture2D $= ((GL.Nearest, Nothing), GL.Nearest)
@@ -63,8 +63,8 @@ renderGL window Dimensions {width = w, height = h} texturePlacements = do
     vertex (Pos x y) = GL.vertex $ GL.Vertex2 (double2Float x) (double2Float y)
     checkErrorsGLU csg = void $ error . ("GLU.errors " <>) . (csg <>) . (": " <>) . show <$> GL.get GLU.errors
 
-loadTextureId :: FilePath -> ExceptT [Char] IO Texture
-loadTextureId file = ExceptT (first ("loadTextureId: " <>) <$> readPng file) >>= loadTexture
+-- loadTextureId :: FilePath -> ExceptT [Char] IO Texture
+-- loadTextureId file = ExceptT (first ("loadTextureId: " <>) <$> readPng file) >>= loadTexture
 
 loadTexture :: DynamicImage -> ExceptT [Char] IO Texture
 loadTexture img = ExceptT $ case img of

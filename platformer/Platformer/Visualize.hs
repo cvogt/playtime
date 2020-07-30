@@ -5,10 +5,10 @@ import My.Prelude
 import Platformer.GameState
 import Playtime
 
-visualize :: (TextureId -> Texture) -> EngineState -> GameState -> [TexturePlacements TextureId]
-visualize (textureArea textureUse -> area) EngineState {..} GameState {..} =
-  [sprite area MainCharacter gsMainCharacter] <> room
+visualize :: (FilePath -> Texture) -> EngineState -> GameState -> [Sprite]
+visualize (textureSprite textures -> sprite) EngineState {..} GameState {..} =
+  [sprite MainCharacter gsMainCharacter] <> room
   where
-    room = (Map.toList $ unBoard gsRoom) <&> \(pos, t) -> sprite area t pos
+    room = (Map.toList $ unBoard gsRoom) <&> \(pos, t) -> sprite t pos
 
 -- backup of grouping logic as reminder if needed: (groupWith snd $ Map.toList $ unBoard gsFloor) <&> \ne@((_, t) :| _) ->

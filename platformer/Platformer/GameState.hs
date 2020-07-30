@@ -10,12 +10,10 @@ import Playtime
 data TextureId = FloorPlate | MainCharacter
   deriving (Eq, Ord, Show, Data, Bounded, Enum, Generic, NFData, ToJSON, FromJSON)
 
-newtype TextureFile = TextureFile FilePath deriving (Eq, Ord, Show)
-
-textureUse :: TextureId -> TextureUse TextureFile
-textureUse = \case
-  MainCharacter -> TextureUse 1 $ TextureFile "main_character.png"
-  FloorPlate -> TextureUse 1 $ TextureFile "floor_plate.png"
+textures :: TextureId -> (Scale, FilePath)
+textures = \case
+  MainCharacter -> (1, "main_character.png")
+  FloorPlate -> (1, "floor_plate.png")
 
 newtype Board = Board {unBoard :: Map Pos TextureId} deriving newtype (Show, Semigroup, Monoid, NFData)
 
@@ -55,8 +53,8 @@ makeInitialGameState Dimensions {width} =
           $ (\r -> take 60 $ toList $ (iterate (+ 12) 0 `NEL.zip` repeat r) `NEL.zip` (repeat FloorPlate))
     }
 
-stepGameStatePure :: (TextureId -> Texture) -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure (textureArea textureUse -> area) gs@GameState {..} EngineState {..} = \case
+stepGameStatePure :: (FilePath -> Texture) -> GameState -> EngineState -> Event -> GameState
+stepGameStatePure (textureArea textures -> area) gs@GameState {..} EngineState {..} = \case
   KeyEvent Key'Space KeyState'Pressed -> gs {gsVelocityY = -220}
   RenderEvent _ ->
     let speedX = 100

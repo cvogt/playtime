@@ -11,6 +11,9 @@ import ShootEmUp.GameState
 import ShootEmUp.Visualize
 import System.Random
 
+dim :: Dimensions
+dim = Dimensions {width = 1024, height = 768}
+
 gameDir :: FilePath
 gameDir = "shoot-em-up"
 
@@ -32,16 +35,17 @@ makeEngineConfig liveCodeState = do
     $ fmap isLeft
     $ try @SomeException
     $ putMVar popSound =<< load (gameDir </> "assets/bubble_pop.ogg") -- https://freesound.org/people/blue2107/sounds/59978/
-  let dim = Dimensions {width = 1024, height = 768}
-  initialGameState <- makeInitialGameState dim
-  let loadTx = \(tuId . textureUse -> TextureFile name) -> either fail pure =<< (readPng $ gameDir </> "assets" </> name)
-      stepGameState textures es@EngineState {..} old_gs event = do
-        pre <- sequence $ replicate 10 randomIO
-        let new_gs =
-              if Key'R `setMember` esKeysPressed
-                then initialGameState
-                else stepGameStatePure pre textures old_gs es event
-        when (Key'Space `elem` esKeysPressed) $ play =<< readMVar popSound
-        saveMay es new_gs
-        fromMaybe new_gs <$> loadMay es
-  wireEngineConfig dim 1 liveCodeState stepGameState visualize loadTx initialGameState
+  makeInitialGameState dim
+    >>= wireEngineConfig dim 1 liveCodeState (stepGameState popSound) visualize loadTx (snd . textures <$> allEnumValues)
+  where
+    loadTx = \name -> either fail pure =<< (readPng $ gameDir </> "assets" </> name)
+    stepGameState popSound loadedTextures es@EngineState {..} old_gs event = do
+      pre <- preIO
+      let new_gs = stepGameStatePure pre loadedTextures old_gs es event
+      postIO es new_gs popSound
+    preIO = sequence $ replicate 10 randomIO
+    postIO es new_gs popSound = do
+      when (Key'Space `elem` esKeysPressed es) $ play =<< readMVar popSound
+      post_gs <- if Key'R `setMember` esKeysPressed es then makeInitialGameState dim else pure new_gs
+      saveMay es post_gs
+      fromMaybe post_gs <$> loadMay es

@@ -14,7 +14,7 @@ import My.Prelude
 data EngineConfig = EngineConfig
   { ecDim :: Dimensions,
     ecScale :: Scale,
-    ecVisualize :: EngineState -> IO [TexturePlacements Texture],
+    ecVisualize :: EngineState -> IO [Sprite],
     ecStepGameState :: EngineState -> Event -> IO (),
     ecCheckIfContinue :: EngineState -> IO Bool,
     ecGameDebugInfo :: EngineState -> IO [[Char]]
@@ -74,9 +74,13 @@ data Texture = Texture
 
 data FillType = Solid | Border Float
 
-data TexturePlacements a
-  = Rectangle FillType Area Color
-  | TexturePlacements a Area
+data Sprite = Rectangle Area (Either Texture (FillType, Color))
+
+rectangle :: FillType -> Color -> Dimensions -> Pos -> Sprite
+rectangle ft c d p = Rectangle (p, d) $ Right (ft, c)
+
+textureSprite :: (a -> (Scale, b)) -> (b -> Texture) -> a -> Pos -> Sprite
+textureSprite textures f (second f . textures -> (scale, tx@(Texture dim _ _))) pos = Rectangle (pos, scale |*| dim) (Left tx)
 
 data Pos = Pos {x :: Double, y :: Double} deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON)
 
@@ -84,7 +88,7 @@ data Scale = Scale {sx :: Double, sy :: Double} deriving (Eq, Ord, Show, Generic
 
 data Dimensions = Dimensions {width :: Double, height :: Double} deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON)
 
-data Area = Area Pos Dimensions deriving (Eq, Ord, Show, Generic, NFData, FromJSON, ToJSON)
+type Area = (Pos, Dimensions)
 
 (|*|) :: Scale -> Dimensions -> Dimensions
 (|*|) Scale {sx, sy} Dimensions {width, height} = Dimensions {width = width * sx, height = height * sy}
@@ -99,10 +103,10 @@ data Area = Area Pos Dimensions deriving (Eq, Ord, Show, Generic, NFData, FromJS
 (|-|) Pos {x = x1, y = y1} Pos {x = x2, y = y2} = Dimensions {width = x1 - x2, height = y1 - y2}
 
 isWithin :: Pos -> Area -> Bool
-isWithin (Pos cx cy) (Area (Pos x y) (Dimensions width height)) = x <= cx && y <= cy && cx <= (x + width) && cy <= (y + height)
+isWithin (Pos cx cy) (Pos x y, Dimensions width height) = x <= cx && y <= cy && cx <= (x + width) && cy <= (y + height)
 
 collidesWith :: Area -> Area -> Bool
-collidesWith (Area a1 da) (Area b1 db) =
+collidesWith (a1, da) (b1, db) =
   let a2 = a1 |+| da; b2 = b1 |+| db
    in x a1 < x b2 && x a2 > x b1 && y a1 < y b2 && y a2 > y b1
 
@@ -114,7 +118,7 @@ data Corners a = Corners {nw :: a, sw :: a, se :: a, ne :: a} deriving (Eq, Ord,
 instance Foldable Corners where foldr f b (Corners ne se sw nw) = foldr f b [ne, se, sw, nw]
 
 corners :: Area -> Corners Pos
-corners (Area pos dim) = cornerScales <&> \scale -> pos |+| (scale |*| dim)
+corners (pos, dim) = cornerScales <&> \scale -> pos |+| (scale |*| dim)
 
 instance Num Scale where
   (Scale lx ly) + (Scale rx ry) = Scale (lx + rx) (ly + ry)

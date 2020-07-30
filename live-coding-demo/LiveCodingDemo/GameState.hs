@@ -30,18 +30,16 @@ makeInitialGameState Dimensions {width} = do
         gsPlayer = Pos 100 100
       }
 
-newtype TextureFile = TextureFile FilePath deriving (Eq, Ord, Show)
-
 data TextureId = Heart | Plane | Enemy deriving (Eq, Ord, Show, Data, Bounded, Enum, Generic, NFData, ToJSON, FromJSON)
 
-textureUse :: TextureId -> TextureUse TextureFile
-textureUse = \case
-  Plane -> TextureUse 1 $ TextureFile "plane.png"
-  Enemy -> TextureUse 0.1 $ TextureFile "enemy_red.png"
-  Heart -> TextureUse 0.025 $ TextureFile "haskell_love_logo.png"
+textures :: TextureId -> (Scale, FilePath)
+textures = \case
+  Plane -> (1, "plane.png")
+  Enemy -> (0.1, "enemy_red.png")
+  Heart -> (0.025, "haskell_love_logo.png")
 
-stepGameStatePure :: [Int] -> (TextureId -> Texture) -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure randInts (textureArea textureUse -> area) gs@GameState {..} EngineState {..} = \case
+stepGameStatePure :: [Int] -> (FilePath -> Texture) -> GameState -> EngineState -> Event -> GameState
+stepGameStatePure randInts (textureArea textures -> area) gs@GameState {..} EngineState {..} = \case
   KeyEvent Key'Space KeyState'Pressed ->
     let Dimensions {width} = esLogicalDimensions
         _randDoubles = int2Double . (`mod` double2Int width) <$> randInts
@@ -56,7 +54,7 @@ stepGameStatePure randInts (textureArea textureUse -> area) gs@GameState {..} En
         moveY = if Key'W `setMember` esKeysPressed then subtract step else if Key'S `setMember` esKeysPressed then (+ step) else id
         randDoubles = int2Double . (`mod` double2Int height) <$> randInts
         bulletVelocityX = 300
-        (bullets, killed) = unzip $ fmap (both (\(Area pos _) -> pos)) $ filter (uncurry collidesWith) $ (,) <$> (area Heart <$> gsBullets) <*> (area Enemy <$> gsEnemies)
+        (bullets, killed) = unzip $ fmap (both (\(pos, _) -> pos)) $ filter (uncurry collidesWith) $ (,) <$> (area Heart <$> gsBullets) <*> (area Enemy <$> gsEnemies)
         newEnemies = take (10 - length gsEnemies) $ uncurry Pos <$> ((toList $ repeat 1023) `zip` drop 10 randDoubles)
         newEnemies' = filter (not . (`elem` killed)) $ gsEnemies <> newEnemies
      in gs

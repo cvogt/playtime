@@ -83,7 +83,7 @@ import Data.Time.Clock.System (SystemTime)
 import Data.Traversable (for, forM, sequence, traverse)
 import Data.Tuple (fst, snd, swap, uncurry)
 import Foreign (ForeignPtr)
-import GHC.Enum (Bounded, Enum, enumFrom, minBound)
+import GHC.Enum (Bounded, Enum, enumFrom, maxBound, minBound)
 import GHC.Float ((**), Double, Float, divideDouble)
 import GHC.Generics (Generic)
 import GHC.Integer (Integer)
@@ -95,7 +95,7 @@ import Safe (headMay, lastMay)
 import Safe.Foldable (foldl1Safe, foldr1Safe)
 -- FIXME: replace next with uniform once stack upgraded random
 import System.IO (FilePath) -- FIXME: replace next with uniform once stack upgraded random
-import System.Random (StdGen, next)
+import System.Random (StdGen, mkStdGen, random, randomR)
 import Universum (foldl1, foldr1)
 
 mapDelete :: Ord k => k -> Map k a -> Map k a

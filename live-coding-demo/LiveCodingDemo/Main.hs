@@ -21,7 +21,7 @@ main =
 
 makeEngineConfig :: Maybe LiveCodeState -> IO EngineConfig
 makeEngineConfig liveCodeState = do
-  makeInitialGameState dim
+  initial_gs
     >>= wireEngineConfig
       dim
       1
@@ -31,13 +31,17 @@ makeEngineConfig liveCodeState = do
       loadTexture
       (snd . textures <$> allEnumValues)
   where
+    initial_gs = makeInitialGameState dim <$> randomIO
     stepGameState area es@EngineState {..} old_gs event = do
       pre <- preIO
       let new_gs = stepGameStatePure pre area old_gs es event
       postIO es new_gs
     preIO = sequence $ replicate 1500 randomIO
     postIO es new_gs = do
-      post_gs <- if Key'R `setMember` esKeysPressed es then makeInitialGameState dim else pure new_gs
+      post_gs <-
+        if Key'R `setMember` esKeysPressed es
+          then initial_gs
+          else pure new_gs
       saveMay es post_gs
       fromMaybe post_gs <$> loadMay es
     loadTexture = \name -> either fail pure =<< (readPng $ gameDir </> "assets" </> name)

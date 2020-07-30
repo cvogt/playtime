@@ -1,12 +1,14 @@
 module Playtime.Util where
 
+import Data.List (zip)
 import Data.Time.Clock
 import Data.Time.Clock.System
 import Data.Time.Clock.TAI
-import GHC.Float (int2Double)
+import GHC.Float (double2Int, int2Double)
 import GHC.Real ((/))
 import My.Prelude
 import Playtime.Types
+import System.Random
 
 timeDiffPico :: SystemTime -> SystemTime -> Integer
 timeDiffPico before after = diffTimeToPicoseconds $ diffAbsoluteTime (systemToTAITime after) (systemToTAITime before)
@@ -25,3 +27,16 @@ translate offset (Rectangle (dim, pos) v) = Rectangle (dim, pos |+ offset) v
 
 allEnumValues :: forall a. (Enum a, Bounded a) => [a]
 allEnumValues = enumFrom (minBound :: a)
+
+randomsR :: (Random a) => StdGen -> Int -> (a, a) -> ([a], StdGen)
+randomsR = randomsR' . ([],)
+  where
+    randomsR' :: (Random a) => ([a], StdGen) -> Int -> (a, a) -> ([a], StdGen)
+    randomsR' res n _ | n <= 0 = res
+    randomsR' (acc, g') n r = randomsR' (first (: acc) $ randomR r g') (n -1) r
+
+randomPoss :: StdGen -> Int -> Dim -> ([Pos], StdGen)
+randomPoss g n (Relative width, Relative height) =
+  let (xs, g') = randomsR g n (0, double2Int width)
+      (ys, g'') = randomsR g' n (0, double2Int height)
+   in ((xAbsolute . int2Double <$> xs) `zip` (yAbsolute . int2Double <$> ys), g'')

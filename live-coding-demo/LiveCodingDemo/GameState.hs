@@ -4,11 +4,8 @@ import Data.Aeson (FromJSON, ToJSON)
 import Data.List as L (zip)
 import GHC.Float (double2Int, int2Double)
 import GHC.Real (mod)
-import My.IO
 import My.Prelude
---import Playtime.Geometry
 import Playtime
-import System.Random
 
 data GameState = GameState
   { gsPlayer :: Pos,
@@ -18,18 +15,15 @@ data GameState = GameState
   }
   deriving (Show, Generic, NFData, ToJSON, FromJSON)
 
-makeInitialGameState :: Dim -> IO GameState
-makeInitialGameState dim = do
-  let maxStarSize = 4
-  starX <- fmap (fmap fromIntegral) $ sequence $ replicate 510 $ randomRIO (0, maxStarSize + (double2Int $ unRelative $ fst dim))
-  starY <- fmap (fmap fromIntegral) $ sequence $ replicate 510 $ randomRIO (0, maxStarSize + (double2Int $ unRelative $ snd dim))
-  pure
-    GameState
-      { gsStars = starX `zip` starY,
-        gsEnemies = [],
-        gsBullets = [],
-        gsPlayer = (100, 100)
-      }
+makeInitialGameState :: Dim -> Int -> GameState
+makeInitialGameState dim (mkStdGen -> rng) =
+  --let maxStarSize = 4
+  GameState
+    { gsStars = fst $ randomPoss rng 510 dim,
+      gsEnemies = [],
+      gsBullets = [],
+      gsPlayer = (100, 100)
+    }
 
 data TextureId = Heart | Plane | Enemy deriving (Eq, Ord, Show, Data, Bounded, Enum, Generic, NFData, ToJSON, FromJSON)
 

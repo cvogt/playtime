@@ -152,6 +152,7 @@ loadSourceGhc paths = ExceptT $
                 GeneralizedNewtypeDeriving,
                 LambdaCase,
                 MultiParamTypeClasses,
+                MultiWayIf,
                 RecordPuns, -- this is NamedFieldPuns
                 -- ImplicitPrelude,
                 OverloadedStrings,

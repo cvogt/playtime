@@ -79,6 +79,7 @@ default-extensions:
 - GeneralizedNewtypeDeriving # FIXME: Safe Haskell considers GeneralizedNewtypeDeriving unsafe
 - LambdaCase
 - MultiParamTypeClasses
+- MultiWayIf
 - NamedFieldPuns
 - NoImplicitPrelude
 - OverloadedStrings

@@ -108,7 +108,7 @@ ghc-options:
 
 executables:
   spaceminer:
-    main: SpaceMiner/Main.hs
+    main: Main.hs
     source-dirs: spaceminer
     ghc-options: -threaded -rtsopts -with-rtsopts=-N
     dependencies: playtime

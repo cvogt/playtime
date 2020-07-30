@@ -1,4 +1,4 @@
-module Main where
+module SpaceMiner.Main where
 
 import Codec.Picture (readPng)
 import My.IO

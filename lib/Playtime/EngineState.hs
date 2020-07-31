@@ -18,7 +18,7 @@ data EngineConfig = EngineConfig
 data EngineState = EngineState
   { esCursorPos :: Pos,
     esFps :: Double,
-    esWindowDimensions :: Dim,
+    esDimensions :: Dim,
     esKeysPressed :: Set Key,
     esMousePressed :: Set MouseButton,
     esLastLoopTime :: SystemTime,
@@ -37,7 +37,7 @@ makeInitialEngineState scale dim time =
       esKeysPressed = mempty,
       esMousePressed = mempty,
       esLastLoopTime = time,
-      esWindowDimensions = dim,
+      esDimensions = dim,
       esActions = mempty,
       esTimes = [],
       esTimePassed = 0,
@@ -64,7 +64,7 @@ stepEngineState (clearOneTimeEffects -> gs@EngineState {..}) = \case
           -- this ratio calculation leads to proper relative scaling on window resize
           -- FIXME: we still get distortion if aspect ration of resized window is different
           --        we should be able to fix that by adding black borders as needed
-          let scale = esWindowDimensions / esWindowSize
+          let scale = esDimensions / esWindowSize
               relPos = pos
            in scale * relPos
       }

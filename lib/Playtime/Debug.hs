@@ -42,7 +42,7 @@ forkDebugTerminal ConcurrentState {..} engineConfigMVar lcsMay = do
       timeStep <- modifyMVar csTimeStep $ \t -> pure ([], t)
       renderLoopTimes <- modifyMVar csTimeGL $ \t -> pure ([], t)
       totalLoopTimes <- modifyMVar csTimeRender $ \t -> pure ([], t)
-      let newAvgTimeStep = if not $ null timeStep then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> timeStep) else oldAvgTimeStep
+      let _newAvgTimeStep = if not $ null timeStep then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> timeStep) else oldAvgTimeStep
           newAvgRenderLoopTime = if not $ null renderLoopTimes then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> renderLoopTimes) else oldAvgRenderLoopTime
           newAvgTotalLoopTime = if not $ null totalLoopTimes then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> totalLoopTimes) else oldAvgTotalLoopTime
       gameDebugInfo <- ecGameDebugInfo <$> readMVar engineConfigMVar
@@ -57,13 +57,13 @@ forkDebugTerminal ConcurrentState {..} engineConfigMVar lcsMay = do
           <$> (maybe [] (\e -> lines $ setSGRCode [SetColor Foreground Vivid Red] <> e <> "\n" <> replicate width '-' <> setSGRCode [ANSI.Reset]) ce)
           <> ( take width
                  <$> [ "fps: " <> show newAvgTotalLoopTime,
-                       "1/renderLoopTime: " <> show newAvgRenderLoopTime,
-                       "1/timeStep: " <> show newAvgTimeStep,
+                       --"1/renderLoopTime: " <> show newAvgRenderLoopTime,
+                       --"1/timeStep: " <> show newAvgTimeStep,
                        replicate width '-',
                        "esCursorPos: " <> show esCursorPos,
                        "esKeysPressed: " <> show esKeysPressed,
                        "esMousePressed: " <> show esMousePressed,
-                       "esActions: " <> show esActions,
+                       --"esActions: " <> show esActions,
                        "esTimePassed: " <> show esTimePassed,
                        replicate width '-'
                      ]

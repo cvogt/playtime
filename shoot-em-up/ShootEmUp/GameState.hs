@@ -23,12 +23,12 @@ data GameState = GameState
 numEnemies :: Int
 numEnemies = 10
 
-data TextureId = Enemy | Heart | Plane
+data TextureId = Enemy | Heart | Spaceship
   deriving (Eq, Ord, Show, Data, Bounded, Enum, Generic, NFData, ToJSON, FromJSON)
 
 textures :: TextureId -> (Scale, FilePath)
 textures = \case
-  Plane -> (1, "plane.png")
+  Spaceship -> (1, "plane.png")
   Enemy -> (0.1, "enemy_red.png")
   Heart -> (0.025, "haskell_love_logo.png")
 
@@ -73,7 +73,7 @@ stepGameStatePure' randInts tDim gs@GameState {..} EngineState {..} = \case
       }
   RenderEvent _ ->
     let distancePerSec = 200
-        (_, height) = esWindowDimensions
+        (_, height) = esDimensions
         direction :: Dim
         direction =
           ( if
@@ -104,7 +104,7 @@ stepGameStatePure' randInts tDim gs@GameState {..} EngineState {..} = \case
         stepStar (size, pos) = (size,) $ modu $ move' pos
           where
             move' = subtract (esTimePassed * (size + 1), 0)
-            modu = (`mod2` (esWindowDimensions + dupe gsMaxStarSize))
+            modu = (`mod2` (esDimensions + dupe gsMaxStarSize))
      in gs
           { gsMainCharacter = gsMainCharacter + (dupe $ esTimePassed * distancePerSec) * direction,
             gsEnemies = (subtract $ (esTimePassed * 100, 0)) <$> newEnemies,

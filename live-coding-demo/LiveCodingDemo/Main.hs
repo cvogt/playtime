@@ -13,7 +13,7 @@ gameDir = "live-coding-demo"
 
 textures :: TextureId -> (Scale, FilePath)
 textures = \case
-  Plane -> (1, "plane.png")
+  Spaceship -> (1, "plane.png")
   Enemy -> (0.1, "enemy_red.png")
   Heart -> (0.025, "haskell_love_logo.png")
 
@@ -26,7 +26,7 @@ makeEngineConfig :: Maybe LiveCodeState -> IO EngineConfig
 makeEngineConfig liveCodeState = do
   initialGameState
     >>= wireEngineConfig
-      dim
+      dimensions
       1
       liveCodeState
       (stepGameState . textureDim textures)
@@ -34,8 +34,8 @@ makeEngineConfig liveCodeState = do
       loadTexture
       (snd . textures <$> allEnumValues)
   where
-    dim = (1024, 768)
-    initialGameState = makeInitialGameState dim <$> randomIO
+    dimensions = (1024, 768)
+    initialGameState = makeInitialGameState dimensions <$> randomIO
     stepGameState area es@EngineState {..} old_gs event = do
       seed <- randomIO
       let new_gs = stepGameStatePure seed area old_gs es event

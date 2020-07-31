@@ -27,11 +27,11 @@ makeInitialGameState dim (mkStdGen -> rng) =
           gsSpeed = 1
         }
 
-data TextureId = Heart | Plane | Enemy deriving (Eq, Ord, Show, Data, Bounded, Enum, Generic, NFData, ToJSON, FromJSON)
+data TextureId = Heart | Spaceship | Enemy deriving (Eq, Ord, Show, Data, Bounded, Enum, Generic, NFData, ToJSON, FromJSON)
 
 textures :: TextureId -> (Scale, FilePath)
 textures = \case
-  Plane -> (1, "plane.png")
+  Spaceship -> (1, "plane.png")
   Enemy -> (0.1, "enemy_red.png")
   Heart -> (0.025, "haskell_love_logo.png")
 
@@ -39,21 +39,21 @@ stepGameStatePure :: Int -> (TextureId -> Dim) -> GameState -> EngineState -> Ev
 stepGameStatePure (mkStdGen -> rng) area gs@GameState {..} EngineState {..} = \case
   KeyEvent Key'Space KeyState'Pressed ->
     let
-     in -- (width,_) = esWindowDimensions
+     in -- (width,_) = esDimensions
         --_randDoubles = int2Double . (`mod2`% width) <$> randInts
         gs
           { gsHearts = gsHearts <> ((repeat $ fst gsPlayer + 300) `zip` ((+ snd gsPlayer) <$>) [50, 100, 150, 200, 250, 300])
           }
   KeyEvent Key'P KeyState'Pressed ->
     let
-     in -- (width,_) = esWindowDimensions
+     in -- (width,_) = esDimensions
         --_randDoubles = int2Double . (`mod2`% width) <$> randInts
         gs
           { gsSpeed = gsSpeed + 1
           }
   KeyEvent Key'O KeyState'Pressed ->
     let
-     in -- (width,_) = esWindowDimensions
+     in -- (width,_) = esDimensions
         --_randDoubles = int2Double . (`mod2`% width) <$> randInts
         gs
           { gsSpeed = gsSpeed - 1
@@ -62,7 +62,7 @@ stepGameStatePure (mkStdGen -> rng) area gs@GameState {..} EngineState {..} = \c
     let speed = gsSpeed * esTimePassed
         velocity = 200
         step = esTimePassed * velocity
-        (_, height) = esWindowDimensions
+        (_, height) = esDimensions
         moveX =
           if
               | Key'A `setMember` esKeysPressed -> subtract (step, 0)
@@ -83,10 +83,10 @@ stepGameStatePure (mkStdGen -> rng) area gs@GameState {..} EngineState {..} = \c
      in gs
           { gsPlayer = moveX . moveY $ gsPlayer,
             gsEnemies =
-              subtract (100 * speed, 0) . (`mod2` esWindowDimensions) <$> newEnemies',
+              subtract (100 * speed, 0) . (`mod2` esDimensions) <$> newEnemies',
             gsHearts =
               (+ (300 * speed, 0)) <$> filter ((< 1024) . fst) (gsHearts \\ bullets),
             gsStars =
-              moveStars . (second (`mod2` esWindowDimensions)) <$> gsStars
+              moveStars . (second (`mod2` esDimensions)) <$> gsStars
           }
   _ -> gs

@@ -32,9 +32,9 @@ makeEngineConfig liveCodeState = do
     $ fmap isLeft
     $ try @SomeException
     $ putMVar popSound =<< load (gameDir </> "assets/bubble_pop.ogg") -- https://freesound.org/people/blue2107/sounds/59978/
-  makeInitialGameState dim
+  makeInitialGameState dimensions
     >>= wireEngineConfig
-      dim
+      dimensions
       1
       liveCodeState
       (stepGameState popSound . textureDim textures)
@@ -42,7 +42,7 @@ makeEngineConfig liveCodeState = do
       loadTx
       (snd . textures <$> allEnumValues)
   where
-    dim = (1024, 768)
+    dimensions = (1024, 768)
     loadTx = \name -> either fail pure =<< (readPng $ gameDir </> "assets" </> name)
     stepGameState popSound area es@EngineState {..} old_gs event = do
       pre <- preIO
@@ -51,6 +51,6 @@ makeEngineConfig liveCodeState = do
     preIO = sequence $ replicate 10 randomIO
     postIO es new_gs popSound = do
       when (Key'Space `elem` esKeysPressed es) $ play =<< readMVar popSound
-      post_gs <- if Key'R `setMember` esKeysPressed es then makeInitialGameState dim else pure new_gs
+      post_gs <- if Key'R `setMember` esKeysPressed es then makeInitialGameState dimensions else pure new_gs
       saveMay es post_gs
       fromMaybe post_gs <$> loadMay es

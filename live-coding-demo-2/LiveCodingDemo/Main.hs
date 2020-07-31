@@ -20,7 +20,7 @@ makeEngineConfig :: Maybe LiveCodeState -> IO EngineConfig
 makeEngineConfig liveCodeState = do
   initial_gs
     >>= wireEngineConfig
-      dim
+      dimensions
       1
       liveCodeState
       (stepGameState . textureDim textures)
@@ -28,8 +28,8 @@ makeEngineConfig liveCodeState = do
       loadTexture
       (snd . textures <$> allEnumValues)
   where
-    dim = (1024, 768)
-    initial_gs = makeInitialGameState dim <$> randomIO
+    dimensions = (1024, 768)
+    initial_gs = makeInitialGameState dimensions <$> randomIO
     stepGameState area es@EngineState {..} old_gs event = do
       pre <- preIO
       let new_gs = stepGameStatePure pre area old_gs es event

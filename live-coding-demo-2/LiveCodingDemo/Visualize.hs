@@ -11,7 +11,7 @@ import Playtime
 visualize :: (TextureId -> Pos -> Sprite) -> EngineState -> GameState -> [Sprite]
 visualize sprite EngineState {..} GameState {..} =
   let
-   in [sprite Plane gsPlayer]
+   in [sprite Spaceship gsPlayer]
         <> (sprite Heart <$> gsHearts)
         <> (sprite Enemy <$> gsEnemies)
         <> (rectangle' Solid (RGBA 180 180 180 255) . first dupe <$> gsStars)

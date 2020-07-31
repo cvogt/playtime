@@ -103,7 +103,7 @@ stepGameStatePure' randInts tDim gs@GameState {..} EngineState {..} = \case
         stepStar :: (Double, Pos) -> (Double, Pos)
         stepStar (size, pos) = (size,) $ modu $ move' pos
           where
-            move' = subtract (esTimePassed * (size + 1), 0)
+            move' = subtract (esTimePassed * size * 6, 0)
             modu = (`mod2` (esDimensions + dupe gsMaxStarSize))
      in gs
           { gsMainCharacter = gsMainCharacter + (dupe $ esTimePassed * distancePerSec) * direction,

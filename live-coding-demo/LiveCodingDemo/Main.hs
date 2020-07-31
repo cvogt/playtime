@@ -8,9 +8,6 @@ import My.Prelude
 import Playtime
 import System.Random
 
-dim :: Dim
-dim = (1024, 768)
-
 gameDir :: FilePath
 gameDir = "live-coding-demo"
 
@@ -32,22 +29,17 @@ makeEngineConfig liveCodeState = do
       dim
       1
       liveCodeState
-      (stepGameState . textureArea textures)
+      (stepGameState . textureDim textures)
       (visualize . textureSprites textures)
       loadTexture
       (snd . textures <$> allEnumValues)
   where
+    dim = (1024, 768)
     initialGameState = makeInitialGameState dim <$> randomIO
     stepGameState area es@EngineState {..} old_gs event = do
-      pre <- preIO
-      let new_gs = stepGameStatePure pre area old_gs es event
-      postIO es new_gs
-    preIO :: IO Int = randomIO
-    postIO es new_gs = do
-      post_gs <-
-        if Key'R `setMember` esKeysPressed es
-          then initialGameState
-          else pure new_gs
-      saveMay es post_gs
-      fromMaybe post_gs <$> loadMay es
+      seed <- randomIO
+      let new_gs = stepGameStatePure seed area old_gs es event
+      if Key'R `setMember` esKeysPressed
+        then initialGameState
+        else pure new_gs
     loadTexture = \name -> either fail pure =<< (readPng $ gameDir </> "assets" </> name)

@@ -50,19 +50,19 @@ makeInitialGameState dim =
           $ (\r -> take 60 $ (iterate (|+ xRelative 12) (xAbsolute 0) `zip` repeat r) `zip` (repeat FloorPlate))
     }
 
-stepGameStatePure :: (TextureId -> Pos -> Area) -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure area gs@GameState {..} EngineState {..} = \case
+stepGameStatePure :: (TextureId -> Dim) -> GameState -> EngineState -> Event -> GameState
+stepGameStatePure tdim gs@GameState {..} EngineState {..} = \case
   KeyEvent Key'Space KeyState'Pressed -> gs {gsVelocityY = -220}
   RenderEvent _ ->
     let speedX = 100
         newMainCharacter =
           move
             esTimePassed
-            (area MainCharacter gsMainCharacter)
+            (tdim MainCharacter, gsMainCharacter)
             gsMainCharacterPrevious
             gsVelocityX
             gsVelocityY
-            $ area FloorPlate <$> (keys $ unBoard gsRoom)
+            $ (tdim FloorPlate,) <$> (keys $ unBoard gsRoom)
      in gs
           { gsMainCharacter = newMainCharacter,
             gsMainCharacterPrevious = gsMainCharacter,

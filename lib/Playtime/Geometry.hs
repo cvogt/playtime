@@ -6,11 +6,11 @@ import GHC.Real (ceiling, floor)
 import My.Prelude
 import Playtime.Types
 
-textureArea :: (a -> (Scale, b)) -> (b -> Texture) -> a -> Pos -> Area
-textureArea textureScale textures i pos =
+textureDim :: (a -> (Scale, b)) -> (b -> Texture) -> a -> Dim
+textureDim textureScale textures i =
   let (scale, b) = textureScale i
       Texture dim _ _ = textures b
-   in (,pos) $ scale *| dim
+   in scale *| dim
 
 updateX :: (Absolute X -> Absolute X) -> Pos -> Pos
 updateX f (x, y) = (f x, y)

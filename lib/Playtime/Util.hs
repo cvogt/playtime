@@ -4,7 +4,6 @@ import Data.Time.Clock
 import Data.Time.Clock.System
 import Data.Time.Clock.TAI
 import GHC.Float (int2Double)
-import GHC.Real ((/))
 import My.Prelude
 import Playtime.Types
 

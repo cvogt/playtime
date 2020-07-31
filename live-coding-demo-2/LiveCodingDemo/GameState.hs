@@ -7,7 +7,7 @@ import Playtime
 
 data GameState = GameState
   { gsPlayer :: Pos,
-    gsBullets :: [Pos],
+    gsHearts :: [Pos],
     gsStars :: [(Dim, Pos)],
     gsEnemies :: [Pos],
     gsSpeed :: Scale
@@ -22,7 +22,7 @@ makeInitialGameState dim (mkStdGen -> rng) =
    in GameState
         { gsStars = sizes `zip` poss,
           gsEnemies = [],
-          gsBullets = [],
+          gsHearts = [],
           gsPlayer = (100, 100),
           gsSpeed = 1
         }
@@ -35,14 +35,14 @@ textures = \case
   Enemy -> (0.1, "enemy_red.png")
   Heart -> (0.025, "haskell_love_logo.png")
 
-stepGameStatePure :: Int -> (TextureId -> Pos -> Area) -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure (mkStdGen -> rng) area gs@GameState {..} EngineState {..} = \case
+stepGameStatePure :: Int -> (TextureId -> Dim) -> GameState -> EngineState -> Event -> GameState
+stepGameStatePure (mkStdGen -> rng) tdim gs@GameState {..} EngineState {..} = \case
   KeyEvent Key'Space KeyState'Pressed ->
     let
      in -- (width,_) = esWindowDimensions
         --_randDoubles = int2Double . (|%% width) <$> randInts
         gs
-          { gsBullets = gsBullets <> ((repeat $ fst gsPlayer + 300) `zip` ((+ snd gsPlayer) <$>) [50, 100, 150, 200, 250, 300])
+          { gsHearts = gsHearts <> ((repeat $ fst gsPlayer + 300) `zip` ((+ snd gsPlayer) <$>) [50, 100, 150, 200, 250, 300])
           }
   KeyEvent Key'P KeyState'Pressed ->
     let
@@ -75,7 +75,7 @@ stepGameStatePure (mkStdGen -> rng) area gs@GameState {..} EngineState {..} = \c
               | True -> id
         moveStars (size, pos) = (size,) $ pos |- (5 :: Relative X) |*| speed |*| (fst size & \(Relative v) -> xFactor v)
         maxEnemies = 10
-        (bullets, killed) = unzip $ fmap (both (\(_, pos) -> pos)) $ filter (uncurry collidesWith) $ (,) <$> (area Heart <$> gsBullets) <*> (area Enemy <$> gsEnemies)
+        (bullets, killed) = unzip $ fmap (both (\(_, pos) -> pos)) $ filter (uncurry collidesWith) $ (,) <$> ((tdim Heart,) <$> gsHearts) <*> ((tdim Enemy,) <$> gsEnemies)
         newEnemies =
           take (maxEnemies - length gsEnemies) $
             (repeat 1023)
@@ -85,8 +85,8 @@ stepGameStatePure (mkStdGen -> rng) area gs@GameState {..} EngineState {..} = \c
           { gsPlayer = moveX . moveY $ gsPlayer,
             gsEnemies =
               (|- (100 :: Relative X) |*| speed) . (|% width) <$> newEnemies',
-            gsBullets =
-              (|+ (300 :: Relative X) |*| speed) <$> filter ((< 1024) . fst) (gsBullets \\ bullets),
+            gsHearts =
+              (|+ (300 :: Relative X) |*| speed) <$> filter ((< 1024) . fst) (gsHearts \\ bullets),
             gsStars =
               moveStars . (second (|% width)) <$> gsStars
           }

@@ -7,7 +7,7 @@ import qualified Data.HashMap.Strict as HMS
 import Data.List (lines, zip)
 import qualified Data.Text as T
 import GHC.Float (int2Double)
-import GHC.Real ((/), round)
+import GHC.Real (round)
 import My.Extra
 import My.IO
 import My.Prelude

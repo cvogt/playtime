@@ -29,6 +29,7 @@ module My.Prelude
     module Data.Time.Clock.System,
     module Data.Traversable,
     module Data.Tuple,
+    module Data.Tuple.Extra,
     module Foreign,
     module GHC.Enum,
     module GHC.Float,
@@ -82,19 +83,19 @@ import Data.Text.Encoding (decodeUtf8', encodeUtf8)
 import Data.Time.Clock.System (SystemTime)
 import Data.Traversable (for, forM, sequence, traverse)
 import Data.Tuple (fst, snd, swap, uncurry)
+import Data.Tuple.Extra (dupe)
 import Foreign (ForeignPtr)
 import GHC.Enum (Bounded, Enum, enumFrom, maxBound, minBound)
 import GHC.Float ((**), Double, Float, divideDouble)
 import GHC.Generics (Generic)
 import GHC.Integer (Integer)
 import GHC.Num ((*), (+), (-), Num, abs, fromInteger, subtract)
-import GHC.Real (Fractional, Integral, fromIntegral)
+import GHC.Real ((/), Fractional, Integral, fromIntegral)
 import GHC.Show (Show (show))
 import Protolude ((<<$>>), (<<*>>))
 import Safe (headMay, lastMay)
 import Safe.Foldable (foldl1Safe, foldr1Safe)
--- FIXME: replace next with uniform once stack upgraded random
-import System.IO (FilePath) -- FIXME: replace next with uniform once stack upgraded random
+import System.IO (FilePath)
 import System.Random (StdGen, mkStdGen, random, randomR)
 import Universum (foldl1, foldr1)
 

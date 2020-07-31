@@ -26,9 +26,9 @@ withGLFW (Relative width, Relative height) title glCode = do
       Nothing -> error "createWindow returned Nothing"
 
 setEventCallback :: GLFW.Window -> (Event -> IO ()) -> IO ()
-setEventCallback window handleEvent = do
-  GLFW.setMouseButtonCallback window $ Just $ \_ button state _modifiers -> handleEvent $ MouseEvent button state
-  GLFW.setKeyCallback window $ Just $ \_ key _scancode keyState _modifiers -> handleEvent $ KeyEvent key keyState
-  GLFW.setWindowSizeCallback window $ Just $ \_ width height -> handleEvent $ WindowSizeEvent width height
-  GLFW.setCursorPosCallback window $ Just $ \_ x y -> handleEvent $ CursorPosEvent (Absolute x, Absolute y)
-  GLFW.setWindowCloseCallback window $ Just $ \_ -> handleEvent $ WindowCloseEvent
+setEventCallback window stepStates = do
+  GLFW.setMouseButtonCallback window $ Just $ \_ button state _modifiers -> stepStates $ MouseEvent button state
+  GLFW.setKeyCallback window $ Just $ \_ key _scancode keyState _modifiers -> stepStates $ KeyEvent key keyState
+  GLFW.setWindowSizeCallback window $ Just $ \_ width height -> stepStates $ WindowSizeEvent width height
+  GLFW.setCursorPosCallback window $ Just $ \_ x y -> stepStates $ CursorPosEvent (Absolute x, Absolute y)
+  GLFW.setWindowCloseCallback window $ Just $ \_ -> stepStates $ WindowCloseEvent

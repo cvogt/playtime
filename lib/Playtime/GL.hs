@@ -4,7 +4,6 @@ import Codec.Picture (DynamicImage (ImageRGBA8), Image (Image))
 import Data.Vector.Storable (unsafeWith)
 import GHC.Err (error)
 import GHC.Float (double2Float, int2Double, int2Float)
-import GHC.Real ((/))
 import Graphics.Rendering.OpenGL (($=))
 import qualified Graphics.Rendering.OpenGL.GL as GL
 import qualified Graphics.Rendering.OpenGL.GLU.Errors as GLU

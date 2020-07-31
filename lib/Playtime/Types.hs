@@ -111,13 +111,16 @@ data X
 
 data Y
 
-newtype Absolute a = Absolute {unAbsolute :: Double} deriving (Eq, Ord, Show)
+newtype Absolute a = Absolute {unAbsolute :: Double}
+  deriving (Eq, Ord, Show)
   deriving newtype (Num, Fractional, NFData, FromJSON, ToJSON)
 
-newtype Relative a = Relative {unRelative :: Double} deriving (Eq, Ord, Show)
+newtype Relative a = Relative {unRelative :: Double}
+  deriving (Eq, Ord, Show)
   deriving newtype (Num, Fractional, NFData, FromJSON, ToJSON)
 
-newtype Factor a = Factor {unFactor :: Double} deriving (Eq, Ord, Show)
+newtype Factor a = Factor {unFactor :: Double}
+  deriving (Eq, Ord, Show)
   deriving newtype (Num, Fractional, NFData, FromJSON, ToJSON)
 
 type Pos = (Absolute X, Absolute Y)

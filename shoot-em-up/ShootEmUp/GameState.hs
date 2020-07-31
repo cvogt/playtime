@@ -13,7 +13,7 @@ data GameState = GameState
   { gsMainCharacter :: Pos,
     gsEnemies :: [Pos],
     gsStars :: [(Dim, Pos)],
-    gsBullets :: [Pos],
+    gsHearts :: [Pos],
     gsMaxStarSize :: Dim,
     gsDragAndDrop :: Maybe DragAndDrop
   }
@@ -42,32 +42,32 @@ makeInitialGameState dim = do
       { gsMainCharacter = (10, 200),
         gsEnemies = mempty,
         gsStars = starSize `zip` (starX `zip` starY),
-        gsBullets = mempty,
+        gsHearts = mempty,
         gsMaxStarSize = fromIntegral maxStarSize,
         gsDragAndDrop = Nothing
       }
 
-stepGameStatePure :: [Int] -> (TextureId -> Pos -> Area) -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure pre area old_gs es event =
+stepGameStatePure :: [Int] -> (TextureId -> Dim) -> GameState -> EngineState -> Event -> GameState
+stepGameStatePure pre tdim old_gs es event =
   foldl
     (&)
     old_gs
     [ \gs -> dragAndDrop es gs MouseButton'1 (getBulletAreas gs) setBullets (getDragAndDrop gs) setDragAndDrop event,
       \gs -> deleteOnClick es gs MouseButton'2 (getBulletAreas gs) setBullets event,
-      \gs -> stepGameStatePure' pre area gs es event
+      \gs -> stepGameStatePure' pre tdim gs es event
     ]
   where
-    setBullets bullets gs = gs {gsBullets = bullets}
-    getBulletAreas gs = area Heart <$> gsBullets gs
+    setBullets bullets gs = gs {gsHearts = bullets}
+    getBulletAreas gs = (tdim Heart,) <$> gsHearts gs
     getDragAndDrop gs = gsDragAndDrop gs
     setDragAndDrop v gs = gs {gsDragAndDrop = v}
 
-stepGameStatePure' :: [Int] -> (TextureId -> Pos -> Area) -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure' randInts area gs@GameState {..} EngineState {..} = \case
+stepGameStatePure' :: [Int] -> (TextureId -> Dim) -> GameState -> EngineState -> Event -> GameState
+stepGameStatePure' randInts tdim gs@GameState {..} EngineState {..} = \case
   KeyEvent Key'Space KeyState'Pressed ->
     gs
-      { gsBullets =
-          gsBullets
+      { gsHearts =
+          gsHearts
             <> ((gsMainCharacter |+) <$> [(300, 100) :: Dim, (300, 145), (325, 200), (325, 290), (300, 340), (300, 390)])
       }
   RenderEvent _ ->
@@ -88,19 +88,18 @@ stepGameStatePure' randInts area gs@GameState {..} EngineState {..} = \case
         bulletVelocity = (300, 0)
         bulletStep :: Dim
         bulletStep = esTimePassed *| bulletVelocity
-        enemyDim = fst . area Enemy
         survivingEnemies =
           flip filter gsEnemies $ \enemyPos ->
-            (fst enemyPos > - fst (originPos |- enemyDim enemyPos) &&)
+            (fst enemyPos > - fst (originPos |- tdim Enemy) &&)
               $ not
-              $ any (area Enemy enemyPos `collidesWith`) (bulletTrajectory =<< gsBullets)
+              $ any ((tdim Enemy, enemyPos) `collidesWith`) (bulletTrajectory =<< gsHearts)
           where
-            bulletTrajectory pos = area Heart <$> trajectoryPixels pos esTimePassed bulletVelocity
+            bulletTrajectory pos = (tdim Heart,) <$> trajectoryPixels pos esTimePassed bulletVelocity
         newEnemies = survivingEnemies <> (modu . (1100,) . fromIntegral <$> take numAdded randInts)
           where
             numAdded = numEnemies - length survivingEnemies
             modu :: Pos -> Pos
-            modu pos = pos |%% (height |- enemyDim pos)
+            modu = (|%% (height |- tdim Enemy))
         stepStar :: (Dim, Pos) -> (Dim, Pos)
         stepStar (size, pos) = (size,) $ modu $ move' pos
           where
@@ -110,6 +109,6 @@ stepGameStatePure' randInts area gs@GameState {..} EngineState {..} = \case
           { gsMainCharacter = gsMainCharacter |+ esTimePassed *| velocity,
             gsEnemies = (|- esTimePassed *| (100 :: Relative X)) <$> newEnemies,
             gsStars = stepStar <$> gsStars,
-            gsBullets = filterX (< 1024) gsBullets <&> (|+ bulletStep)
+            gsHearts = filterX (< 1024) gsHearts <&> (|+ bulletStep)
           }
   _ -> gs

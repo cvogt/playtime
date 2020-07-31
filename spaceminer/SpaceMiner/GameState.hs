@@ -2,7 +2,7 @@ module SpaceMiner.GameState where
 
 import Data.Aeson (FromJSON (parseJSON), ToJSON (toJSON))
 import GHC.Float (int2Double)
-import GHC.Real ((/), floor)
+import GHC.Real (floor)
 import "GLFW-b" Graphics.UI.GLFW
 import My.Prelude
 import Playtime
@@ -50,8 +50,8 @@ makeInitialGameState dim =
       gsMainCharacterPrevious = originPos |+ dim |/ (2 :: Scale)
     }
 
-stepGameStatePure :: (TextureId -> Pos -> Area) -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure area gs@GameState {..} EngineState {..} = \case
+stepGameStatePure :: (TextureId -> Dim) -> GameState -> EngineState -> Event -> GameState
+stepGameStatePure tdim gs@GameState {..} EngineState {..} = \case
   CursorPosEvent _ ->
     let placement = bimap (Absolute . gridify . unAbsolute) (Absolute . gridify . unAbsolute) esCursorPos
         gridify = (* gridsize) . int2Double . floor . (/ gridsize)
@@ -90,7 +90,7 @@ stepGameStatePure area gs@GameState {..} EngineState {..} = \case
             velocityX = if MovementAction Left' `setMember` esActions then 0 |- distancePerSec else if MovementAction Right' `setMember` esActions then 0 |+ distancePerSec else 0
             velocityY = if MovementAction Up `setMember` esActions then 0 |- distancePerSec else if MovementAction Down `setMember` esActions then 0 |+ distancePerSec else 0
          in gs
-              { gsMainCharacter = move esTimePassed (area MainCharacter gsMainCharacter) gsMainCharacterPrevious velocityX velocityY $ area FloorPlate <$> (keys $ unBoard gsRoom),
+              { gsMainCharacter = move esTimePassed (tdim MainCharacter, gsMainCharacter) gsMainCharacterPrevious velocityX velocityY $ (tdim FloorPlate,) <$> (keys $ unBoard gsRoom),
                 gsMainCharacterPrevious = gsMainCharacter
               }
   _ -> gs

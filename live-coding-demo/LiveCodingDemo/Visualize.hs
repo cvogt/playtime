@@ -1,12 +1,13 @@
 module LiveCodingDemo.Visualize where
 
 import LiveCodingDemo.GameState
---import My.Prelude
+import My.Prelude
 import Playtime
 
 visualize :: (TextureId -> Pos -> Sprite) -> EngineState -> GameState -> [Sprite]
-visualize _sprite EngineState {..} GameState {} =
+visualize sprite EngineState {..} GameState {..} =
   let
-   in []
-
--- rectangle' Solid (RGBA 180 180 180 255)
+   in [sprite Plane gsPlayer]
+        <> (sprite Heart <$> gsHearts)
+        <> (sprite Enemy <$> gsEnemies)
+        <> (rectangle Solid (RGBA 180 180 180 255) 4 <$> gsStars)

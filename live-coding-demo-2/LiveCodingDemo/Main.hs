@@ -8,9 +8,6 @@ import My.Prelude
 import Playtime
 import System.Random
 
-dim :: Dim
-dim = (1024, 768)
-
 gameDir :: FilePath
 gameDir = "live-coding-demo"
 
@@ -26,11 +23,12 @@ makeEngineConfig liveCodeState = do
       dim
       1
       liveCodeState
-      (stepGameState . textureArea textures)
+      (stepGameState . textureDim textures)
       (visualize . textureSprites textures)
       loadTexture
       (snd . textures <$> allEnumValues)
   where
+    dim = (1024, 768)
     initial_gs = makeInitialGameState dim <$> randomIO
     stepGameState area es@EngineState {..} old_gs event = do
       pre <- preIO

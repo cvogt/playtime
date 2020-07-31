@@ -7,9 +7,6 @@ import Playtime
 import SpaceMiner.GameState
 import SpaceMiner.Visualize
 
-dim :: Dim
-dim = (320, 240)
-
 gameDir :: FilePath
 gameDir = "spaceminer"
 
@@ -24,12 +21,13 @@ makeEngineConfig liveCodeState = do
     dim
     3
     liveCodeState
-    (stepGameState . textureArea textures)
+    (stepGameState . textureDim textures)
     (visualize . textureSprites textures)
     loadTexture
     (snd . textures <$> allEnumValues)
     $ makeInitialGameState dim
   where
+    dim = (320, 240)
     stepGameState area es@EngineState {..} old_gs event = do
       let new_gs = stepGameStatePure area old_gs es event
       saveMay es new_gs

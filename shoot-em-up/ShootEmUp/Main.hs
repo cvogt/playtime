@@ -11,9 +11,6 @@ import ShootEmUp.GameState
 import ShootEmUp.Visualize
 import System.Random
 
-dim :: Dim
-dim = (1024, 768)
-
 gameDir :: FilePath
 gameDir = "shoot-em-up"
 
@@ -40,11 +37,12 @@ makeEngineConfig liveCodeState = do
       dim
       1
       liveCodeState
-      (stepGameState popSound . textureArea textures)
+      (stepGameState popSound . textureDim textures)
       (visualize . textureSprites textures)
       loadTx
       (snd . textures <$> allEnumValues)
   where
+    dim = (1024, 768)
     loadTx = \name -> either fail pure =<< (readPng $ gameDir </> "assets" </> name)
     stepGameState popSound area es@EngineState {..} old_gs event = do
       pre <- preIO

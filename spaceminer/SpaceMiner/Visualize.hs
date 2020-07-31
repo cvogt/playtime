@@ -26,10 +26,10 @@ visualize sprite EngineState {..} GameState {..} =
       Just (Rectangle area _) -> highlight area
     highlight (dim, pos) = [rectangle (Border 3) (RGBA 0 255 0 255) (dim + 4) (pos -2)]
     findMouseOver =
-      flip find (reverse sprites) $ \case
+      flip find sprites $ \case
         Rectangle area@(dim', pos) (Left (Texture dim _ img)) ->
-          let p = (esCursorPos |-| pos :: Dim) |*| (dim |/| dim' :: Scale)
-              transparentPixel = case pixelAt img (double2Int . unRelative $ fst p) (double2Int . unRelative $ snd p) of PixelRGBA8 _ _ _ a -> a == 0
+          let p = (esCursorPos - pos) * dim / dim'
+              transparentPixel = case pixelAt img (double2Int $ fst p) (double2Int $ snd p) of PixelRGBA8 _ _ _ a -> a == 0
            in esCursorPos `isWithin` area && not transparentPixel
         Rectangle area _ -> esCursorPos `isWithin` area
     floor = (Map.toList $ unBoard gsFloor) <&> \(pos, t) -> sprite t pos
@@ -37,7 +37,7 @@ visualize sprite EngineState {..} GameState {..} =
     -- backup of grouping logic as reminder if needed: (groupWith snd $ Map.toList $ unBoard gsFloor) <&> \ne@((_, t) :| _) ->
     inventoryUI =
       translate (200, 100)
-        <$> [ sprite Inventory 0,
-              sprite RedResource 18,
-              sprite MainCharacter 3
+        <$> [ sprite RedResource 18,
+              sprite MainCharacter 3,
+              sprite Inventory 0
             ]

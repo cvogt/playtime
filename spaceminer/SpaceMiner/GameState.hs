@@ -45,15 +45,15 @@ makeInitialGameState dim =
       gsCollisions = (Nothing, Nothing, Nothing, Nothing),
       gsFloor = mempty,
       gsRoom = mempty,
-      gsLastPlacement = originPos,
-      gsMainCharacter = originPos |+ dim |/ (2 :: Scale),
-      gsMainCharacterPrevious = originPos |+ dim |/ (2 :: Scale)
+      gsLastPlacement = 0,
+      gsMainCharacter = dim / (2 :: Scale),
+      gsMainCharacterPrevious = dim / (2 :: Scale)
     }
 
 stepGameStatePure :: (TextureId -> Dim) -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure tdim gs@GameState {..} EngineState {..} = \case
+stepGameStatePure tDim gs@GameState {..} EngineState {..} = \case
   CursorPosEvent _ ->
-    let placement = bimap (Absolute . gridify . unAbsolute) (Absolute . gridify . unAbsolute) esCursorPos
+    let placement = bimap (gridify) (gridify) esCursorPos
         gridify = (* gridsize) . int2Double . floor . (/ gridsize)
      in gs
           { gsLastPlacement = placement,
@@ -86,11 +86,11 @@ stepGameStatePure tdim gs@GameState {..} EngineState {..} = \case
     if OneTimeEffect Reset `setMember` esActions
       then gs {gsFloor = mempty, gsRoom = mempty}
       else
-        let distancePerSec = 100 :: Dim
-            velocityX = if MovementAction Left' `setMember` esActions then 0 |- distancePerSec else if MovementAction Right' `setMember` esActions then 0 |+ distancePerSec else 0
-            velocityY = if MovementAction Up `setMember` esActions then 0 |- distancePerSec else if MovementAction Down `setMember` esActions then 0 |+ distancePerSec else 0
+        let distancePerSec = 100
+            velocityX = if MovementAction Left' `setMember` esActions then 0 - distancePerSec else if MovementAction Right' `setMember` esActions then 0 + distancePerSec else 0
+            velocityY = if MovementAction Up `setMember` esActions then 0 - distancePerSec else if MovementAction Down `setMember` esActions then 0 + distancePerSec else 0
          in gs
-              { gsMainCharacter = move esTimePassed (tdim MainCharacter, gsMainCharacter) gsMainCharacterPrevious velocityX velocityY $ (tdim FloorPlate,) <$> (keys $ unBoard gsRoom),
+              { gsMainCharacter = move esTimePassed (tDim MainCharacter, gsMainCharacter) gsMainCharacterPrevious velocityX velocityY $ (tDim FloorPlate,) <$> (keys $ unBoard gsRoom),
                 gsMainCharacterPrevious = gsMainCharacter
               }
   _ -> gs

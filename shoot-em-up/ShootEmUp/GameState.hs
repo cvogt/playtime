@@ -2,7 +2,8 @@ module ShootEmUp.GameState where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.List (zip)
-import GHC.Float (double2Int)
+import GHC.Float (double2Int, int2Double)
+import GHC.Real (mod)
 import "GLFW-b" Graphics.UI.GLFW
 import My.IO
 import My.Prelude
@@ -12,9 +13,9 @@ import System.Random
 data GameState = GameState
   { gsMainCharacter :: Pos,
     gsEnemies :: [Pos],
-    gsStars :: [(Dim, Pos)],
+    gsStars :: [(Double, Pos)],
     gsHearts :: [Pos],
-    gsMaxStarSize :: Dim,
+    gsMaxStarSize :: Double,
     gsDragAndDrop :: Maybe DragAndDrop
   }
   deriving (Show, Generic, NFData, ToJSON, FromJSON)
@@ -34,81 +35,80 @@ textures = \case
 makeInitialGameState :: Dim -> IO GameState
 makeInitialGameState dim = do
   let maxStarSize = 4
-  starX <- fmap (fmap fromIntegral) $ sequence $ replicate 510 $ randomRIO (0, maxStarSize + (double2Int $ unRelative $ fst dim))
-  starY <- fmap (fmap fromIntegral) $ sequence $ replicate 510 $ randomRIO (0, maxStarSize + (double2Int $ unRelative $ snd dim))
-  starSize <- fmap (fmap fromIntegral) $ sequence $ replicate 510 $ randomRIO (0, maxStarSize)
+  starX <- fmap (fmap int2Double) $ sequence $ replicate 510 $ randomRIO (0, double2Int $ maxStarSize + fst dim)
+  starY <- fmap (fmap int2Double) $ sequence $ replicate 510 $ randomRIO (0, double2Int $ maxStarSize + snd dim)
+  starSize <- fmap (fmap int2Double) $ sequence $ replicate 510 $ randomRIO (0, double2Int maxStarSize)
   pure
     GameState
       { gsMainCharacter = (10, 200),
         gsEnemies = mempty,
         gsStars = starSize `zip` (starX `zip` starY),
         gsHearts = mempty,
-        gsMaxStarSize = fromIntegral maxStarSize,
+        gsMaxStarSize = maxStarSize,
         gsDragAndDrop = Nothing
       }
 
 stepGameStatePure :: [Int] -> (TextureId -> Dim) -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure pre tdim old_gs es event =
+stepGameStatePure pre area old_gs es event =
   foldl
     (&)
     old_gs
     [ \gs -> dragAndDrop es gs MouseButton'1 (getBulletAreas gs) setBullets (getDragAndDrop gs) setDragAndDrop event,
       \gs -> deleteOnClick es gs MouseButton'2 (getBulletAreas gs) setBullets event,
-      \gs -> stepGameStatePure' pre tdim gs es event
+      \gs -> stepGameStatePure' pre area gs es event
     ]
   where
     setBullets bullets gs = gs {gsHearts = bullets}
-    getBulletAreas gs = (tdim Heart,) <$> gsHearts gs
+    getBulletAreas gs = (area Heart,) <$> gsHearts gs
     getDragAndDrop gs = gsDragAndDrop gs
     setDragAndDrop v gs = gs {gsDragAndDrop = v}
 
 stepGameStatePure' :: [Int] -> (TextureId -> Dim) -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure' randInts tdim gs@GameState {..} EngineState {..} = \case
+stepGameStatePure' randInts tDim gs@GameState {..} EngineState {..} = \case
   KeyEvent Key'Space KeyState'Pressed ->
     gs
       { gsHearts =
           gsHearts
-            <> ((gsMainCharacter |+) <$> [(300, 100) :: Dim, (300, 145), (325, 200), (325, 290), (300, 340), (300, 390)])
+            <> ((gsMainCharacter +) <$> [(300, 100) :: Dim, (300, 145), (325, 200), (325, 290), (300, 340), (300, 390)])
       }
   RenderEvent _ ->
     let distancePerSec = 200
         (_, height) = esWindowDimensions
-        velocity :: Dim
-        velocity =
-          distancePerSec
-            |*| ( if
-                      | MovementAction Left' `setMember` esActions -> -1
-                      | MovementAction Right' `setMember` esActions -> 1
-                      | True -> 0 :: Factor X,
-                  if
-                      | MovementAction Up `setMember` esActions -> -1
-                      | MovementAction Down `setMember` esActions -> 1
-                      | True -> 0 :: Factor Y
-                )
+        direction :: Dim
+        direction =
+          ( if
+                | MovementAction Left' `setMember` esActions -> -1
+                | MovementAction Right' `setMember` esActions -> 1
+                | True -> 0,
+            if
+                | MovementAction Up `setMember` esActions -> -1
+                | MovementAction Down `setMember` esActions -> 1
+                | True -> 0
+          )
         bulletVelocity = (300, 0)
         bulletStep :: Dim
-        bulletStep = esTimePassed *| bulletVelocity
+        bulletStep = dupe esTimePassed * bulletVelocity
         survivingEnemies =
           flip filter gsEnemies $ \enemyPos ->
-            (fst enemyPos > - fst (originPos |- tdim Enemy) &&)
+            (fst enemyPos > - fst (tDim Enemy) &&)
               $ not
-              $ any ((tdim Enemy, enemyPos) `collidesWith`) (bulletTrajectory =<< gsHearts)
+              $ any ((tDim Enemy, enemyPos) `collidesWith`) (bulletTrajectory =<< gsHearts)
           where
-            bulletTrajectory pos = (tdim Heart,) <$> trajectoryPixels pos esTimePassed bulletVelocity
-        newEnemies = survivingEnemies <> (modu . (1100,) . fromIntegral <$> take numAdded randInts)
+            bulletTrajectory pos = (tDim Heart,) <$> trajectoryPixels pos esTimePassed bulletVelocity
+        newEnemies = survivingEnemies <> (newEnemyPos <$> take numAdded randInts)
           where
             numAdded = numEnemies - length survivingEnemies
-            modu :: Pos -> Pos
-            modu = (|%% (height |- tdim Enemy))
-        stepStar :: (Dim, Pos) -> (Dim, Pos)
+            newEnemyPos :: Int -> Pos
+            newEnemyPos y = (1100, int2Double . flip mod (double2Int $ height - (snd $ tDim Enemy)) $ y)
+        stepStar :: (Double, Pos) -> (Double, Pos)
         stepStar (size, pos) = (size,) $ modu $ move' pos
           where
-            move' = (|- ((5, 0) :: Scale) |*| esTimePassed *| (size |+ (1 :: Dim)))
-            modu = (|% (esWindowDimensions |+ gsMaxStarSize))
+            move' = subtract (esTimePassed * (size + 1), 0)
+            modu = (`mod2` (esWindowDimensions + dupe gsMaxStarSize))
      in gs
-          { gsMainCharacter = gsMainCharacter |+ esTimePassed *| velocity,
-            gsEnemies = (|- esTimePassed *| (100 :: Relative X)) <$> newEnemies,
+          { gsMainCharacter = gsMainCharacter + (dupe $ esTimePassed * distancePerSec) * direction,
+            gsEnemies = (subtract $ (esTimePassed * 100, 0)) <$> newEnemies,
             gsStars = stepStar <$> gsStars,
-            gsHearts = filterX (< 1024) gsHearts <&> (|+ bulletStep)
+            gsHearts = filter ((< 1024) . fst) gsHearts <&> (+ bulletStep)
           }
   _ -> gs

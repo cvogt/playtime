@@ -21,7 +21,7 @@ data GameState = GameState
   }
   deriving (Show, Generic, NFData, ToJSON, FromJSON)
 
-makeInitialGameState :: (Relative X, Relative Y) -> Int -> GameState
+makeInitialGameState :: Dim -> Int -> GameState
 makeInitialGameState windowDimensions seed =
   let rng = mkStdGen seed
       numStars = 500
@@ -34,31 +34,32 @@ makeInitialGameState windowDimensions seed =
         }
 
 stepGameStatePure :: Int -> (TextureId -> Dim) -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure seed tdim gs@GameState {..} EngineState {..} = \case
+stepGameStatePure seed tDim gs@GameState {..} EngineState {..} = \case
   KeyEvent Key'Space KeyState'Pressed ->
     gs{
-      gsHearts = gsHearts <> ((gsPlayer |+) <$> [(300, 100) :: Dim, (300, 145), (325, 200), (325, 290), (300, 340), (300, 390)])
+      gsHearts = gsHearts <> ((gsPlayer +) <$> [(300, 100), (300, 145), (325, 200), (325, 290), (300, 340), (300, 390)])
     }
   RenderEvent _ ->
     let
       rng = mkStdGen seed
-      (hitEnemies, hitHearts) = unzip $ catMaybes $ (\e b ->if (tdim Enemy, e) `collidesWith` (tdim Heart, b)  then Just (e,b) else Nothing) <$> gsEnemies <*> gsHearts
+      (hitEnemies, hitHearts) = unzip $ catMaybes $ (\e b ->if (tDim Enemy, e) `collidesWith` (tDim Heart, b)  then Just (e,b) else Nothing) <$> gsEnemies <*> gsHearts
       totalEnemies = 10 - length gsEnemies
-      newEnemies = take totalEnemies $ repeat ((1024 :: Absolute X) |+ tdim Enemy) `zip` (fst $ randomsAbsoluteY rng totalEnemies (snd esWindowDimensions))
+      newEnemies = take totalEnemies $ repeat (1024 + (fst $ tDim Enemy)) `zip` (fst $ randomsNatDouble rng totalEnemies $ snd esWindowDimensions)
       movePlayerY pos =
         if
-           | Key'W `setMember` esKeysPressed -> pos |- esTimePassed *| (200 :: Relative Y)
-           | Key'S `setMember` esKeysPressed -> pos |+ esTimePassed *| (200 :: Relative Y)
+           | Key'W `setMember` esKeysPressed -> pos + dupe esTimePassed * (0,-200)
+           | Key'S `setMember` esKeysPressed -> pos + dupe esTimePassed * (0,200)
            | True -> pos
       movePlayerX pos =
         if
-           | Key'A `setMember` esKeysPressed -> pos |- esTimePassed *| (200 :: Relative X)
-           | Key'D `setMember` esKeysPressed -> pos |+ esTimePassed *| (200 :: Relative X)
+           | Key'A `setMember` esKeysPressed -> pos + dupe esTimePassed * (-200,0)
+           | Key'D `setMember` esKeysPressed -> pos + dupe esTimePassed * (200,0)
            | True -> pos
      in gs
-          { gsPlayer = (200,200) -- movePlayerX $ movePlayerY gsPlayer
-          , gsStars = gsStars <&>  (|% esWindowDimensions) . (|- esTimePassed *| (50 :: Relative X))
-          , gsHearts = (gsHearts \\ hitHearts) <&> (|+ esTimePassed *| (200 :: Relative X))
-          , gsEnemies = ((gsEnemies \\ hitEnemies) <> newEnemies) <&> (|% (esWindowDimensions |+ tdim Enemy)) . (|- esTimePassed *| (200 :: Relative X))
+          { gsPlayer = movePlayerX $ movePlayerY gsPlayer
+          , gsStars = gsStars <&>  (`mod2` esWindowDimensions) . (subtract $ dupe esTimePassed * (50,0))
+          , gsHearts = (gsHearts \\ hitHearts) <&> (+ dupe esTimePassed * (200,0))
+          , gsEnemies = ((gsEnemies \\ hitEnemies) <> newEnemies) <&> (`mod2` (esWindowDimensions + tDim Enemy)) . (subtract $ dupe esTimePassed * (200,0))
           }
   _ -> gs
+

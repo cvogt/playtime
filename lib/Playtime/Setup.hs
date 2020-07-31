@@ -20,7 +20,7 @@ wireEngineConfig ::
   forall a gs.
   (Ord a, Show a, ToJSON gs, FromJSON gs) =>
   Dim ->
-  Scale ->
+  Double ->
   Maybe LiveCodeState ->
   ((a -> Texture) -> EngineState -> gs -> Event -> IO gs) ->
   ((a -> Texture) -> EngineState -> gs -> [Sprite]) ->

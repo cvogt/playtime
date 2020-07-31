@@ -8,7 +8,7 @@ import Playtime.Util
 
 data EngineConfig = EngineConfig
   { ecDim :: Dim,
-    ecScale :: Scale,
+    ecScale :: Double,
     ecVisualize :: EngineState -> IO [Sprite],
     ecStepGameState :: EngineState -> Event -> IO (),
     ecCheckIfContinue :: EngineState -> IO Bool,
@@ -24,15 +24,15 @@ data EngineState = EngineState
     esLastLoopTime :: SystemTime,
     esActions :: Set Action,
     esTimes :: [Integer],
-    esTimePassed :: Scale,
+    esTimePassed :: Double,
     esWindowSize :: Dim
   }
   deriving (Show, Generic, NFData)
 
-makeInitialEngineState :: Scale -> Dim -> SystemTime -> EngineState
+makeInitialEngineState :: Double -> Dim -> SystemTime -> EngineState
 makeInitialEngineState scale dim time =
   EngineState
-    { esCursorPos = originPos,
+    { esCursorPos = 0,
       esFps = 0,
       esKeysPressed = mempty,
       esMousePressed = mempty,
@@ -41,7 +41,7 @@ makeInitialEngineState scale dim time =
       esActions = mempty,
       esTimes = [],
       esTimePassed = 0,
-      esWindowSize = scale *| dim
+      esWindowSize = dupe scale * dim
     }
 
 gameExitRequested :: EngineState -> Bool
@@ -57,16 +57,16 @@ clearOneTimeEffects es =
 
 stepEngineState :: EngineState -> Event -> EngineState
 stepEngineState (clearOneTimeEffects -> gs@EngineState {..}) = \case
-  WindowSizeEvent width height -> gs {esWindowSize = (Relative $ int2Double width, Relative $ int2Double height)}
+  WindowSizeEvent width height -> gs {esWindowSize = (int2Double width, int2Double height)}
   CursorPosEvent pos ->
     gs
       { esCursorPos =
           -- this ratio calculation leads to proper relative scaling on window resize
           -- FIXME: we still get distortion if aspect ration of resized window is different
           --        we should be able to fix that by adding black borders as needed
-          let scale = esWindowDimensions |/| esWindowSize :: Scale
-              relPos = (pos |-| originPos) :: Dim
-           in originPos |+ scale *| relPos
+          let scale = esWindowDimensions / esWindowSize
+              relPos = pos
+           in scale * relPos
       }
   KeyEvent key KeyState'Pressed ->
     let pressed = setInsert key esKeysPressed
@@ -86,7 +86,7 @@ stepEngineState (clearOneTimeEffects -> gs@EngineState {..}) = \case
         halfsec = 500 * 1000 * 1000 * 1000
      in gs
           { esLastLoopTime = time,
-            esTimePassed = let s = pico2Double picosecs in (Factor s, Factor s),
+            esTimePassed = pico2Double picosecs,
             esTimes = if sum esTimes > halfsec then [] else picosecs : esTimes,
             esFps = if sum esTimes > halfsec then avg esTimes else esFps
           }

@@ -13,7 +13,7 @@ import My.Prelude
 import Playtime.Types
 
 renderGL :: GLFW.Window -> Dim -> [Sprite] -> IO ()
-renderGL window (Relative w, Relative h) texturePlacements = do
+renderGL window (w, h) sprites = do
   GL.matrixMode $= GL.Projection
   GL.loadIdentity
   GL.ortho 0 w h 0 0 1
@@ -28,7 +28,7 @@ renderGL window (Relative w, Relative h) texturePlacements = do
 
   checkErrorsGLU "before"
 
-  for_ (reverse texturePlacements) $ \(Rectangle area tpe) -> case tpe of
+  for_ (reverse sprites) $ \(Rectangle area tpe) -> case tpe of
     Right (fillType, (RGBA r g b a)) -> do
       GL.texture GL.Texture2D $= GL.Disabled
       GL.currentColor $= GL.Color4 (int2Float r / 255) (int2Float g / 255) (int2Float b / 255) (int2Float a / 255)
@@ -58,8 +58,8 @@ renderGL window (Relative w, Relative h) texturePlacements = do
   checkErrorsGLU "after"
   GLFW.swapBuffers window
   where
-    texCoord (Factor sx, Factor sy) = GL.texCoord $ GL.TexCoord2 (double2Float sx) (double2Float sy) -- remember 1 makes this match the size of the vertex/quad
-    vertex (Absolute x, Absolute y) = GL.vertex $ GL.Vertex2 (double2Float x) (double2Float y)
+    texCoord (sx, sy) = GL.texCoord $ GL.TexCoord2 (double2Float sx) (double2Float sy) -- remember 1 makes this match the size of the vertex/quad
+    vertex (x, y) = GL.vertex $ GL.Vertex2 (double2Float x) (double2Float y)
     checkErrorsGLU csg = void $ error . ("GLU.errors " <>) . (csg <>) . (": " <>) . show <$> GL.get GLU.errors
 
 -- loadTextureId :: FilePath -> ExceptT [Char] IO Texture
@@ -72,5 +72,5 @@ loadTexture img = ExceptT $ case img of
     [texture] <- GL.genObjectNames 1
     GL.textureBinding GL.Texture2D $= Just texture
     GL.texImage2D GL.Texture2D GL.NoProxy 0 GL.RGBA8 txSize 0 $ GL.PixelData GL.RGBA GL.UnsignedByte ptr
-    pure $ Right $ Texture (Relative $ int2Double width, Relative $ int2Double height) texture img'
+    pure $ Right $ Texture (int2Double width, int2Double height) texture img'
   _ -> pure $ Left $ "loadTexture error: We currently only support png graphic files JuicyPixles reads as ImageRGBA8."

@@ -68,14 +68,14 @@ rectangle' :: FillType -> Color -> Area -> Sprite
 rectangle' ft c a = Rectangle a $ Right (ft, c)
 
 textureSprites :: (a -> (Scale, b)) -> (b -> Texture) -> a -> Pos -> Sprite
-textureSprites textures f (second f . textures -> (scale, tx@(Texture dim _ _))) pos = Rectangle (scale *| dim, pos) (Left tx)
+textureSprites textures f (second f . textures -> (scale, tx@(Texture dim _ _))) pos = Rectangle (scale * dim, pos) (Left tx)
 
 isWithin :: Pos -> Area -> Bool
-isWithin (cx, cy) ((width, height), (x, y)) = x <= cx && y <= cy && cx <= (x |+ width) && cy <= (y |+ height)
+isWithin (cx, cy) ((width, height), (x, y)) = x <= cx && y <= cy && cx <= (x + width) && cy <= (y + height)
 
 collidesWith :: Area -> Area -> Bool
 collidesWith (da, a1) (db, b1) =
-  let a2 = a1 |+ da; b2 = b1 |+ db
+  let a2 = a1 + da; b2 = b1 + db
    in fst a1 < fst b2 && fst a2 > fst b1 && snd a1 < snd b2 && snd a2 > snd b1
 
 cornerScales :: Corners Scale
@@ -86,7 +86,7 @@ data Corners a = Corners {nw :: a, sw :: a, se :: a, ne :: a} deriving (Eq, Ord,
 instance Foldable Corners where foldr f b (Corners ne se sw nw) = foldr f b [ne, se, sw, nw]
 
 corners :: Area -> Corners Pos
-corners (dim, pos) = cornerScales <&> \scale -> pos |+ scale *| dim
+corners (dim, pos) = cornerScales <&> \scale -> pos + scale * dim
 
 {-
 The following are type-safe types and functions for coordinate and vector arithmetics.
@@ -104,33 +104,6 @@ absolute one.
 Vector arithmetic type-safety distinguishe
 -}
 
-originPos :: Pos
-originPos = (0, 0)
-
-data X
-
-data Y
-
-newtype Absolute a = Absolute {unAbsolute :: Double}
-  deriving (Eq, Ord, Show)
-  deriving newtype (Num, Fractional, NFData, FromJSON, ToJSON)
-
-newtype Relative a = Relative {unRelative :: Double}
-  deriving (Eq, Ord, Show)
-  deriving newtype (Num, Fractional, NFData, FromJSON, ToJSON)
-
-newtype Factor a = Factor {unFactor :: Double}
-  deriving (Eq, Ord, Show)
-  deriving newtype (Num, Fractional, NFData, FromJSON, ToJSON)
-
-type Pos = (Absolute X, Absolute Y)
-
-type Dim = (Relative X, Relative Y)
-
-type Scale = (Factor X, Factor Y)
-
-type Area = (Dim, Pos)
-
 instance (Num a, Num b) => Num (a, b) where
   (lx, ly) + (rx, ry) = (lx + rx, ly + ry)
   (lx, ly) - (rx, ry) = (lx - rx, ly - ry)
@@ -145,179 +118,10 @@ instance (Fractional a, Fractional b) => Fractional (a, b) where
   recip (a, b) = (recip a, recip b)
   fromRational r = (fromRational r, fromRational r)
 
-xRelative :: Double -> Relative X
-xRelative = Relative
+type Pos = (Double, Double)
 
-yRelative :: Double -> Relative Y
-yRelative = Relative
+type Dim = (Double, Double)
 
-xAbsolute :: Double -> Absolute X
-xAbsolute = Absolute
+type Scale = (Double, Double)
 
-yAbsolute :: Double -> Absolute Y
-yAbsolute = Absolute
-
-xFactor :: Double -> Factor X
-xFactor = Factor
-
-yFactor :: Double -> Factor Y
-yFactor = Factor
-
-class AdditionPairWise a b where (|+) :: a -> b -> a
-
-class SubtractionPairWise a b where (|-|) :: a -> a -> b
-
-class SubtractionPairWiseLeft a b where (|-) :: a -> b -> a
-
-class MultiplicationPairWise a b where (|*|) :: a -> b -> a
-
-class MultiplicationPairWiseRight a b where (*|) :: a -> b -> b
-
-class DivisionPairWise a b where (|/|) :: a -> a -> b
-
-class DivisionPairWiseLeft a b where (|/) :: a -> b -> a
-
-class ModuloPairWise a b where (|%%) :: a -> b -> a
-
-class Modulo'PairWise a b where (|%) :: a -> b -> a
-
-infixl 7 |*|, *|, |/|, |%%, |%
-
-infixl 6 |+, |-|, |-
-
-instance AdditionPairWise (Absolute a) (Relative a) where
-  (Absolute l) |+ (Relative r) = Absolute $ l + r
-
-instance AdditionPairWise (Relative a) (Relative a) where (Relative l) |+ (Relative r) = Relative $ l + r
-
-instance AdditionPairWise Pos (Relative X) where (a, a') |+ r = (a |+ r, a')
-
-instance AdditionPairWise Pos (Relative Y) where (a, a') |+ r = (a, a' |+ r)
-
-instance AdditionPairWise Dim Dim where (|+) = pairWise (|+) (|+)
-
-instance AdditionPairWise Pos Dim where (|+) = pairWise (|+) (|+)
-
-instance AdditionPairWise (Absolute X) Dim where l |+ dim = l |+ fst dim
-
-instance AdditionPairWise (Absolute Y) Dim where l |+ dim = l |+ snd dim
-
-instance AdditionPairWise (Relative X) Dim where l |+ dim = l |+ fst dim
-
-instance AdditionPairWise (Relative Y) Dim where l |+ dim = l |+ snd dim
-
-instance SubtractionPairWise (Absolute a) (Relative a) where (Absolute l) |-| (Absolute r) = Relative $ l - r
-
-instance SubtractionPairWise Pos Dim where (|-|) = pairWise (|-|) (|-|)
-
-instance SubtractionPairWiseLeft (Absolute a) (Relative a) where (Absolute l) |- (Relative r) = Absolute $ l - r
-
-instance SubtractionPairWiseLeft (Relative a) (Relative a) where (Relative l) |- (Relative r) = Relative $ l - r
-
-instance SubtractionPairWiseLeft (Absolute X) Dim where l |- dim = l |- fst dim
-
-instance SubtractionPairWiseLeft (Absolute Y) Dim where l |- dim = l |- snd dim
-
-instance SubtractionPairWiseLeft (Relative X) Dim where l |- dim = l |- fst dim
-
-instance SubtractionPairWiseLeft (Relative Y) Dim where l |- dim = l |- snd dim
-
-instance SubtractionPairWiseLeft Pos (Relative X) where pos |- r = (fst pos |- r, snd pos)
-
-instance SubtractionPairWiseLeft Pos (Relative Y) where pos |- r = (fst pos, snd pos |- r)
-
-instance SubtractionPairWiseLeft Pos Dim where (|-) = pairWise (|-) (|-)
-
-instance MultiplicationPairWiseRight (Factor a) (Relative a) where (Factor l) *| (Relative r) = Relative $ l * r
-
-instance MultiplicationPairWise (Relative a) (Factor a) where (Relative r) |*| (Factor l) = Relative $ l * r
-
-instance MultiplicationPairWise (Factor a) (Factor a) where (Factor l) |*| (Factor r) = Factor $ l * r
-
-instance MultiplicationPairWise (Factor X) Scale where l |*| scale = l |*| fst scale
-
-instance MultiplicationPairWise (Factor Y) Scale where l |*| scale = l |*| snd scale
-
-instance MultiplicationPairWise (Relative X) Scale where l |*| scale = l |*| fst scale
-
-instance MultiplicationPairWise (Relative Y) Scale where l |*| scale = l |*| snd scale
-
-instance MultiplicationPairWiseRight Scale (Relative X) where scale *| r = fst scale *| r
-
-instance MultiplicationPairWiseRight Scale (Relative Y) where scale *| r = snd scale *| r
-
-instance MultiplicationPairWiseRight (Factor X) Dim where scale *| r = (scale *| fst r, snd r)
-
-instance MultiplicationPairWiseRight (Factor Y) Dim where scale *| r = (fst r, scale *| snd r)
-
-instance MultiplicationPairWise Scale Scale where (|*|) = pairWise (|*|) (|*|)
-
-instance MultiplicationPairWise Dim Scale where (|*|) = pairWise (|*|) (|*|)
-
-instance MultiplicationPairWiseRight Scale Dim where (*|) = pairWise (*|) (*|)
-
-instance DivisionPairWise (Relative a) (Factor a) where (Relative l) |/| (Relative r) = Factor $ l / r
-
-instance DivisionPairWise Dim Scale where (|/|) = pairWise (|/|) (|/|)
-
-instance DivisionPairWiseLeft (Relative a) (Factor a) where (Relative l) |/ (Factor r) = Relative $ l / r
-
-instance DivisionPairWiseLeft Dim Scale where (|/) = pairWise (|/) (|/)
-
-instance ModuloPairWise (Absolute a) (Relative a) where
-  (Absolute l) |%% (Relative r) = Absolute $ int2Double $ double2Int l `mod` double2Int r
-
-instance ModuloPairWise (Relative X) Dim where
-  (Relative l) |%% r = Relative $ int2Double $ double2Int l `mod` double2Int (unRelative $ fst r)
-
-instance ModuloPairWise (Relative Y) Dim where
-  (Relative l) |%% r = Relative $ int2Double $ double2Int l `mod` double2Int (unRelative $ snd r)
-
-instance ModuloPairWise Dim (Relative X) where
-  l |%% (Relative r) = (x, snd l)
-    where
-      x = Relative $ int2Double $ double2Int (unRelative $ fst l) `mod` double2Int r
-
-instance ModuloPairWise Dim (Relative Y) where
-  l |%% (Relative r) = (fst l, y)
-    where
-      y = Relative $ int2Double $ double2Int (unRelative $ snd l) `mod` double2Int r
-
-instance ModuloPairWise Pos (Relative X) where
-  l |%% (Relative r) = (x, snd l)
-    where
-      x = Absolute $ int2Double $ double2Int (unAbsolute $ fst l) `mod` double2Int r
-
-instance ModuloPairWise Pos (Relative Y) where
-  l |%% (Relative r) = (fst l, y)
-    where
-      y = Absolute $ int2Double $ double2Int (unAbsolute $ snd l) `mod` double2Int r
-
-instance ModuloPairWise Pos Dim where (|%%) = pairWise (|%%) (|%%)
-
-instance ModuloPairWise Dim Dim where (|%%) = pairWise (|%%) (|%%)
-
-instance ModuloPairWise (Relative a) (Relative a) where
-  (Relative l) |%% (Relative r) = Relative $ int2Double $ double2Int l `mod` double2Int r
-
-instance Modulo'PairWise (Absolute a) (Relative a) where (Absolute l) |% (Relative r) = Absolute $ l `mod'` r
-
-instance Modulo'PairWise (Relative a) (Relative a) where (Relative l) |% (Relative r) = Relative $ l `mod'` r
-
---FIXME replace mod' with mod + (v - floor v)
-instance Modulo'PairWise Pos (Relative X) where
-  l |% (Relative r) = (x, snd l)
-    where
-      x = Absolute $ (unAbsolute $ fst l) `mod'` r
-
-instance Modulo'PairWise Pos (Relative Y) where
-  l |% (Relative r) = (fst l, y)
-    where
-      y = Absolute $ (unAbsolute $ snd l) `mod'` r
-
-instance Modulo'PairWise Pos Dim where (|%) = pairWise (|%) (|%)
-
-instance Modulo'PairWise Dim Dim where (|%) = pairWise (|%) (|%)
-
-pairWise :: (a -> b -> c) -> (a' -> b' -> c') -> (a, a') -> (b, b') -> (c, c')
-pairWise f g (a, a') (b, b') = (f a b, g a' b')
+type Area = (Dim, Pos)

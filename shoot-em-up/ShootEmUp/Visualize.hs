@@ -15,4 +15,4 @@ visualize sprite EngineState {..} GameState {..} =
   where
     stars =
       gsStars <&> \((+ 1) -> size, pos) ->
-        rectangle Solid (RGBA 180 180 180 255) ((-1 :: Factor X) *| size) pos -- -size for x so stars extend to the left and can leave the screen smoothly
+        rectangle Solid (RGBA 180 180 180 255) (- size, size) pos -- -size for x so stars extend to the left and can leave the screen smoothly

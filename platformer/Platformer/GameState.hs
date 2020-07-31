@@ -18,8 +18,8 @@ newtype Board = Board {unBoard :: Map Pos TextureId} deriving newtype (Show, Sem
 
 data GameState = GameState
   { gsCollisions :: Corners (Maybe Area),
-    gsVelocityY :: Relative Y,
-    gsVelocityX :: Relative X,
+    gsVelocityY :: Double,
+    gsVelocityX :: Double,
     gsMainCharacter :: Pos,
     gsMainCharacterPrevious :: Pos,
     gsPenetrable :: Board,
@@ -36,8 +36,8 @@ makeInitialGameState dim =
     { gsCollisions = Corners Nothing Nothing Nothing Nothing,
       gsVelocityY = 0,
       gsVelocityX = 0,
-      gsMainCharacter = originPos |+ dim |*| ((0.5, 0) :: Scale),
-      gsMainCharacterPrevious = originPos |+ dim |*| ((0.5, 0) :: Scale),
+      gsMainCharacter = dim * (0.5, 0),
+      gsMainCharacterPrevious = dim * (0.5, 0),
       gsPenetrable = Board $ mempty,
       gsRoom =
         Board
@@ -46,30 +46,30 @@ makeInitialGameState dim =
           $ mapFromList
           $ concat
           $ take 10
-          $ (iterate (|+ yRelative 12) (yAbsolute 200) <&>)
-          $ (\r -> take 60 $ (iterate (|+ xRelative 12) (xAbsolute 0) `zip` repeat r) `zip` (repeat FloorPlate))
+          $ (iterate (+ 12) 200 <&>)
+          $ (\r -> take 60 $ (iterate (+ 12) 0 `zip` repeat r) `zip` (repeat FloorPlate))
     }
 
 stepGameStatePure :: (TextureId -> Dim) -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure tdim gs@GameState {..} EngineState {..} = \case
+stepGameStatePure area gs@GameState {..} EngineState {..} = \case
   KeyEvent Key'Space KeyState'Pressed -> gs {gsVelocityY = -220}
   RenderEvent _ ->
     let speedX = 100
         newMainCharacter =
           move
             esTimePassed
-            (tdim MainCharacter, gsMainCharacter)
+            (area MainCharacter, gsMainCharacter)
             gsMainCharacterPrevious
             gsVelocityX
             gsVelocityY
-            $ (tdim FloorPlate,) <$> (keys $ unBoard gsRoom)
+            $ (area FloorPlate,) <$> (keys $ unBoard gsRoom)
      in gs
           { gsMainCharacter = newMainCharacter,
             gsMainCharacterPrevious = gsMainCharacter,
             gsVelocityY =
               if gsVelocityY /= 0 && snd gsMainCharacter == snd newMainCharacter
                 then 0
-                else gsVelocityY |+ (9.81 :: Scale) |*| esTimePassed *| (55 :: Dim),
+                else gsVelocityY + 9.81 * esTimePassed * 55,
             gsVelocityX =
               if Key'A `setMember` esKeysPressed
                 then - speedX

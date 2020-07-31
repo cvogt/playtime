@@ -20,7 +20,7 @@ avg :: Foldable t => t Integer -> Double
 avg xs = (fromInteger @Double $ sum xs) / (int2Double $ length xs)
 
 translate :: Dim -> Sprite -> Sprite
-translate offset (Rectangle (dim, pos) v) = Rectangle (dim, pos |+ offset) v
+translate offset (Rectangle (dim, pos) v) = Rectangle (dim, pos + offset) v
 
 allEnumValues :: forall a. (Enum a, Bounded a) => [a]
 allEnumValues = enumFrom (minBound :: a)
@@ -45,3 +45,9 @@ keyBindings =
     ([Key'A], MovementAction Left'),
     ([Key'D], MovementAction Right')
   ]
+
+mod2 :: Pos -> Pos -> Pos
+mod2 = pairWise mod' mod'
+
+pairWise :: (a -> b -> c) -> (a' -> b' -> c') -> (a, a') -> (b, b') -> (c, c')
+pairWise f g (a, a') (b, b') = (f a b, g a' b')

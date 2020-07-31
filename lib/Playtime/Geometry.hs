@@ -10,21 +10,9 @@ textureDim :: (a -> (Scale, b)) -> (b -> Texture) -> a -> Dim
 textureDim textureScale textures i =
   let (scale, b) = textureScale i
       Texture dim _ _ = textures b
-   in scale *| dim
+   in scale * dim
 
-updateX :: (Absolute X -> Absolute X) -> Pos -> Pos
-updateX f (x, y) = (f x, y)
-
-updateY :: (Absolute Y -> Absolute Y) -> Pos -> Pos
-updateY f (x, y) = (x, f y)
-
-updateXIf :: (Absolute X -> Bool) -> (Absolute X -> Absolute X) -> Pos -> Pos
-updateXIf c f (x, y) = if c x then (f x, y) else (x, y)
-
-filterX :: (Absolute X -> Bool) -> [Pos] -> [Pos]
-filterX f = filter (f . fst)
-
-move :: Scale -> Area -> Pos -> Relative X -> Relative Y -> [Area] -> Pos
+move :: Double -> Area -> Pos -> Double -> Double -> [Area] -> Pos
 move timePassed (objectDim, objectPos) previousPos velocityX velocityY obstacles =
   case lastMay unobstructed of
     Nothing -> objectPos
@@ -43,21 +31,20 @@ move timePassed (objectDim, objectPos) previousPos velocityX velocityY obstacles
     unobstructed = takeWhile nonColliding candidates
 
 -- given a position, a timedifference and x,y velocities - calculate relevant pixels along the trajector for checking collisions
-trajectoryPixels :: Pos -> Scale -> Dim -> [Pos]
-trajectoryPixels objectPos timePassed ((timePassed *|) -> (velocityX, velocityY)) =
+trajectoryPixels :: Pos -> Double -> Dim -> [Pos]
+trajectoryPixels objectPos timePassed ((dupe timePassed *) -> (velocityX, velocityY)) =
   -- FIXME: We should return a list of all the intersection points with pixel borders along the trajectory.
   --        What we currently do instead is wrong, but close enough for the moment.
   nub $ candidatesXY mx velocityX stepX `zip` candidatesXY my velocityY stepY
   where
     (mx, my) = objectPos
     steps :: Int
-    steps = ceiling $ max (abs $ unRelative velocityX) (abs $ unRelative velocityY)
-    stepX = velocityX |/ (Factor @X $ int2Double steps)
-    stepY = velocityY |/ (Factor @Y $ int2Double steps)
-    candidatesXY :: Absolute a -> Relative a -> Relative a -> [Absolute a]
+    steps = ceiling $ max (abs velocityX) (abs velocityY)
+    stepX = velocityX / int2Double steps
+    stepY = velocityY / int2Double steps
+    candidatesXY :: Double -> Double -> Double -> [Double]
     candidatesXY base velocity step =
-      (<> [base |+ velocity]) . toList $
-        Absolute . int2Double
+      (<> [base + velocity]) . toList $
+        int2Double
           . (if step < 0 then floor else ceiling)
-          . unAbsolute
-          <$> iterateN steps (|+ step) base
+          <$> iterateN steps (+ step) base

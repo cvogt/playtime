@@ -14,6 +14,12 @@ dim = (1024, 768)
 gameDir :: FilePath
 gameDir = "live-coding-demo"
 
+textures :: TextureId -> (Scale, FilePath)
+textures = \case
+  Plane -> (1, "plane.png")
+  Enemy -> (0.1, "enemy_red.png")
+  Heart -> (0.025, "haskell_love_logo.png")
+
 main :: IO ()
 main =
   playtime . Left
@@ -21,7 +27,7 @@ main =
 
 makeEngineConfig :: Maybe LiveCodeState -> IO EngineConfig
 makeEngineConfig liveCodeState = do
-  initial_gs
+  initialGameState
     >>= wireEngineConfig
       dim
       1
@@ -31,7 +37,7 @@ makeEngineConfig liveCodeState = do
       loadTexture
       (snd . textures <$> allEnumValues)
   where
-    initial_gs = makeInitialGameState dim <$> randomIO
+    initialGameState = makeInitialGameState dim <$> randomIO
     stepGameState area es@EngineState {..} old_gs event = do
       pre <- preIO
       let new_gs = stepGameStatePure pre area old_gs es event
@@ -40,7 +46,7 @@ makeEngineConfig liveCodeState = do
     postIO es new_gs = do
       post_gs <-
         if Key'R `setMember` esKeysPressed es
-          then initial_gs
+          then initialGameState
           else pure new_gs
       saveMay es post_gs
       fromMaybe post_gs <$> loadMay es

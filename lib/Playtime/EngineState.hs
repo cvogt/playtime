@@ -1,10 +1,33 @@
 module Playtime.EngineState where
 
-import GHC.Float (int2Double)
-import "GLFW-b" Graphics.UI.GLFW
+import GHC.Float
+import My.IO
 import My.Prelude
 import Playtime.Types
 import Playtime.Util
+
+data EngineConfig = EngineConfig
+  { ecDim :: Dim,
+    ecScale :: Scale,
+    ecVisualize :: EngineState -> IO [Sprite],
+    ecStepGameState :: EngineState -> Event -> IO (),
+    ecCheckIfContinue :: EngineState -> IO Bool,
+    ecGameDebugInfo :: EngineState -> IO [[Char]]
+  }
+
+data EngineState = EngineState
+  { esCursorPos :: Pos,
+    esFps :: Double,
+    esWindowDimensions :: Dim,
+    esKeysPressed :: Set Key,
+    esMousePressed :: Set MouseButton,
+    esLastLoopTime :: SystemTime,
+    esActions :: Set Action,
+    esTimes :: [Integer],
+    esTimePassed :: Scale,
+    esWindowSize :: Dim
+  }
+  deriving (Show, Generic, NFData)
 
 makeInitialEngineState :: Scale -> Dim -> SystemTime -> EngineState
 makeInitialEngineState scale dim time =
@@ -14,31 +37,15 @@ makeInitialEngineState scale dim time =
       esKeysPressed = mempty,
       esMousePressed = mempty,
       esLastLoopTime = time,
-      esLogicalDimensions = dim,
+      esWindowDimensions = dim,
       esActions = mempty,
       esTimes = [],
       esTimePassed = 0,
       esWindowSize = scale *| dim
     }
 
-groupKeyBindings :: [([Key], Action)] -> Map Key [(Set Key, Action)]
-groupKeyBindings keyBindingsRaw = mapFromList $ groups <&> \l@(h :| _) -> (fst h, first setFromList <$> (join . toList $ snd <$> l))
-  where
-    groups :: [NonEmpty (Key, [([Key], Action)])]
-    groups = groupAllWith fst $ join $ keyBindingsRaw <&> (\b@(keys', _) -> (,[b]) <$> keys')
-
-keyBindings :: [([Key], Action)]
-keyBindings =
-  [ ([Key'LeftSuper, Key'Q], Exit),
-    ([Key'Escape], Exit),
-    ([Key'LeftSuper, Key'L], OneTimeEffect Load),
-    ([Key'LeftSuper, Key'S], OneTimeEffect Save),
-    ([Key'LeftSuper, Key'R], OneTimeEffect Reset),
-    ([Key'W], MovementAction Up),
-    ([Key'S], MovementAction Down),
-    ([Key'A], MovementAction Left'),
-    ([Key'D], MovementAction Right')
-  ]
+gameExitRequested :: EngineState -> Bool
+gameExitRequested es = Exit `elem` (esActions es)
 
 clearOneTimeEffects :: EngineState -> EngineState
 clearOneTimeEffects es =
@@ -57,7 +64,7 @@ stepEngineState (clearOneTimeEffects -> gs@EngineState {..}) = \case
           -- this ratio calculation leads to proper relative scaling on window resize
           -- FIXME: we still get distortion if aspect ration of resized window is different
           --        we should be able to fix that by adding black borders as needed
-          let scale = esLogicalDimensions |/| esWindowSize :: Scale
+          let scale = esWindowDimensions |/| esWindowSize :: Scale
               relPos = (pos |-| originPos) :: Dim
            in originPos |+ scale *| relPos
       }

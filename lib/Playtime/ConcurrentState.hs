@@ -2,7 +2,7 @@ module Playtime.ConcurrentState where
 
 import My.IO
 import My.Prelude
-import Playtime.Types
+import Playtime.EngineState
 
 data ConcurrentState = ConcurrentState
   { csEngineState :: MVar EngineState,

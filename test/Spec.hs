@@ -103,16 +103,16 @@ main = do
   -- instance DivisionPairWiseLeft (Relative a) (Factor a) where (Relative l) |/ (Factor r) = Relative $ l / r
   -- instance DivisionPairWiseLeft Dim Scale where (|/) = pairWise (|/) (|/)
 
-  assert "Relative X |%| Dim" $ xRelative 8 |%| ((5, 3) :: Dim) == xRelative 3
-  assert "Relative Y |%| Dim" $ yRelative 8 |%| ((5, 3) :: Dim) == yRelative 2
-  assert "Dim |%| Relative X" $ ((8, 19) :: Dim) |%| xRelative 5 == ((3, 19) :: Dim)
-  assert "Dim |%| Relative Y" $ ((8, 19) :: Dim) |%| yRelative 5 == ((8, 4) :: Dim)
-  assert "Pos |%| Relative X" $ ((8, 19) :: Pos) |%| xRelative 5 == ((3, 19) :: Pos)
-  assert "Pos |%| Relative Y" $ ((8, 19) :: Pos) |%| yRelative 5 == ((8, 4) :: Pos)
-  assert "Pos |%| Dim" $ ((8, 19) :: Pos) |%| ((5, 10) :: Dim) == ((3, 9) :: Pos)
-  assert "Dim |%| Dim" $ ((8, 19) :: Dim) |%| ((5, 10) :: Dim) == ((3, 9) :: Dim)
-  assert "Absolute |%| Relative" $ xAbsolute 9 |%| xRelative 5 == xAbsolute 4
-  assert "Relative |%| Relative" $ xRelative 9 |%| xRelative 5 == xRelative 4
+  assert "Relative X |% Dim" $ xRelative 8 |% ((5, 3) :: Dim) == xRelative 3
+  assert "Relative Y |% Dim" $ yRelative 8 |% ((5, 3) :: Dim) == yRelative 2
+  assert "Dim |% Relative X" $ ((8, 19) :: Dim) |% xRelative 5 == ((3, 19) :: Dim)
+  assert "Dim |% Relative Y" $ ((8, 19) :: Dim) |% yRelative 5 == ((8, 4) :: Dim)
+  assert "Pos |% Relative X" $ ((8, 19) :: Pos) |% xRelative 5 == ((3, 19) :: Pos)
+  assert "Pos |% Relative Y" $ ((8, 19) :: Pos) |% yRelative 5 == ((8, 4) :: Pos)
+  assert "Pos |% Dim" $ ((8, 19) :: Pos) |% ((5, 10) :: Dim) == ((3, 9) :: Pos)
+  assert "Dim |% Dim" $ ((8, 19) :: Dim) |% ((5, 10) :: Dim) == ((3, 9) :: Dim)
+  assert "Absolute |% Relative" $ xAbsolute 9 |% xRelative 5 == xAbsolute 4
+  assert "Relative |% Relative" $ xRelative 9 |% xRelative 5 == xRelative 4
 
   assert "Pos |%%| Dim" $ ((8, 19) :: Pos) |%%| ((5, 10) :: Dim) == ((3, 9) :: Pos)
   assert "Dim |%%| Dim" $ ((8, 19) :: Dim) |%%| ((5, 10) :: Dim) == ((3, 9) :: Dim)

@@ -1,5 +1,7 @@
 This is an amateur project exploring how convenient game development in Haskell can be.
 
+A lot of the code is work in progress.
+
 Presented at Haskell.Love 2020 https://haskell.love/jan-christopher-vogt/
 
 Demo game: https://www.youtube.com/watch?v=KndOBmmuDQg

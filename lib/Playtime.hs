@@ -2,12 +2,11 @@ module Playtime
   ( module Playtime,
     module Playtime.EngineState,
     module Playtime.Geometry,
+    module Playtime.Random,
     module Playtime.SaveLoad,
     module Playtime.Types,
     module Playtime.Util,
     module Playtime.UI,
-    GLFW.Key (..),
-    GLFW.KeyState (..),
     LiveCodeState,
     startLiveCode,
     liveCodeSwitch,
@@ -28,6 +27,7 @@ import Playtime.GL
 import Playtime.GLFW
 import Playtime.Geometry
 import Playtime.LiveCode
+import Playtime.Random
 import Playtime.SaveLoad
 import Playtime.Setup
 import Playtime.Types

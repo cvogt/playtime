@@ -39,22 +39,22 @@ stepGameStatePure :: Int -> (TextureId -> Pos -> Area) -> GameState -> EngineSta
 stepGameStatePure (mkStdGen -> rng) area gs@GameState {..} EngineState {..} = \case
   KeyEvent Key'Space KeyState'Pressed ->
     let
-     in -- (width,_) = esLogicalDimensions
-        --_randDoubles = int2Double . (|%| width) <$> randInts
+     in -- (width,_) = esWindowDimensions
+        --_randDoubles = int2Double . (|% width) <$> randInts
         gs
           { gsBullets = gsBullets <> ((repeat $ fst gsPlayer + 300) `zip` ((+ snd gsPlayer) <$>) [50, 100, 150, 200, 250, 300])
           }
   KeyEvent Key'P KeyState'Pressed ->
     let
-     in -- (width,_) = esLogicalDimensions
-        --_randDoubles = int2Double . (|%| width) <$> randInts
+     in -- (width,_) = esWindowDimensions
+        --_randDoubles = int2Double . (|% width) <$> randInts
         gs
           { gsSpeed = gsSpeed + 1
           }
   KeyEvent Key'O KeyState'Pressed ->
     let
-     in -- (width,_) = esLogicalDimensions
-        --_randDoubles = int2Double . (|%| width) <$> randInts
+     in -- (width,_) = esWindowDimensions
+        --_randDoubles = int2Double . (|% width) <$> randInts
         gs
           { gsSpeed = gsSpeed - 1
           }
@@ -62,7 +62,7 @@ stepGameStatePure (mkStdGen -> rng) area gs@GameState {..} EngineState {..} = \c
     let speed = gsSpeed |*| esTimePassed
         velocity = 200 :: Dim
         step = esTimePassed *| velocity
-        (width, height) = esLogicalDimensions
+        (width, height) = esWindowDimensions
         moveX =
           if
               | Key'A `setMember` esKeysPressed -> (|- fst step)

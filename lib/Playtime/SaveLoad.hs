@@ -7,6 +7,7 @@ import qualified Data.ByteString.Lazy as BSL
 import Data.FileEmbed (makeRelativeToProject, strToExp)
 import My.IO
 import My.Prelude
+import Playtime.EngineState
 import Playtime.Types
 
 saveLocation :: FilePath

@@ -12,8 +12,8 @@ import My.Extra
 import My.IO
 import My.Prelude
 import Playtime.ConcurrentState
+import Playtime.EngineState
 import Playtime.LiveCode
-import Playtime.Types
 import Playtime.Util
 import System.Console.ANSI as ANSI
 import qualified System.Console.Terminal.Size as TerminalSize

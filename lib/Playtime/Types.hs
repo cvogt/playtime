@@ -1,7 +1,14 @@
 {-# LANGUAGE RankNTypes #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Playtime.Types where
+module Playtime.Types
+  ( module Playtime.Types,
+    Key (..),
+    KeyState (..),
+    MouseButton (..),
+    MouseButtonState (..),
+  )
+where
 
 import Codec.Picture.Types (Image, PixelRGBA8)
 import Data.Aeson (FromJSON, ToJSON)
@@ -9,35 +16,22 @@ import GHC.Float
 import GHC.Num
 import GHC.Real
 import qualified Graphics.Rendering.OpenGL.GL as GL (TextureObject)
-import qualified "GLFW-b" Graphics.UI.GLFW as GLFW
-import My.IO
+import "GLFW-b" Graphics.UI.GLFW (Key (..), KeyState (..), MouseButton (..), MouseButtonState (..))
 import My.Prelude
-
-data EngineConfig = EngineConfig
-  { ecDim :: Dim,
-    ecScale :: Scale,
-    ecVisualize :: EngineState -> IO [Sprite],
-    ecStepGameState :: EngineState -> Event -> IO (),
-    ecCheckIfContinue :: EngineState -> IO Bool,
-    ecGameDebugInfo :: EngineState -> IO [[Char]]
-  }
 
 -- Event Types
 data Color = RGBA Int Int Int Int deriving (Eq, Ord, Show, Generic, ToJSON, FromJSON, NFData)
 
 data Event
   = RenderEvent SystemTime
-  | MouseEvent GLFW.MouseButton GLFW.MouseButtonState
-  | KeyEvent GLFW.Key GLFW.KeyState
+  | MouseEvent MouseButton MouseButtonState
+  | KeyEvent Key KeyState
   | CursorPosEvent Pos
   | WindowSizeEvent Int Int
   | WindowCloseEvent
   deriving (Show)
 
 -- Game State Types
-
-gameExitRequested :: EngineState -> Bool
-gameExitRequested es = Exit `elem` (esActions es)
 
 data OneTimeEffect' = Load | Save | Reset deriving (Eq, Ord, Show, Generic, NFData)
 
@@ -52,20 +46,6 @@ oneTimeEffectMay _ = Nothing
 movementAction :: Action -> Maybe MovementAction'
 movementAction (MovementAction v) = Just v
 movementAction _ = Nothing
-
-data EngineState = EngineState
-  { esCursorPos :: Pos,
-    esFps :: Double,
-    esLogicalDimensions :: Dim,
-    esKeysPressed :: Set GLFW.Key,
-    esMousePressed :: Set GLFW.MouseButton,
-    esLastLoopTime :: SystemTime,
-    esActions :: Set Action,
-    esTimes :: [Integer],
-    esTimePassed :: Scale,
-    esWindowSize :: Dim
-  }
-  deriving (Show, Generic, NFData)
 
 -- Textures Types
 data Texture = Texture
@@ -131,27 +111,36 @@ data X
 
 data Y
 
-newtype Absolute a = Absolute {unAbsolute :: Double}
-  deriving (Eq, Ord, Show)
+newtype Absolute a = Absolute {unAbsolute :: Double} deriving (Eq, Ord, Show)
   deriving newtype (Num, Fractional, NFData, FromJSON, ToJSON)
 
-newtype Relative a = Relative {unRelative :: Double}
-  deriving (Eq, Ord, Show)
+newtype Relative a = Relative {unRelative :: Double} deriving (Eq, Ord, Show)
   deriving newtype (Num, Fractional, NFData, FromJSON, ToJSON)
 
-newtype Factor a = Factor {unFactor :: Double}
-  deriving (Eq, Ord, Show)
+newtype Factor a = Factor {unFactor :: Double} deriving (Eq, Ord, Show)
   deriving newtype (Num, Fractional, NFData, FromJSON, ToJSON)
 
-type Vector2 t = (t X, t Y)
+type Pos = (Absolute X, Absolute Y)
 
-type Pos = Vector2 Absolute
+type Dim = (Relative X, Relative Y)
 
-type Dim = Vector2 Relative
-
-type Scale = Vector2 Factor
+type Scale = (Factor X, Factor Y)
 
 type Area = (Dim, Pos)
+
+instance (Num a, Num b) => Num (a, b) where
+  (lx, ly) + (rx, ry) = (lx + rx, ly + ry)
+  (lx, ly) - (rx, ry) = (lx - rx, ly - ry)
+  (lx, ly) * (rx, ry) = (lx * rx, ly * ry)
+  negate (x, y) = (- x, - y)
+  abs (x, y) = (abs x, abs y)
+  signum (x, y) = (signum x, signum y)
+  fromInteger i = (fromInteger i, fromInteger i)
+
+instance (Fractional a, Fractional b) => Fractional (a, b) where
+  (a, b) / (a', b') = (a / a', b / b')
+  recip (a, b) = (recip a, recip b)
+  fromRational r = (fromRational r, fromRational r)
 
 xRelative :: Double -> Relative X
 xRelative = Relative
@@ -171,20 +160,6 @@ xFactor = Factor
 yFactor :: Double -> Factor Y
 yFactor = Factor
 
-instance (Num a, Num b) => Num (a, b) where
-  (lx, ly) + (rx, ry) = (lx + rx, ly + ry)
-  (lx, ly) - (rx, ry) = (lx - rx, ly - ry)
-  (lx, ly) * (rx, ry) = (lx * rx, ly * ry)
-  negate (x, y) = (- x, - y)
-  abs (x, y) = (abs x, abs y)
-  signum (x, y) = (signum x, signum y)
-  fromInteger i = (fromInteger i, fromInteger i)
-
-instance (Fractional a, Fractional b) => Fractional (a, b) where
-  (a, b) / (a', b') = (a / a', b / b')
-  recip (a, b) = (recip a, recip b)
-  fromRational r = (fromRational r, fromRational r)
-
 class AdditionPairWise a b where (|+) :: a -> b -> a
 
 class SubtractionPairWise a b where (|-|) :: a -> a -> b
@@ -199,11 +174,11 @@ class DivisionPairWise a b where (|/|) :: a -> a -> b
 
 class DivisionPairWiseLeft a b where (|/) :: a -> b -> a
 
-class ModuloPairWise a b where (|%|) :: a -> b -> a
+class ModuloPairWise a b where (|%) :: a -> b -> a
 
 class Modulo'PairWise a b where (|%%|) :: a -> b -> a
 
-infixl 7 |*|, *|, |/|, |%|, |%%|
+infixl 7 |*|, *|, |/|, |%, |%%|
 
 infixl 6 |+, |-|, |-
 
@@ -287,40 +262,40 @@ instance DivisionPairWiseLeft (Relative a) (Factor a) where (Relative l) |/ (Fac
 instance DivisionPairWiseLeft Dim Scale where (|/) = pairWise (|/) (|/)
 
 instance ModuloPairWise (Absolute a) (Relative a) where
-  (Absolute l) |%| (Relative r) = Absolute $ int2Double $ double2Int l `mod` double2Int r
+  (Absolute l) |% (Relative r) = Absolute $ int2Double $ double2Int l `mod` double2Int r
 
 instance ModuloPairWise (Relative X) Dim where
-  (Relative l) |%| r = Relative $ int2Double $ double2Int l `mod` double2Int (unRelative $ fst r)
+  (Relative l) |% r = Relative $ int2Double $ double2Int l `mod` double2Int (unRelative $ fst r)
 
 instance ModuloPairWise (Relative Y) Dim where
-  (Relative l) |%| r = Relative $ int2Double $ double2Int l `mod` double2Int (unRelative $ snd r)
+  (Relative l) |% r = Relative $ int2Double $ double2Int l `mod` double2Int (unRelative $ snd r)
 
 instance ModuloPairWise Dim (Relative X) where
-  l |%| (Relative r) = (x, snd l)
+  l |% (Relative r) = (x, snd l)
     where
       x = Relative $ int2Double $ double2Int (unRelative $ fst l) `mod` double2Int r
 
 instance ModuloPairWise Dim (Relative Y) where
-  l |%| (Relative r) = (fst l, y)
+  l |% (Relative r) = (fst l, y)
     where
       y = Relative $ int2Double $ double2Int (unRelative $ snd l) `mod` double2Int r
 
 instance ModuloPairWise Pos (Relative X) where
-  l |%| (Relative r) = (x, snd l)
+  l |% (Relative r) = (x, snd l)
     where
       x = Absolute $ int2Double $ double2Int (unAbsolute $ fst l) `mod` double2Int r
 
 instance ModuloPairWise Pos (Relative Y) where
-  l |%| (Relative r) = (fst l, y)
+  l |% (Relative r) = (fst l, y)
     where
       y = Absolute $ int2Double $ double2Int (unAbsolute $ snd l) `mod` double2Int r
 
-instance ModuloPairWise Pos Dim where (|%|) = pairWise (|%|) (|%|)
+instance ModuloPairWise Pos Dim where (|%) = pairWise (|%) (|%)
 
-instance ModuloPairWise Dim Dim where (|%|) = pairWise (|%|) (|%|)
+instance ModuloPairWise Dim Dim where (|%) = pairWise (|%) (|%)
 
 instance ModuloPairWise (Relative a) (Relative a) where
-  (Relative l) |%| (Relative r) = Relative $ int2Double $ double2Int l `mod` double2Int r
+  (Relative l) |% (Relative r) = Relative $ int2Double $ double2Int l `mod` double2Int r
 
 instance Modulo'PairWise (Absolute a) (Relative a) where (Absolute l) |%%| (Relative r) = Absolute $ l `mod'` r
 

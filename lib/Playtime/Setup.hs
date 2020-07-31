@@ -7,6 +7,7 @@ import My.Extra
 import My.IO
 import My.Prelude
 import Playtime.Debug
+import Playtime.EngineState
 import Playtime.GL
 import Playtime.LiveCode
 import Playtime.Types

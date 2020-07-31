@@ -174,11 +174,11 @@ class DivisionPairWise a b where (|/|) :: a -> a -> b
 
 class DivisionPairWiseLeft a b where (|/) :: a -> b -> a
 
-class ModuloPairWise a b where (|%) :: a -> b -> a
+class ModuloPairWise a b where (|%%) :: a -> b -> a
 
-class Modulo'PairWise a b where (|%%|) :: a -> b -> a
+class Modulo'PairWise a b where (|%) :: a -> b -> a
 
-infixl 7 |*|, *|, |/|, |%, |%%|
+infixl 7 |*|, *|, |/|, |%%, |%
 
 infixl 6 |+, |-|, |-
 
@@ -262,59 +262,59 @@ instance DivisionPairWiseLeft (Relative a) (Factor a) where (Relative l) |/ (Fac
 instance DivisionPairWiseLeft Dim Scale where (|/) = pairWise (|/) (|/)
 
 instance ModuloPairWise (Absolute a) (Relative a) where
-  (Absolute l) |% (Relative r) = Absolute $ int2Double $ double2Int l `mod` double2Int r
+  (Absolute l) |%% (Relative r) = Absolute $ int2Double $ double2Int l `mod` double2Int r
 
 instance ModuloPairWise (Relative X) Dim where
-  (Relative l) |% r = Relative $ int2Double $ double2Int l `mod` double2Int (unRelative $ fst r)
+  (Relative l) |%% r = Relative $ int2Double $ double2Int l `mod` double2Int (unRelative $ fst r)
 
 instance ModuloPairWise (Relative Y) Dim where
-  (Relative l) |% r = Relative $ int2Double $ double2Int l `mod` double2Int (unRelative $ snd r)
+  (Relative l) |%% r = Relative $ int2Double $ double2Int l `mod` double2Int (unRelative $ snd r)
 
 instance ModuloPairWise Dim (Relative X) where
-  l |% (Relative r) = (x, snd l)
+  l |%% (Relative r) = (x, snd l)
     where
       x = Relative $ int2Double $ double2Int (unRelative $ fst l) `mod` double2Int r
 
 instance ModuloPairWise Dim (Relative Y) where
-  l |% (Relative r) = (fst l, y)
+  l |%% (Relative r) = (fst l, y)
     where
       y = Relative $ int2Double $ double2Int (unRelative $ snd l) `mod` double2Int r
 
 instance ModuloPairWise Pos (Relative X) where
-  l |% (Relative r) = (x, snd l)
+  l |%% (Relative r) = (x, snd l)
     where
       x = Absolute $ int2Double $ double2Int (unAbsolute $ fst l) `mod` double2Int r
 
 instance ModuloPairWise Pos (Relative Y) where
-  l |% (Relative r) = (fst l, y)
+  l |%% (Relative r) = (fst l, y)
     where
       y = Absolute $ int2Double $ double2Int (unAbsolute $ snd l) `mod` double2Int r
 
-instance ModuloPairWise Pos Dim where (|%) = pairWise (|%) (|%)
+instance ModuloPairWise Pos Dim where (|%%) = pairWise (|%%) (|%%)
 
-instance ModuloPairWise Dim Dim where (|%) = pairWise (|%) (|%)
+instance ModuloPairWise Dim Dim where (|%%) = pairWise (|%%) (|%%)
 
 instance ModuloPairWise (Relative a) (Relative a) where
-  (Relative l) |% (Relative r) = Relative $ int2Double $ double2Int l `mod` double2Int r
+  (Relative l) |%% (Relative r) = Relative $ int2Double $ double2Int l `mod` double2Int r
 
-instance Modulo'PairWise (Absolute a) (Relative a) where (Absolute l) |%%| (Relative r) = Absolute $ l `mod'` r
+instance Modulo'PairWise (Absolute a) (Relative a) where (Absolute l) |% (Relative r) = Absolute $ l `mod'` r
 
-instance Modulo'PairWise (Relative a) (Relative a) where (Relative l) |%%| (Relative r) = Relative $ l `mod'` r
+instance Modulo'PairWise (Relative a) (Relative a) where (Relative l) |% (Relative r) = Relative $ l `mod'` r
 
 --FIXME replace mod' with mod + (v - floor v)
 instance Modulo'PairWise Pos (Relative X) where
-  l |%%| (Relative r) = (x, snd l)
+  l |% (Relative r) = (x, snd l)
     where
       x = Absolute $ (unAbsolute $ fst l) `mod'` r
 
 instance Modulo'PairWise Pos (Relative Y) where
-  l |%%| (Relative r) = (fst l, y)
+  l |% (Relative r) = (fst l, y)
     where
       y = Absolute $ (unAbsolute $ snd l) `mod'` r
 
-instance Modulo'PairWise Pos Dim where (|%%|) = pairWise (|%%|) (|%%|)
+instance Modulo'PairWise Pos Dim where (|%) = pairWise (|%) (|%)
 
-instance Modulo'PairWise Dim Dim where (|%%|) = pairWise (|%%|) (|%%|)
+instance Modulo'PairWise Dim Dim where (|%) = pairWise (|%) (|%)
 
 pairWise :: (a -> b -> c) -> (a' -> b' -> c') -> (a, a') -> (b, b') -> (c, c')
 pairWise f g (a, a') (b, b') = (f a b, g a' b')

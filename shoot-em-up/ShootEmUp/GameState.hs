@@ -100,12 +100,12 @@ stepGameStatePure' randInts area gs@GameState {..} EngineState {..} = \case
           where
             numAdded = numEnemies - length survivingEnemies
             modu :: Pos -> Pos
-            modu pos = pos |% (height |- enemyDim pos)
+            modu pos = pos |%% (height |- enemyDim pos)
         stepStar :: (Dim, Pos) -> (Dim, Pos)
         stepStar (size, pos) = (size,) $ modu $ move' pos
           where
             move' = (|- ((5, 0) :: Scale) |*| esTimePassed *| (size |+ (1 :: Dim)))
-            modu = (|%%| (esWindowDimensions |+ gsMaxStarSize))
+            modu = (|% (esWindowDimensions |+ gsMaxStarSize))
      in gs
           { gsMainCharacter = gsMainCharacter |+ esTimePassed *| velocity,
             gsEnemies = (|- esTimePassed *| (100 :: Relative X)) <$> newEnemies,

@@ -40,21 +40,21 @@ stepGameStatePure (mkStdGen -> rng) area gs@GameState {..} EngineState {..} = \c
   KeyEvent Key'Space KeyState'Pressed ->
     let
      in -- (width,_) = esWindowDimensions
-        --_randDoubles = int2Double . (|% width) <$> randInts
+        --_randDoubles = int2Double . (|%% width) <$> randInts
         gs
           { gsBullets = gsBullets <> ((repeat $ fst gsPlayer + 300) `zip` ((+ snd gsPlayer) <$>) [50, 100, 150, 200, 250, 300])
           }
   KeyEvent Key'P KeyState'Pressed ->
     let
      in -- (width,_) = esWindowDimensions
-        --_randDoubles = int2Double . (|% width) <$> randInts
+        --_randDoubles = int2Double . (|%% width) <$> randInts
         gs
           { gsSpeed = gsSpeed + 1
           }
   KeyEvent Key'O KeyState'Pressed ->
     let
      in -- (width,_) = esWindowDimensions
-        --_randDoubles = int2Double . (|% width) <$> randInts
+        --_randDoubles = int2Double . (|%% width) <$> randInts
         gs
           { gsSpeed = gsSpeed - 1
           }
@@ -84,10 +84,10 @@ stepGameStatePure (mkStdGen -> rng) area gs@GameState {..} EngineState {..} = \c
      in gs
           { gsPlayer = moveX . moveY $ gsPlayer,
             gsEnemies =
-              (|- (100 :: Relative X) |*| speed) . (|%%| width) <$> newEnemies',
+              (|- (100 :: Relative X) |*| speed) . (|% width) <$> newEnemies',
             gsBullets =
               (|+ (300 :: Relative X) |*| speed) <$> filter ((< 1024) . fst) (gsBullets \\ bullets),
             gsStars =
-              moveStars . (second (|%%| width)) <$> gsStars
+              moveStars . (second (|% width)) <$> gsStars
           }
   _ -> gs

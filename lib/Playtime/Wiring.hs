@@ -1,4 +1,4 @@
-module Playtime.Setup where
+module Playtime.Wiring where
 
 import Codec.Picture (DynamicImage)
 import Data.Aeson
@@ -7,10 +7,13 @@ import My.Extra
 import My.IO
 import My.Prelude
 import Playtime.Debug
+import Playtime.EngineConfig
 import Playtime.EngineState
+import Playtime.Event
 import Playtime.GL
+import Playtime.Geometry
 import Playtime.LiveCode
-import Playtime.Types
+import Playtime.Texture
 
 -- FIXME: this file needs cleanup. it implements strict texture loading, but also lazy loading,
 --        which is obviously non-sensical to have both for the same textures.
@@ -53,11 +56,11 @@ wireEngineConfig ecDim ecScale liveCodeState stepGameState visualize loadTx allT
       ecCheckIfContinue = pure . not . gameExitRequested
       ecGameDebugInfo = \EngineState {..} -> debugPrint <$> readMVar gameStateMVar
   pure $ EngineConfig {..}
-
-lt :: (Ord a, Show a) => Map a Texture -> a -> Texture
-lt loadedTextures t =
-  fromMaybe (error $ "error loading texture " <> show t <> ", did you forget putting it into all_textures?") $
-    mapLookup t loadedTextures
+  where
+    lt :: Map a Texture -> a -> Texture
+    lt loadedTextures t =
+      fromMaybe (error $ "error loading texture " <> show t <> ", did you forget putting it into all_textures?") $
+        mapLookup t loadedTextures
 
 -- updateTextureCache :: Ord a => MVar (Map a Texture) -> [Sprite] -> (a -> IO DynamicImage) -> IO ()
 -- updateTextureCache loadedTexturesMVar visualizations f' =

@@ -12,6 +12,7 @@ import My.Extra
 import My.IO
 import My.Prelude
 import Playtime.ConcurrentState
+import Playtime.EngineConfig
 import Playtime.EngineState
 import Playtime.LiveCode
 import Playtime.Util

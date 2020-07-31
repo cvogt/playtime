@@ -4,7 +4,8 @@ import Data.Aeson (FromJSON, ToJSON)
 import "GLFW-b" Graphics.UI.GLFW
 import My.Prelude
 import Playtime.EngineState
-import Playtime.Types
+import Playtime.Event
+import Playtime.Geometry
 
 data DragAndDrop = DragAndDrop Pos Dim deriving (Show, Generic, NFData, ToJSON, FromJSON)
 

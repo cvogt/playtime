@@ -8,7 +8,7 @@ import Data.FileEmbed (makeRelativeToProject, strToExp)
 import My.IO
 import My.Prelude
 import Playtime.EngineState
-import Playtime.Types
+import Playtime.Util
 
 saveLocation :: FilePath
 saveLocation = $(makeRelativeToProject "savegame.json" >>= strToExp)

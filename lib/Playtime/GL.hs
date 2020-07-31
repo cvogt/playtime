@@ -10,7 +10,8 @@ import qualified Graphics.Rendering.OpenGL.GLU.Errors as GLU
 import qualified "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.IO
 import My.Prelude
-import Playtime.Types
+import Playtime.Geometry
+import Playtime.Texture
 
 renderGL :: GLFW.Window -> Dim -> [Sprite] -> IO ()
 renderGL window (w, h) sprites = do

@@ -1,7 +1,7 @@
 import GHC.Err (error)
 import My.IO
 import My.Prelude
-import Playtime.Types
+import Playtime.Geometry
 
 main :: IO ()
 main = do

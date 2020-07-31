@@ -30,7 +30,7 @@ import GHC.Paths (libdir)
 import HscTypes (SourceError, srcErrorMessages)
 import My.IO
 import My.Prelude
-import Playtime.EngineState
+import Playtime.EngineConfig
 import System.Console.ANSI as ANSI
 import System.FSNotify hiding (Event)
 import System.IO (stderr, stdout)

@@ -1,19 +1,10 @@
 module Playtime.EngineState where
 
 import GHC.Float
-import My.IO
 import My.Prelude
-import Playtime.Types
+import Playtime.Event
+import Playtime.Geometry
 import Playtime.Util
-
-data EngineConfig = EngineConfig
-  { ecDim :: Dim,
-    ecScale :: Double,
-    ecVisualize :: EngineState -> IO [Sprite],
-    ecStepGameState :: EngineState -> Event -> IO (),
-    ecCheckIfContinue :: EngineState -> IO Bool,
-    ecGameDebugInfo :: EngineState -> IO [[Char]]
-  }
 
 data EngineState = EngineState
   { esCursorPos :: Pos,

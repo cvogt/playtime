@@ -10,7 +10,8 @@ import qualified "GLFW-b" Graphics.UI.GLFW as GLFW
 import My.Extra
 import My.IO
 import My.Prelude
-import Playtime.Types
+import Playtime.Event
+import Playtime.Geometry
 
 withGLFW :: Dim -> [Char] -> (GLFW.Window -> IO ()) -> IO ()
 withGLFW (width, height) title glCode = do

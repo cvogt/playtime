@@ -3,7 +3,7 @@ module Playtime.Random where
 import Data.List (zip)
 import GHC.Float (double2Int, int2Double)
 import My.Prelude
-import Playtime.Types
+import Playtime.Geometry
 import System.Random
 
 randomsR :: (Random a) => StdGen -> Int -> (a, a) -> ([a], StdGen)

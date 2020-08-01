@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -fno-warn-unused-local-binds #-}
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 
-module LiveCodingDemo.GameState where
+module LiveCodingDemo.Game where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.List (zip)
@@ -10,6 +10,12 @@ import My.Prelude
 import Playtime
 
 data TextureId = Heart | Spaceship | Enemy deriving (Eq, Ord, Show, Data, Bounded, Enum, Generic, NFData, ToJSON, FromJSON)
+
+textures :: TextureId -> (Scale, FilePath)
+textures = \case
+  Spaceship -> (1, "plane.png")
+  Enemy -> (0.1, "enemy_red.png")
+  Heart -> (0.025, "haskell_love_logo.png")
 
 data GameState = GameState
   { gsPlayer :: Pos,
@@ -62,3 +68,11 @@ stepGameStatePure seed tDim gs@GameState {..} EngineState {..} = \case
             gsEnemies = newEnemies
           }
   _ -> gs
+
+visualize :: (TextureId -> Pos -> Sprite) -> EngineState -> GameState -> [Sprite]
+visualize sprite EngineState {..} GameState {..} =
+  let
+   in [sprite Spaceship gsPlayer]
+        <> (sprite Heart <$> gsHearts)
+        <> (sprite Enemy <$> gsEnemies)
+        <> (rectangle Solid (RGBA 180 180 180 255) 4 <$> gsStars)

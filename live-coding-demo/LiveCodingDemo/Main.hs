@@ -1,8 +1,7 @@
 module LiveCodingDemo.Main where
 
 import Codec.Picture (readPng)
-import LiveCodingDemo.GameState
-import LiveCodingDemo.Visualize
+import LiveCodingDemo.Game
 import My.IO
 import My.Prelude
 import Playtime
@@ -10,12 +9,6 @@ import System.Random
 
 gameDir :: FilePath
 gameDir = "live-coding-demo"
-
-textures :: TextureId -> (Scale, FilePath)
-textures = \case
-  Spaceship -> (1, "plane.png")
-  Enemy -> (0.1, "enemy_red.png")
-  Heart -> (0.025, "haskell_love_logo.png")
 
 main :: IO ()
 main =

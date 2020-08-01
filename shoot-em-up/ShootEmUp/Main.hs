@@ -34,11 +34,11 @@ makeEngineConfig liveCodeState = do
     $ putMVar popSound =<< load (gameDir </> "assets/bubble_pop.ogg") -- https://freesound.org/people/blue2107/sounds/59978/
   makeInitialGameState dimensions
     >>= wireEngineConfig
+      (stepGameState popSound . textureDim textures)
+      (visualize . textureSprites textures)
       dimensions
       1
       liveCodeState
-      (stepGameState popSound . textureDim textures)
-      (visualize . textureSprites textures)
       loadTx
       (snd . textures <$> allEnumValues)
   where

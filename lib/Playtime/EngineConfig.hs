@@ -8,10 +8,10 @@ import Playtime.Geometry
 import Playtime.Texture
 
 data EngineConfig = EngineConfig
-  { ecDim :: Dim,
-    ecScale :: Double,
+  { ecStepGameState :: EngineState -> Event -> IO (),
     ecVisualize :: EngineState -> IO [Sprite],
-    ecStepGameState :: EngineState -> Event -> IO (),
+    ecDim :: Dim,
+    ecScale :: Double,
     ecCheckIfContinue :: EngineState -> IO Bool,
     ecGameDebugInfo :: EngineState -> IO [[Char]]
   }

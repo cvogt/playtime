@@ -1,0 +1,6 @@
+- hide dock
+- hide menu bar
+- change auto settings
+- silence notifications
+- start quicktime
+-

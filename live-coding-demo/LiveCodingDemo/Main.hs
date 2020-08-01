@@ -26,11 +26,11 @@ makeEngineConfig :: Maybe LiveCodeState -> IO EngineConfig
 makeEngineConfig liveCodeState = do
   initialGameState
     >>= wireEngineConfig
+      (stepGameState . textureDim textures)
+      (visualize . textureSprites textures)
       dimensions
       1
       liveCodeState
-      (stepGameState . textureDim textures)
-      (visualize . textureSprites textures)
       loadTexture
       (snd . textures <$> allEnumValues)
   where

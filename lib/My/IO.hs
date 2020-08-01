@@ -10,7 +10,7 @@ module My.IO
 where
 
 import Control.Concurrent (ThreadId, forkFinally, forkIO, threadDelay)
-import Control.Concurrent.MVar (MVar, modifyMVar, modifyMVar_, newMVar, readMVar, tryReadMVar)
+import Control.Concurrent.MVar (MVar, modifyMVar, modifyMVar_, newMVar, readMVar, swapMVar, tryReadMVar)
 import Control.Exception (SomeException, evaluate, finally, throwIO, try)
 import Data.ByteString (readFile, writeFile)
 import Data.Time.Clock.System (getSystemTime)

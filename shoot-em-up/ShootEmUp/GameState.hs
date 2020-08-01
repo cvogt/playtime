@@ -34,7 +34,7 @@ textures = \case
 
 makeInitialGameState :: Dim -> IO GameState
 makeInitialGameState dim = do
-  let maxStarSize = 4
+  let maxStarSize = 3
   starX <- fmap (fmap int2Double) $ sequence $ replicate 510 $ randomRIO (0, double2Int $ maxStarSize + fst dim)
   starY <- fmap (fmap int2Double) $ sequence $ replicate 510 $ randomRIO (0, double2Int $ maxStarSize + snd dim)
   starSize <- fmap (fmap int2Double) $ sequence $ replicate 510 $ randomRIO (0, double2Int maxStarSize)

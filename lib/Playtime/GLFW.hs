@@ -7,7 +7,6 @@ where
 import GHC.Err (error)
 import GHC.Float (double2Int)
 import qualified "GLFW-b" Graphics.UI.GLFW as GLFW
-import My.Extra
 import My.IO
 import My.Prelude
 import Playtime.Event

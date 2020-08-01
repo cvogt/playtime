@@ -20,7 +20,6 @@ module Playtime
 where
 
 import qualified "GLFW-b" Graphics.UI.GLFW as GLFW
-import My.Extra
 import My.IO
 import My.Prelude
 import Playtime.ConcurrentState

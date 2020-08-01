@@ -29,7 +29,7 @@ wireEngineConfig ::
 wireEngineConfig stepGameState visualize ecDim ecScale liveCodeState loadTx allTextures initialGameState = do
   recoveredGameState <- for liveCodeState startLiveCode
   gameStateMVar <- newMVar $ fromMaybe initialGameState $ join recoveredGameState
-  texturesMVar <- loadTextures
+  texturesMVar <- newMVar mempty
   pure $
     EngineConfig
       { ecStepGameState = \es event -> do
@@ -48,20 +48,23 @@ wireEngineConfig stepGameState visualize ecDim ecScale liveCodeState loadTx allT
         ecGameDebugInfo = \EngineState {..} -> debugPrint <$> readMVar gameStateMVar
       }
   where
-    loadTextures = do
-      newMVar =<< do
-        lt' <- for allTextures $ \i -> (i,) <$> (either fail pure =<< runExceptT . loadTexture =<< loadTx i)
-        pure $ foldl (\m (k, v) -> mapInsert k v m) mempty lt'
     readTextures texturesMVar = do
-      loadedTextures <- readMVar texturesMVar
+      textures' <- readMVar texturesMVar
+      textures <-
+        if null textures' then do
+          textures'' <- loadTextures
+          void $ swapMVar texturesMVar textures''
+          pure textures''
+        else
+          pure textures'
       pure $ \t ->
         fromMaybe (error $ "error loading texture " <> show t <> ", did you forget putting it into all_textures?") $
-          mapLookup t loadedTextures
+          mapLookup t textures
+    loadTextures = do
+      lt' <- for allTextures $ \i -> (i,) <$> (either fail pure =<< runExceptT . loadTexture =<< loadTx i)
+      pure $ foldl (\m (k, v) -> mapInsert k v m) mempty lt'
 
 -- NOTE: resurrect this when implementing dynamically loaded textures
--- if not $ mapNull loadedTextures'
---   then pure $ dupe loadedTextures'
---   else do
 -- updateTextureCache loadedTexturesMVar visualizations loadTx
 -- updateTextureCache :: Ord a => MVar (Map a Texture) -> [Sprite] -> (a -> IO DynamicImage) -> IO ()
 -- updateTextureCache loadedTexturesMVar visualizations f' =

@@ -18,7 +18,6 @@ module Playtime.LiveCode where
 
 import Bag (bagToList)
 import Control.Concurrent.MVar (newEmptyMVar, putMVar)
-import Control.Concurrent.MVar (swapMVar)
 import Data.Aeson (FromJSON, Result (..), ToJSON, Value (Null), fromJSON, toJSON)
 import Data.Dynamic
 import Data.Typeable

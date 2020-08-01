@@ -75,4 +75,4 @@ visualize sprite EngineState {..} GameState {..} =
    in [sprite Spaceship gsPlayer]
         <> (sprite Heart <$> gsHearts)
         <> (sprite Enemy <$> gsEnemies)
-        <> (rectangle Solid (RGBA 180 180 180 255) 4 <$> gsStars)
+        <> (rectangle Solid (RGBA 180 180 180 255) 3 <$> gsStars)

@@ -4,6 +4,8 @@ module My.Prelude
     module Control.DeepSeq,
     module Control.Monad,
     module Control.Monad.Except,
+    module Control.Monad.Extra,
+    module Control.Monad.Loops,
     module Data.Bifunctor,
     module Data.Bool,
     module Data.Char,
@@ -53,14 +55,19 @@ import Control.Applicative ((<*>), (<|>), Alternative, Applicative, ZipList (Zip
 import Control.DeepSeq (NFData)
 import Control.Monad ((<=<), (=<<), (>>), (>>=), Monad, fail, filterM, foldM, forever, join, mfilter, return, unless, void, when)
 import Control.Monad.Except (ExceptT (ExceptT), runExceptT)
+-- UNSAFE, DO NOT IMPORT: foldl1, foldr1
+-- mod' is incorrect for large Doubles and always returns 0.
+
+import "monad-extras" Control.Monad.Extra (unfoldM_)
+import "extra" Control.Monad.Extra (ifM, unlessM, whenM, whileM)
+import Control.Monad.Loops (iterateM_)
 import Data.Bifunctor (Bifunctor, bimap, first, second)
 import Data.Bool ((&&), Bool (False, True), not, otherwise, (||))
 import Data.Char (Char)
 import Data.Data (Data, toConstr)
 import Data.Either (Either (Left, Right), either, isLeft, isRight)
 import Data.Eq (Eq ((/=), (==)))
--- UNSAFE, DO NOT IMPORT: foldl1, foldr1
-import Data.Fixed (mod') -- mod' is incorrect for large Doubles and always returns 0.
+import Data.Fixed (mod')
 import Data.Foldable (Foldable, all, any, elem, find, fold, foldl, foldlM, foldr, foldrM, forM_, for_, length, mapM_, null, sum, toList, traverse_)
 import Data.Function (($), (&), (.), flip, id)
 import Data.Functor (($>), (<$), (<$>), (<&>), Functor, fmap)

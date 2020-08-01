@@ -2,7 +2,6 @@ module ShootEmUp.Main where
 
 import Codec.Picture (readPng)
 import Control.Concurrent.MVar (newEmptyMVar, putMVar)
-import My.Extra
 import My.IO
 import My.Prelude
 import Playtime

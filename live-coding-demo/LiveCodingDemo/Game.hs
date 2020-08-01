@@ -45,10 +45,10 @@ stepGameStatePure seed tDim gs@GameState {..} EngineState {..} = \case
       }
   RenderEvent _ ->
     let rng = mkStdGen seed
-        --isCollision e b = if (tDim Enemy, e) `collidesWith` (tDim Heart, b)  then Just (e,b) else Nothing
-        (hitEnemies, hitHearts) = ([], []) -- unzip $ catMaybes $ isCollision <$> gsEnemies <*> gsHearts
+        -- collisionMay e h = if (tDim Enemy, e) `collidesWith` (tDim Heart, h) then Just (e, h) else Nothing
+        (hitEnemies, hitHearts) = ([],[]) -- unzip $ catMaybes $ collisionMay <$> gsEnemies <*> gsHearts
         numAddedEnemies = 10 - length gsEnemies
-        addedEnemies = [] -- take numNewEnemies $ repeat 1100 `zip` (fst $ randomsNatDouble rng numNewEnemies $ snd esWindowSize)
+        addedEnemies = [] -- repeat 900 `zip` (fst $ randomsNatDouble rng numAddedEnemies $ snd esWindowSize)
         movePlayerY pos =
           if
               | Key'W `setMember` esKeysPressed -> pos - dupe esTimePassed * (0, 200)
@@ -59,13 +59,13 @@ stepGameStatePure seed tDim gs@GameState {..} EngineState {..} = \case
               | Key'A `setMember` esKeysPressed -> pos - dupe esTimePassed * (200, 0)
               | Key'D `setMember` esKeysPressed -> pos + dupe esTimePassed * (200, 0)
               | True -> pos
-        newHearts = (gsHearts \\ hitHearts) -- filter ((< fst esWindowSize) . fst) $ (gsHearts \\ hitHearts)
-        newEnemies = ((gsEnemies \\ hitEnemies) <> addedEnemies) -- <&> (`mod2` (esWindowSize + tDim Enemy)) . (subtract $ dupe esTimePassed * (200, 0))
+        newHearts = (gsHearts \\ hitHearts)
+        newEnemies = ((gsEnemies \\ hitEnemies) <> addedEnemies)
      in gs
-          { gsPlayer = movePlayerX $ movePlayerY gsPlayer,
-            gsStars = gsStars, -- gsStars <&> (`mod2` esWindowSize) . (subtract $ dupe esTimePassed * (50, 0)),
-            gsHearts = newHearts, --  <&> (+ dupe esTimePassed * (200, 0)),
-            gsEnemies = newEnemies
+          { gsPlayer = gsPlayer, -- movePlayerX $ movePlayerY gsPlayer,
+            gsStars = gsStars, -- <&> (`mod2` esDimensions) . (subtract $ dupe esTimePassed * (100,0)),
+            gsHearts = newHearts, -- filter ((< fst esDimensions) . fst) $ -- <&> (+ dupe esTimePassed * (200, 0)),
+            gsEnemies = newEnemies -- filter ((>0) . fst) $ <&> (subtract $ dupe esTimePassed * (200,0))
           }
   _ -> gs
 

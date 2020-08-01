@@ -40,8 +40,7 @@ wireEngineConfig stepGameState visualize ecDim ecScale liveCodeState loadTx allT
             pure new_gs,
         ecVisualize = \es -> do
           textures <- readTextures texturesMVar
-          visualizations <- visualize textures es <$> readMVar gameStateMVar
-          pure visualizations,
+          visualize textures es <$> readMVar gameStateMVar,
         ecDim = ecDim,
         ecScale = ecScale,
         ecCheckIfContinue = pure . not . gameExitRequested,

@@ -46,7 +46,7 @@ stepGameStatePure seed tDim gs@GameState {..} EngineState {..} = \case
   RenderEvent _ ->
     let rng = mkStdGen seed
         -- collisionMay e h = if (tDim Enemy, e) `collidesWith` (tDim Heart, h) then Just (e, h) else Nothing
-        (hitEnemies, hitHearts) = ([],[]) -- unzip $ catMaybes $ collisionMay <$> gsEnemies <*> gsHearts
+        (hitEnemies, hitHearts) = ([], []) -- unzip $ catMaybes $ collisionMay <$> gsEnemies <*> gsHearts
         numAddedEnemies = 10 - length gsEnemies
         addedEnemies = [] -- repeat 900 `zip` (fst $ randomsNatDouble rng numAddedEnemies $ snd esWindowSize)
         movePlayerY pos =

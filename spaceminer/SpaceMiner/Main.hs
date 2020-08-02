@@ -30,6 +30,10 @@ makeEngineConfig liveCodeState = do
     dimensions = (320, 240)
     stepGameState area es@EngineState {..} old_gs event = do
       let new_gs = stepGameStatePure area old_gs es event
-      saveMay es new_gs
-      fromMaybe new_gs <$> loadMay es
+      let final_gs =
+            if Key'R `setMember` esKeysPressed
+              then makeInitialGameState dimensions
+              else new_gs
+      saveMay es final_gs
+      fromMaybe final_gs <$> loadMay es
     loadTexture = \name -> either fail pure =<< (readPng $ gameDir </> "assets" </> name)

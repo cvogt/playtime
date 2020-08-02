@@ -8,6 +8,7 @@ import Playtime.Util
 
 data EngineState = EngineState
   { esCursorPos :: Pos,
+    esCursorPosPrevious :: Pos,
     esFps :: Double,
     esDimensions :: Dim,
     esKeysPressed :: Set Key,
@@ -24,6 +25,7 @@ makeInitialEngineState :: Double -> Dim -> SystemTime -> EngineState
 makeInitialEngineState scale dim time =
   EngineState
     { esCursorPos = 0,
+      esCursorPosPrevious = 0,
       esFps = 0,
       esKeysPressed = mempty,
       esMousePressed = mempty,
@@ -51,7 +53,8 @@ stepEngineState (clearOneTimeEffects -> gs@EngineState {..}) = \case
   WindowSizeEvent width height -> gs {esWindowSize = (int2Double width, int2Double height)}
   CursorPosEvent pos ->
     gs
-      { esCursorPos =
+      { esCursorPosPrevious = esCursorPos,
+        esCursorPos =
           -- this ratio calculation leads to proper relative scaling on window resize
           -- FIXME: we still get distortion if aspect ration of resized window is different
           --        we should be able to fix that by adding black borders as needed

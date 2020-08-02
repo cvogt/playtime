@@ -49,22 +49,7 @@ makeInitialGameState dim = do
       }
 
 stepGameStatePure :: [Int] -> (TextureId -> Dim) -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure pre area old_gs es event =
-  foldl
-    (&)
-    old_gs
-    [ \gs -> dragAndDrop es gs MouseButton'1 (getBulletAreas gs) setBullets (getDragAndDrop gs) setDragAndDrop event,
-      \gs -> deleteOnClick es gs MouseButton'2 (getBulletAreas gs) setBullets event,
-      \gs -> stepGameStatePure' pre area gs es event
-    ]
-  where
-    setBullets bullets gs = gs {gsHearts = bullets}
-    getBulletAreas gs = (area Heart,) <$> gsHearts gs
-    getDragAndDrop gs = gsDragAndDrop gs
-    setDragAndDrop v gs = gs {gsDragAndDrop = v}
-
-stepGameStatePure' :: [Int] -> (TextureId -> Dim) -> GameState -> EngineState -> Event -> GameState
-stepGameStatePure' randInts tDim gs@GameState {..} EngineState {..} = \case
+stepGameStatePure randInts tDim gs@GameState {..} EngineState {..} = \case
   KeyEvent Key'Space KeyState'Pressed ->
     gs
       { gsHearts =

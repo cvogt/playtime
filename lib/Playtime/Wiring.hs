@@ -50,12 +50,12 @@ wireEngineConfig stepGameState visualize ecDim ecScale liveCodeState loadTx allT
     readTextures texturesMVar = do
       textures' <- readMVar texturesMVar
       textures <-
-        if null textures' then do
-          textures'' <- loadTextures
-          void $ swapMVar texturesMVar textures''
-          pure textures''
-        else
-          pure textures'
+        if null textures'
+          then do
+            textures'' <- loadTextures
+            void $ swapMVar texturesMVar textures''
+            pure textures''
+          else pure textures'
       pure $ \t ->
         fromMaybe (error $ "error loading texture " <> show t <> ", did you forget putting it into all_textures?") $
           mapLookup t textures

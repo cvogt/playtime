@@ -35,7 +35,6 @@ trackTime mvar = void . trackTimeM mvar . pure
 
 forkDebugTerminal :: ConcurrentState -> MVar EngineConfig -> Maybe LiveCodeState -> IO ThreadId
 forkDebugTerminal ConcurrentState {..} engineConfigMVar lcsMay = do
-  -- FIXME: cursor stays hidden after termination
   forkIO $ do
     flip iterateM_ (0, 0, 0) $ \(oldAvgTimeStep, oldAvgRenderLoopTime, oldAvgTotalLoopTime) -> do
       engineState@EngineState {..} <- readMVar csEngineState
@@ -45,32 +44,33 @@ forkDebugTerminal ConcurrentState {..} engineConfigMVar lcsMay = do
       let _newAvgTimeStep = if not $ null timeStep then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> timeStep) else oldAvgTimeStep
           newAvgRenderLoopTime = if not $ null renderLoopTimes then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> renderLoopTimes) else oldAvgRenderLoopTime
           newAvgTotalLoopTime = if not $ null totalLoopTimes then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> totalLoopTimes) else oldAvgTotalLoopTime
+          display =
+            [ "fps: " <> show newAvgTotalLoopTime,
+              --"1/renderLoopTime: " <> show newAvgRenderLoopTime,
+              --"1/timeStep: " <> show newAvgTimeStep,
+              repeat '-',
+              "esCursorPos: " <> show esCursorPos,
+              "esKeysPressed: " <> show esKeysPressed,
+              "esMousePressed: " <> show esMousePressed,
+              --"esActions: " <> show esActions,
+              "esTimePassed: " <> show esTimePassed,
+              repeat '-'
+            ]
+
       gameDebugInfo <- ecGameDebugInfo <$> readMVar engineConfigMVar
       gameInfo <- gameDebugInfo engineState
-      clearFromCursorToScreenBeginning
-      restoreCursor
-      saveCursor
+
       (join . join -> ce) <- sequence $ tryReadMVar . lcsCompileError <$> lcsMay
       Just TerminalSize.Window {height, width} <- TerminalSize.size
       putStrLn $ T.unpack $ T.unlines $ take (height -2) $ join $
         T.chunksOf width . T.stripEnd . T.pack
-          <$> (maybe [] (\e -> lines $ setSGRCode [SetColor Foreground Vivid Red] <> e <> "\n" <> replicate width '-' <> setSGRCode [ANSI.Reset]) ce)
-          <> ( take width
-                 <$> [ "fps: " <> show newAvgTotalLoopTime,
-                       --"1/renderLoopTime: " <> show newAvgRenderLoopTime,
-                       --"1/timeStep: " <> show newAvgTimeStep,
-                       replicate width '-',
-                       "esCursorPos: " <> show esCursorPos,
-                       "esKeysPressed: " <> show esKeysPressed,
-                       "esMousePressed: " <> show esMousePressed,
-                       --"esActions: " <> show esActions,
-                       "esTimePassed: " <> show esTimePassed,
-                       replicate width '-'
-                     ]
-                 <> gameInfo
-             )
-
+          <$> (maybe [] (\e -> lines $ setSGRCode [SetColor Foreground Vivid Red] <> e <> "\n" <> replicate (width -1) '-' <> setSGRCode [ANSI.Reset]) ce)
+          <> (take (width -1) <$> display <> gameInfo)
+      cursorUp $ (length $ display <> gameInfo) + 1 -- trailing newline
+      setCursorColumn 0
       threadDelay $ 200 * 1000 -- FIXME: changing this to 100 * make process freeze on exit
+      clearFromCursorToScreenEnd
+
       pure (oldAvgTimeStep, newAvgRenderLoopTime, newAvgTotalLoopTime)
 
 debugPrint :: ToJSON a => a -> [[Char]]

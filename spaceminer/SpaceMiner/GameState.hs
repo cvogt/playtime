@@ -1,6 +1,7 @@
 module SpaceMiner.GameState where
 
 import Data.Aeson (FromJSON (parseJSON), ToJSON (toJSON))
+import Data.List (zip)
 import GHC.Float (int2Double)
 import GHC.Real (floor)
 import "GLFW-b" Graphics.UI.GLFW
@@ -48,43 +49,62 @@ makeInitialGameState dim =
       gsMainCharacter = dim / (2 :: Scale),
       gsMainCharacterPrevious = dim / (2 :: Scale),
       gsInventory =
-        Container (150, 10) 3 (5, 8) $
+        Container (150, 10) 3 12 (5, 8) $
           (take 5 $ repeat $ Just RedResource)
             <> (take 5 $ repeat $ Just MainCharacter)
             <> (take (5 * 6) $ repeat Nothing),
-      gsContainer = Container (10, 10) 3 (5, 8) $ take (5 * 8) $ repeat Nothing,
+      gsContainer = Container (10, 10) 3 12 (5, 8) $ take (5 * 8) $ repeat Nothing,
       gsDragging = False
     }
 
 data Container = Container
   { cPos :: Pos,
     cSpacing :: Double,
+    cSlotSize :: Double,
     cSlots :: (Int, Int),
     cContents :: [Maybe TextureId]
   }
   deriving (Show, Generic, NFData, ToJSON, FromJSON)
 
-dragAndDropInventory ::
-  EngineState -> gs -> (gs -> Area) -> (Pos -> gs) -> Event -> gs
-dragAndDropInventory EngineState {..} gs get set = \case
+dragAndDropSimple ::
+  EngineState -> Event -> (gs -> Area) -> (gs -> Pos -> gs) -> gs -> gs
+dragAndDropSimple EngineState {..} event get set gs = case event of
   CursorPosEvent _
     | esCursorPosPrevious `isWithin` get gs && MouseButton'1 `setMember` esMousePressed ->
-      set $ snd (get gs) + (esCursorPos - esCursorPosPrevious)
+      set gs $ snd (get gs) + (esCursorPos - esCursorPosPrevious)
   _ -> gs
+
+cSlotAreas :: Container -> [(Int, Area)]
+cSlotAreas Container {..} =
+  let (c, r) = cSlots
+      slotIndices = iterate (+ 1) 0
+      colPositions = toList $ iterateN c (+ (cSlotSize + cSpacing)) cSpacing
+      rowPositions = toList $ iterateN r (+ (cSlotSize + cSpacing)) cSpacing
+      slotAreas = ((dupe cSlotSize,) <$>) $ (,) <$> colPositions <*> rowPositions
+   in slotIndices `zip` slotAreas
+
+cDimensions :: Container -> Dim
+cDimensions Container {..} =
+  let (c, r) = cSlots
+   in (cSpacing + int2Double c * cSlotSize + cSpacing, cSpacing + int2Double r * cSlotSize + cSpacing)
+
+cArea :: Container -> (Dim, Pos)
+cArea c@Container {cPos} = (cDimensions c, cPos)
+
+ifGS :: (gs -> Bool) -> (gs -> gs) -> (gs -> gs)
+ifGS predicate update gs = if predicate gs then update gs else gs
 
 stepGameStatePure :: (TextureId -> Dim) -> GameState -> EngineState -> Event -> GameState
 stepGameStatePure tDim old_gs es event =
   foldl
     (&)
     old_gs {gsDragging = False}
-    [ \gs -> dragAndDropInventory es gs (cArea . gsInventory) (\pos -> gs {gsDragging = True, gsInventory = (gsInventory gs) {cPos = pos}}) event, -- (getBulletAreas gs) setBullets (getDragAndDrop gs) setDragAndDrop event,
-      \gs -> dragAndDropInventory es gs (cArea . gsContainer) (\pos -> gs {gsDragging = True, gsContainer = (gsContainer gs) {cPos = pos}}) event, -- (getBulletAreas gs) setBullets (getDragAndDrop gs) setDragAndDrop event,
-      -- \gs -> deleteOnClick es gs MouseButton'2 (getBulletAreas gs) setBullets event,
+    [ dragAndDropSimple es event (cArea . gsInventory) $ \gs pos -> gs {gsDragging = True, gsInventory = (gsInventory gs) {cPos = pos}},
+      ifGS (not . gsDragging)
+        $ dragAndDropSimple es event (cArea . gsContainer)
+        $ \gs pos -> gs {gsDragging = True, gsContainer = (gsContainer gs) {cPos = pos}},
       \gs -> stepGameStatePure' tDim gs es event
     ]
-  where
-    containerSlotSize = 12
-    cArea Container {cPos, cSlots = (col, row)} = (dupe containerSlotSize * (int2Double col, int2Double row), cPos)
 
 stepGameStatePure' :: (TextureId -> Dim) -> GameState -> EngineState -> Event -> GameState
 stepGameStatePure' tDim gs@GameState {..} EngineState {..} = \case

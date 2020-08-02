@@ -28,16 +28,16 @@ visualize sprite EngineState {..} GameState {..} =
     room = (Map.toList $ unBoard gsRoom) <&> \(pos, t) -> sprite t pos
     -- backup of grouping logic as reminder if needed: (groupWith snd $ Map.toList $ unBoard gsFloor) <&> \ne@((_, t) :| _) ->
     inventoryUI =
-      let Container pos _spacing _columns _contents = gsInventory
-       in translate pos
+      let c@Container {cPos} = gsInventory
+       in translate cPos
             <$> [ sprite RedResource 18,
                   sprite MainCharacter 3,
-                  sprite Inventory 0
+                  rectangle Solid (RGBA 255 255 255 255) (cDimensions c) 0
                 ]
     container =
-      let Container pos _spacing _columns _contents = gsContainer
-       in translate pos
+      let c@Container {cPos} = gsContainer
+       in translate cPos
             <$> [ sprite RedResource 18,
                   sprite MainCharacter 3,
-                  sprite Inventory 0
+                  rectangle Solid (RGBA 255 255 255 255) (cDimensions c) 0
                 ]

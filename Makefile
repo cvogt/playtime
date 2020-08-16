@@ -22,6 +22,12 @@ spaceminer-watch:
 	stack build :spaceminer --file-watch --exec spaceminer
 spaceminer-compile:
 	stack build :spaceminer --file-watch
+multispace-run:
+	stack build :multispace --exec multispace
+multispace-watch:
+	stack build :multispace --file-watch --exec multispace
+multispace-compile:
+	stack build :multispace --file-watch
 watch:
 	stack test --file-watch --no-run-tests
 watch-test:

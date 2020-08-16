@@ -65,7 +65,7 @@ playtime lcsOrEcMVar = do
       EngineConfig {ecVisualize} <- readMVar ecMVar
       es <- stepStates ecMVar window cs . RenderEvent =<< getSystemTime
       pure es
-        >>= ecVisualize
+        >>= trackTimeM csTimeVisualize . ecVisualize
         >>= trackTimeM csTimeGL . renderGL window ecDim
       ecCheckIfContinue es
   where

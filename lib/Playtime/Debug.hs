@@ -6,8 +6,6 @@ import qualified Data.ByteString.Lazy as BSL
 import qualified Data.HashMap.Strict as HMS
 import Data.List (lines, zip)
 import qualified Data.Text as T
-import GHC.Float (int2Double)
-import GHC.Real (round)
 import My.IO
 import My.Prelude
 import Playtime.ConcurrentState
@@ -21,33 +19,37 @@ import qualified System.Console.Terminal.Size as TerminalSize
 -- this modile is pretty messy. got to clean up some time.
 
 -- this relies on lazy evaluation to be correct and measures the time to force a
-trackTimeM :: NFData a => MVar [(SystemTime, SystemTime)] -> IO a -> IO a
+trackTimeM :: NFData a => MVar [Double] -> IO a -> IO a
 trackTimeM mvar action = do
   before <- getSystemTime
   res <- action
-  pure $ rnf res
-  after <- getSystemTime
-  modifyMVar_ mvar $ pure . ((before, after) :)
-  pure res
+  rnf res & \() -> do
+    after <- getSystemTime
+    modifyMVar_ mvar $ pure . ((pico2Double $ timeDiffPico before after) :)
+    pure res
 
-trackTime :: NFData a => MVar [(SystemTime, SystemTime)] -> a -> IO ()
+trackTime :: NFData a => MVar [Double] -> a -> IO ()
 trackTime mvar = void . trackTimeM mvar . pure
 
 forkDebugTerminal :: ConcurrentState -> MVar EngineConfig -> Maybe LiveCodeState -> IO ThreadId
 forkDebugTerminal ConcurrentState {..} engineConfigMVar lcsMay = do
   forkIO $ do
-    flip iterateM_ (0, 0, 0) $ \(oldAvgTimeStep, oldAvgRenderLoopTime, oldAvgTotalLoopTime) -> do
+    flip iterateM_ (0, 0, 0, 0) $ \(oldAvgGameStepTime, oldAvgRenderGLTime, oldAvgTotalLoopTime, oldAvgVisualizeTime) -> do
       engineState@EngineState {..} <- readMVar csEngineState
-      timeStep <- modifyMVar csTimeStep $ \t -> pure ([], t)
-      renderLoopTimes <- modifyMVar csTimeGL $ \t -> pure ([], t)
+      gameStepTimes <- modifyMVar csTimeStep $ \t -> pure ([], t)
+      renderGLTimes <- modifyMVar csTimeGL $ \t -> pure ([], t)
       totalLoopTimes <- modifyMVar csTimeRender $ \t -> pure ([], t)
-      let _newAvgTimeStep = if not $ null timeStep then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> timeStep) else oldAvgTimeStep
-          newAvgRenderLoopTime = if not $ null renderLoopTimes then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> renderLoopTimes) else oldAvgRenderLoopTime
-          newAvgTotalLoopTime = if not $ null totalLoopTimes then (/ 10) . int2Double . round @Double @Int $ 10 * 1 / (pico2second $ avg $ uncurry timeDiffPico <$> totalLoopTimes) else oldAvgTotalLoopTime
+      visualizeTimes <- modifyMVar csTimeVisualize $ \t -> pure ([], t)
+      let newAvgGameStepTime = if not $ null gameStepTimes then avg' gameStepTimes else oldAvgGameStepTime
+          newAvgRenderGLTime = if not $ null renderGLTimes then avg' renderGLTimes else oldAvgRenderGLTime
+          newAvgTotalLoopTime = if not $ null totalLoopTimes then avg' totalLoopTimes else oldAvgTotalLoopTime
+          newAvgVisualizeTime = if not $ null visualizeTimes then avg' visualizeTimes else oldAvgVisualizeTime
           display =
-            [ "fps: " <> show newAvgTotalLoopTime,
-              --"1/renderLoopTime: " <> show newAvgRenderLoopTime,
-              --"1/timeStep: " <> show newAvgTimeStep,
+            [ "fps: " <> show (1 / newAvgTotalLoopTime),
+              "totalLoopTime: " <> show newAvgTotalLoopTime,
+              "visualizeTime: " <> show newAvgVisualizeTime,
+              "renderGLTime: " <> show newAvgRenderGLTime,
+              "gameStepTime: " <> show newAvgGameStepTime,
               repeat '-',
               "esCursorPos: " <> show esCursorPos,
               "esKeysPressed: " <> show esKeysPressed,
@@ -69,15 +71,16 @@ forkDebugTerminal ConcurrentState {..} engineConfigMVar lcsMay = do
 
       putStrLn output
       cursorUp $ (length $ compileError <> display <> gameInfo) + 1 -- trailing newline
-      setCursorColumn 0
       threadDelay $ 200 * 1000 -- FIXME: changing this to 100 * make process freeze on exit
+      cursorUp $ (length $ compileError <> display <> gameInfo) + 1 -- trailing newline
+      setCursorColumn 0
       clearFromCursorToScreenEnd
 
-      pure (oldAvgTimeStep, newAvgRenderLoopTime, newAvgTotalLoopTime)
+      pure (oldAvgGameStepTime, newAvgRenderGLTime, newAvgTotalLoopTime, newAvgVisualizeTime)
 
 debugPrint :: ToJSON a => a -> [[Char]]
 debugPrint a = case toJSON a of
   Object hms -> fmap (\(k, v) -> T.unpack k <> ": " <> v) $ sortOn fst $ HMS.keys hms `zip` (enc <$> HMS.elems hms)
   other -> [enc other]
   where
-    enc = take 200 . either show T.unpack . decodeUtf8' . BSL.toStrict . encode
+    enc = take 200 . either show T.unpack . decodeUtf8' . BSL.toStrict . (\_ -> "foo") -- encode

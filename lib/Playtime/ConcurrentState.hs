@@ -6,9 +6,10 @@ import Playtime.EngineState
 
 data ConcurrentState = ConcurrentState
   { csEngineState :: MVar EngineState,
-    csTimeStep :: MVar [(SystemTime, SystemTime)],
-    csTimeGL :: MVar [(SystemTime, SystemTime)],
-    csTimeRender :: MVar [(SystemTime, SystemTime)]
+    csTimeStep :: MVar [Double],
+    csTimeGL :: MVar [Double],
+    csTimeRender :: MVar [Double],
+    csTimeVisualize :: MVar [Double]
   }
 
 makeInitialConcurrentState :: EngineState -> IO ConcurrentState
@@ -17,4 +18,5 @@ makeInitialConcurrentState es = do
   csTimeStep <- newMVar []
   csTimeGL <- newMVar []
   csTimeRender <- newMVar []
+  csTimeVisualize <- newMVar []
   pure $ ConcurrentState {..}

@@ -1,7 +1,9 @@
 module Playtime.Texture where
 
 import Codec.Picture.Types (Image, PixelRGBA8 (PixelRGBA8), pixelAt)
+import Control.DeepSeq (rnf)
 import Data.Aeson (FromJSON, ToJSON)
+import Data.Ord
 import GHC.Float
 import GHC.Num
 import qualified Graphics.Rendering.OpenGL.GL as GL (TextureObject)
@@ -14,10 +16,21 @@ data Texture = Texture
     tGLObject :: GL.TextureObject,
     tImage :: Image PixelRGBA8
   }
+  deriving (Eq)
 
-data FillType = Solid | Border Float
+instance Show Texture where
+  show _ = "Texture"
 
-data Sprite = Rectangle Area (Either Texture (FillType, Color))
+instance Ord Texture where
+  _ `compare` _ = LT
+  _ <= _ = True
+
+instance NFData Texture where
+  rnf (Texture a _ c) = (\() -> rnf c) $ rnf a
+
+data FillType = Solid | Border Float deriving (Eq, Ord, Show, Generic, NFData)
+
+data Sprite = Rectangle Area (Either Texture (FillType, Color)) deriving (Eq, Ord, Show, Generic, NFData)
 
 data Color = RGBA Int Int Int Int deriving (Eq, Ord, Show, Generic, ToJSON, FromJSON, NFData)
 

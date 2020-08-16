@@ -20,6 +20,9 @@ pico2Double pico = int2Double (fromIntegral pico) / 1000 / 1000 / 1000 / 1000
 avg :: Foldable t => t Integer -> Double
 avg xs = (fromInteger @Double $ sum xs) / (int2Double $ length xs)
 
+avg' :: Foldable t => t Double -> Double
+avg' xs = sum xs / (int2Double $ length xs)
+
 allEnumValues :: forall a. (Enum a, Bounded a) => [a]
 allEnumValues = enumFrom (minBound :: a)
 

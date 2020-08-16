@@ -19,7 +19,7 @@ textures = \case
 
 data GameState = GameState
   { gsPlayer :: Pos,
-    gsEnemy :: Pos
+    gsEnemy :: [Pos]
   }
   deriving (Show, Generic, NFData, ToJSON, FromJSON)
 
@@ -29,7 +29,7 @@ makeInitialGameState dimensions seed =
       (poss, _) = randomPoss rng 99 dimensions
    in GameState
         { gsPlayer = dimensions / 2,
-          gsEnemy = fromMaybe (error "no enemy position") $ headMay poss
+          gsEnemy = poss
         }
 
 stepGameStatePure :: Int -> (TextureId -> Dim) -> GameState -> EngineState -> Event -> GameState
@@ -45,13 +45,18 @@ stepGameStatePure seed tDim gs@GameState {..} EngineState {..} = \case
             + (if Key'Down `setMember` esKeysPressed then (0, speed * esTimePassed) else 0)
             + (if Key'Left `setMember` esKeysPressed then (- speed * esTimePassed, 0) else 0)
             + (if Key'Right `setMember` esKeysPressed then (speed * esTimePassed, 0) else 0)
-     in gs {gsPlayer = maxPairWise 0 $ minPairWise bounds $ gsPlayer + delta}
+        newPlayerpos = maxPairWise 0 $ minPairWise bounds $ gsPlayer + delta
+        remainingEnemies = filter (\e -> not $ collidesWith (tDim Player, gsPlayer) (tDim Enemy, e)) gsEnemy
+     in gs
+          { gsPlayer = newPlayerpos,
+            gsEnemy = remainingEnemies
+          }
   _ -> gs
 
 visualize :: (TextureId -> Pos -> Sprite) -> EngineState -> GameState -> [Sprite]
 visualize sprite EngineState {..} GameState {..} =
   let
-   in [sprite Player gsPlayer, sprite Enemy gsEnemy]
+   in [sprite Player gsPlayer] <> fmap (sprite Enemy) gsEnemy
 
 minPairWise :: (Double, Double) -> (Double, Double) -> (Double, Double)
 minPairWise = pairWise min min

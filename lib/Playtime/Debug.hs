@@ -71,9 +71,8 @@ forkDebugTerminal ConcurrentState {..} engineConfigMVar lcsMay = do
 
       putStrLn output
       cursorUp $ (length $ compileError <> display <> gameInfo) + 1 -- trailing newline
-      threadDelay $ 200 * 1000 -- FIXME: changing this to 100 * make process freeze on exit
-      cursorUp $ (length $ compileError <> display <> gameInfo) + 1 -- trailing newline
       setCursorColumn 0
+      threadDelay $ 200 * 1000 -- FIXME: changing this to 100 * make process freeze on exit
       clearFromCursorToScreenEnd
 
       pure (oldAvgGameStepTime, newAvgRenderGLTime, newAvgTotalLoopTime, newAvgVisualizeTime)

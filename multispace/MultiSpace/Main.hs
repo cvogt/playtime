@@ -8,7 +8,7 @@ import Playtime
 import System.Random
 
 gameDir :: FilePath
-gameDir = "live-coding-demo"
+gameDir = "multispace"
 
 main :: IO ()
 main =

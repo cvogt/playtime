@@ -59,14 +59,16 @@ forkDebugTerminal ConcurrentState {..} engineConfigMVar lcsMay = do
 
       gameDebugInfo <- ecGameDebugInfo <$> readMVar engineConfigMVar
       gameInfo <- gameDebugInfo engineState
-
-      (join . join -> ce) <- sequence $ tryReadMVar . lcsCompileError <$> lcsMay
       Just TerminalSize.Window {height, width} <- TerminalSize.size
-      putStrLn $ T.unpack $ T.unlines $ take (height -2) $ join $
-        T.chunksOf width . T.stripEnd . T.pack
-          <$> (maybe [] (\e -> lines $ setSGRCode [SetColor Foreground Vivid Red] <> e <> "\n" <> replicate (width -1) '-' <> setSGRCode [ANSI.Reset]) ce)
-          <> (take (width -1) <$> display <> gameInfo)
-      cursorUp $ (length $ display <> gameInfo) + 1 -- trailing newline
+      (join . join -> ce) <- sequence $ tryReadMVar . lcsCompileError <$> lcsMay
+
+      let compileError = (maybe [] (\e -> lines $ setSGRCode [SetColor Foreground Vivid Red] <> e <> "\n" <> replicate (width -1) '-' <> setSGRCode [ANSI.Reset]) ce)
+          output =
+            T.unpack $ T.unlines $ take (height -2) $ join $
+              T.chunksOf width . T.stripEnd . T.pack . take (width -1) <$> compileError <> display <> gameInfo
+
+      putStrLn output
+      cursorUp $ (length $ compileError <> display <> gameInfo) + 1 -- trailing newline
       setCursorColumn 0
       threadDelay $ 200 * 1000 -- FIXME: changing this to 100 * make process freeze on exit
       clearFromCursorToScreenEnd

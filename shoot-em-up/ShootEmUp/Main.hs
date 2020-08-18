@@ -31,25 +31,22 @@ makeEngineConfig liveCodeState = do
     $ fmap isLeft
     $ try @SomeException
     $ putMVar popSound =<< load (gameDir </> "assets/bubble_pop.ogg") -- https://freesound.org/people/blue2107/sounds/59978/
-  makeInitialGameState dimensions
-    >>= wireEngineConfig
-      (stepGameState popSound . textureDim textures)
-      (visualize . textureSprites textures)
-      dimensions
-      1
-      liveCodeState
-      loadTx
-      (snd . textures <$> allEnumValues)
+  wireEngineConfig
+    (makeInitialGameState dimensions . textureDim textures)
+    (stepGameState popSound . textureDim textures)
+    (visualize . textureSprites textures)
+    dimensions
+    1
+    liveCodeState
+    loadTx
+    (snd . textures <$> allEnumValues)
   where
     dimensions = (1024, 768)
     loadTx = \name -> either fail pure =<< (readPng $ gameDir </> "assets" </> name)
-    stepGameState popSound area es@EngineState {..} old_gs event = do
-      pre <- preIO
-      let new_gs = stepGameStatePure pre area old_gs es event
-      postIO es new_gs popSound
-    preIO = sequence $ replicate 10 randomIO
-    postIO es new_gs popSound = do
-      when (Key'Space `elem` esKeysPressed es) $ play =<< readMVar popSound
-      post_gs <- if Key'R `setMember` esKeysPressed es then makeInitialGameState dimensions else pure new_gs
+    stepGameState popSound tDim es@EngineState {..} old_gs event = do
+      pre <- sequence $ replicate 10 randomIO
+      let new_gs = stepGameStatePure pre tDim old_gs es event
+      when (Key'Space `elem` esKeysPressed) $ play =<< readMVar popSound
+      post_gs <- if Key'R `setMember` esKeysPressed then makeInitialGameState dimensions tDim else pure new_gs
       saveMay es post_gs
       fromMaybe post_gs <$> loadMay es

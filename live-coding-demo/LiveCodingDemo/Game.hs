@@ -25,8 +25,8 @@ data GameState = GameState
   }
   deriving (Show, Generic, NFData, ToJSON, FromJSON)
 
-makeInitialGameState :: Dim -> Int -> GameState
-makeInitialGameState dimensions seed =
+makeInitialGameState :: Dim -> (TextureId -> Dim) -> Int -> GameState
+makeInitialGameState dimensions tDim seed =
   let rng = mkStdGen seed
       numStars = 500
       (stars, _) = randomPoss rng numStars dimensions

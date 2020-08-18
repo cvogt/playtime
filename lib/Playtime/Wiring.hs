@@ -17,6 +17,7 @@ import Playtime.Texture
 wireEngineConfig ::
   forall a gs.
   (Ord a, Show a, ToJSON gs, FromJSON gs) =>
+  ((a -> Texture) -> IO gs) ->
   ((a -> Texture) -> EngineState -> gs -> Event -> IO gs) ->
   ((a -> Texture) -> EngineState -> gs -> [Sprite]) ->
   Dim ->
@@ -24,12 +25,13 @@ wireEngineConfig ::
   Maybe LiveCodeState ->
   (a -> IO DynamicImage) ->
   [a] ->
-  gs ->
   IO EngineConfig
-wireEngineConfig stepGameState visualize ecDim ecScale liveCodeState loadTx allTextures initialGameState = do
+wireEngineConfig makeInitialGameState stepGameState visualize ecDim ecScale liveCodeState loadTx allTextures = do
   recoveredGameState <- for liveCodeState startLiveCode
-  gameStateMVar <- newMVar $ fromMaybe initialGameState $ join recoveredGameState
   texturesMVar <- newMVar mempty
+  gameStateMVar <- newMVar =<< case join recoveredGameState of
+    Just gs -> pure gs
+    Nothing -> makeInitialGameState =<< readTextures texturesMVar
   pure $
     EngineConfig
       { ecStepGameState = \es event -> do

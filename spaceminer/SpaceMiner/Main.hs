@@ -18,6 +18,7 @@ main =
 makeEngineConfig :: Maybe LiveCodeState -> IO EngineConfig
 makeEngineConfig liveCodeState = do
   wireEngineConfig
+    (pure . makeInitialGameState dimensions . textureDim textures)
     (stepGameState . textureDim textures)
     (visualize . textureSprites textures)
     dimensions
@@ -25,14 +26,13 @@ makeEngineConfig liveCodeState = do
     liveCodeState
     loadTexture
     (snd . textures <$> allEnumValues)
-    $ makeInitialGameState dimensions
   where
     dimensions = (320, 240)
-    stepGameState area es@EngineState {..} old_gs event = do
-      let new_gs = stepGameStatePure area old_gs es event
+    stepGameState tDim es@EngineState {..} old_gs event = do
+      let new_gs = stepGameStatePure tDim old_gs es event
       let final_gs =
             if Key'R `setMember` esKeysPressed
-              then makeInitialGameState dimensions
+              then makeInitialGameState dimensions tDim
               else new_gs
       saveMay es final_gs
       fromMaybe final_gs <$> loadMay es

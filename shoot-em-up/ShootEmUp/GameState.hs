@@ -32,8 +32,8 @@ textures = \case
   Enemy -> (0.1, "enemy_red.png")
   Heart -> (0.025, "haskell_love_logo.png")
 
-makeInitialGameState :: Dim -> IO GameState
-makeInitialGameState dim = do
+makeInitialGameState :: Dim -> (TextureId -> Dim) -> IO GameState
+makeInitialGameState dim _tDim = do
   let maxStarSize = 3
   starX <- fmap (fmap int2Double) $ sequence $ replicate 510 $ randomRIO (0, double2Int $ maxStarSize + fst dim)
   starY <- fmap (fmap int2Double) $ sequence $ replicate 510 $ randomRIO (0, double2Int $ maxStarSize + snd dim)

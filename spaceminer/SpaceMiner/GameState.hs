@@ -39,8 +39,8 @@ data GameState = GameState
 gridsize :: Num n => n
 gridsize = 12
 
-makeInitialGameState :: Dim -> GameState
-makeInitialGameState dim =
+makeInitialGameState :: Dim -> (TextureId -> Dim) -> GameState
+makeInitialGameState dim _tDim =
   GameState
     { gsUIMode = TexturePlacementMode FloorPlate,
       gsFloor = mempty,

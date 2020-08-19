@@ -14,7 +14,7 @@ data TextureId = Enemy | Player
 
 textures :: TextureId -> (Scale, FilePath)
 textures = \case
-  Player -> (0.3, "enemy_red.png")
+  Player -> (3, "main_character.png")
   Enemy -> (0.1, "enemy_red.png")
 
 data GameState = GameState
@@ -89,7 +89,7 @@ offset :: Pos
 offset = 150
 
 pixelsize :: Dim
-pixelsize = 35
+pixelsize = 36
 
 myFirstShipLayout :: String
 myFirstShipLayout =

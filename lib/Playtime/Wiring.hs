@@ -1,6 +1,7 @@
 module Playtime.Wiring where
 
 import Codec.Picture (DynamicImage)
+import Control.Concurrent.MVar (newEmptyMVar, putMVar)
 import Data.Aeson
 import GHC.Err (error)
 import My.IO
@@ -29,12 +30,13 @@ wireEngineConfig ::
 wireEngineConfig makeInitialGameState stepGameState visualize ecDim ecScale liveCodeState loadTx allTextures = do
   recoveredGameState <- for liveCodeState startLiveCode
   texturesMVar <- newMVar mempty
-  gameStateMVar <- newMVar =<< case join recoveredGameState of
-    Just gs -> pure gs
-    Nothing -> makeInitialGameState =<< readTextures texturesMVar
+  gameStateMVar <- newEmptyMVar
   pure $
     EngineConfig
-      { ecStepGameState = \es event -> do
+      { ecInitialize = putMVar gameStateMVar =<< case join recoveredGameState of
+          Just gs -> pure gs
+          Nothing -> makeInitialGameState =<< readTextures texturesMVar,
+        ecStepGameState = \es event -> do
           modifyMVar_ gameStateMVar $ \old_gs -> do
             textures <- readTextures texturesMVar
             new_gs <- stepGameState textures es old_gs event

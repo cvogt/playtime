@@ -20,6 +20,7 @@ textures = \case
 data GameState = GameState
   { gsPlayer :: Pos,
     gsShip :: [Pos],
+    gsPiloting :: Bool,
     gsEnemy :: [Pos]
   }
   deriving (Show, Generic, NFData, ToJSON, FromJSON)
@@ -31,40 +32,43 @@ makeInitialGameState dimensions seed =
    in GameState
         { gsPlayer = dimensions / 2,
           gsShip = [x * pixelsize + offset | x <- layout myFirstShipLayout],
+          gsPiloting = False,
           gsEnemy = poss
         }
 
 stepGameStatePure :: Int -> (TextureId -> Dim) -> GameState -> EngineState -> Event -> GameState
 stepGameStatePure seed tDim gs@GameState {..} EngineState {..} = \case
-  KeyEvent Key'Space KeyState'Pressed ->
-    gs
+  KeyEvent Key'E KeyState'Pressed -> gs {gsPiloting = not gsPiloting}
   RenderEvent _ ->
     let rng = mkStdGen seed
         speed = 200
-        bounds = esDimensions - tDim Player
+        shipBounds = esDimensions - pixelsize
+        newPoss = fmap (+ delta) gsShip
+        shipCollide = any (\pos -> fst pos < 0 || snd pos < 0 || fst pos > fst shipBounds || snd pos > snd shipBounds) newPoss
         delta =
           (if Key'Up `setMember` esKeysPressed then (0, - speed * esTimePassed) else 0)
             + (if Key'Down `setMember` esKeysPressed then (0, speed * esTimePassed) else 0)
             + (if Key'Left `setMember` esKeysPressed then (- speed * esTimePassed, 0) else 0)
             + (if Key'Right `setMember` esKeysPressed then (speed * esTimePassed, 0) else 0)
-        tmpGsPlayer =
-          if any (\x -> collidesWith (tDim Player, gsPlayer + delta) (pixelsize, x)) gsShip
+        newPlayer =
+          if (shipCollide && gsPiloting) || any (\x -> collidesWith (tDim Player, gsPlayer + delta) (pixelsize, x)) gsShip
             then gsPlayer
             else (gsPlayer + delta)
-        newPlayerpos = maxPairWise 0 $ minPairWise bounds $ tmpGsPlayer
+        newShipPos = if shipCollide then gsShip else newPoss
         remainingEnemies = filter (\e -> not $ collidesWith (tDim Player, gsPlayer) (tDim Enemy, e)) gsEnemy
      in gs
-          { gsPlayer = newPlayerpos,
+          { gsPlayer = newPlayer,
+            gsShip = if gsPiloting then newShipPos else gsShip,
             gsEnemy = remainingEnemies
           }
   _ -> gs
 
 visualize :: (TextureId -> Pos -> Sprite) -> EngineState -> GameState -> [Sprite]
 visualize sprite EngineState {..} GameState {..} =
-  let
+  let shipColor = if gsPiloting then (RGBA 0 255 0 255) else (RGBA 255 0 0 255)
    in [sprite Player gsPlayer]
         <> fmap (sprite Enemy) gsEnemy
-        <> [rectangle Solid (RGBA 255 0 0 255) pixelsize x | x <- gsShip]
+        <> [rectangle Solid shipColor pixelsize x | x <- gsShip]
 
 minPairWise :: (Double, Double) -> (Double, Double) -> (Double, Double)
 minPairWise = pairWise min min
@@ -82,10 +86,10 @@ layout' ('\n' : cs) x y = layout' cs 0 (y + 1)
 layout' (_ : cs) x y = layout' cs (x + 1) y
 
 offset :: Pos
-offset = 60
+offset = 150
 
 pixelsize :: Dim
-pixelsize = 50
+pixelsize = 35
 
 myFirstShipLayout :: String
 myFirstShipLayout =

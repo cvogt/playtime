@@ -1,0 +1,8 @@
+multiplayer networking:
+- https://gafferongames.com/post/what_every_programmer_needs_to_know_about_game_networking/
+
+game/phyiscs libs in haskell:
+- https://www.reddit.com/r/haskell/comments/78tnq7/haskell_for_high_performance_game_engines/dowyz9a/?utm_source=reddit&utm_medium=web2x&context=3
+- https://github.com/jonascarpay/apecs
+- https://github.com/tobbebex/GPipe-Core#readme
+- http://tobbebex.blogspot.com/2015/09/gpu-programming-in-haskell-using-gpipe.html

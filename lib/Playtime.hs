@@ -49,7 +49,7 @@ import Playtime.Wiring
 playtime :: Either LiveCodeState (MVar EngineConfig) -> IO ()
 playtime lcsOrEcMVar = do
   let (lcsMay, ecMVar) = either (\lcs -> (Just lcs, lcsEngineConfig lcs)) (Nothing,) lcsOrEcMVar
-  EngineConfig {ecScale, ecDim, ecCheckIfContinue} <- readMVar ecMVar
+  EngineConfig {ecScale, ecDim, ecCheckIfContinue, ecInitialize} <- readMVar ecMVar
   -- initialization
   ies@EngineState {esWindowSize} <- makeInitialEngineState ecScale ecDim <$> getSystemTime
   cs@ConcurrentState {..} <- makeInitialConcurrentState ies
@@ -58,6 +58,7 @@ playtime lcsOrEcMVar = do
 
   -- open gl rendering loop
   withGLFW esWindowSize "Playtime" $ \window -> do
+    ecInitialize
     setEventCallback window $ void . stepStates ecMVar window cs
 
     whileM $ trackTimeM csTimeRender $ do

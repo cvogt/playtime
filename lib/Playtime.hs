@@ -37,6 +37,7 @@ import Playtime.Texture
 import Playtime.UI
 import Playtime.Util
 import Playtime.Wiring
+import System.Console.ANSI (clearFromCursorToScreenEnd)
 
 -- README
 -- Acronyms to know:
@@ -47,7 +48,7 @@ import Playtime.Wiring
 -- dim = Dimension
 
 playtime :: Either LiveCodeState (MVar EngineConfig) -> IO ()
-playtime lcsOrEcMVar = do
+playtime lcsOrEcMVar = flip finally clearFromCursorToScreenEnd $ do -- finally fixes cursor position on program exit
   let (lcsMay, ecMVar) = either (\lcs -> (Just lcs, lcsEngineConfig lcs)) (Nothing,) lcsOrEcMVar
   EngineConfig {ecScale, ecDim, ecCheckIfContinue, ecInitialize} <- readMVar ecMVar
   -- initialization

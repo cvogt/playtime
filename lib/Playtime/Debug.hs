@@ -70,7 +70,8 @@ forkDebugTerminal ConcurrentState {..} engineConfigMVar lcsMay = do
               T.chunksOf width . T.stripEnd . T.pack . take (width -1) <$> compileError <> display <> gameInfo
 
       putStrLn output
-      cursorUp $ (length $ compileError <> display <> gameInfo) + 1 -- trailing newline
+      putStrLn "" -- without this EVALING message prints at EOL. no idea why
+      cursorUp $ (length $ compileError <> display <> gameInfo) + 2 -- trailing newline
       setCursorColumn 0
       threadDelay $ 200 * 1000 -- FIXME: changing this to 100 * make process freeze on exit
       clearFromCursorToScreenEnd

@@ -54,21 +54,23 @@ liveCodeSwitch lcs@LiveCodeState {..} gameState = do
           void $ swapMVar lcsCompiling True
           Playtime.LiveCode.compileAndEval srcFiles lcsModule lcsExpression >>= \case
             Left compileErrors -> pure $ Just compileErrors
-            Right wireEngineConfig -> do
+            Right makeEngineConfig -> do
               void $ swapMVar lcsGameState $ toJSON gameState
-              void $ swapMVar lcsEngineConfig =<< wireEngineConfig (Just lcs)
+              ec <- makeEngineConfig (Just lcs)
+              ecInitialize ec
+              void $ swapMVar lcsEngineConfig ec
               pure Nothing -- doesn't clear compile errors because EngineConfig has already been replaced
       void $ swapMVar lcsCompiling False
 
 makeLiveCodeState :: (Maybe LiveCodeState -> IO EngineConfig) -> [Char] -> [Char] -> FilePath -> IO LiveCodeState
-makeLiveCodeState wireEngineConfig lcsModule lcsExpression lcsWatchDir = do
+makeLiveCodeState makeEngineConfig lcsModule lcsExpression lcsWatchDir = do
   lcsChangeDetected <- newMVar False
   lcsCompiling <- newMVar False
   lcsCompileError <- newMVar Nothing
   lcsGameState <- newMVar Null
   lcsEngineConfig <- newEmptyMVar
   let lcs = LiveCodeState {..}
-  putMVar lcsEngineConfig =<< wireEngineConfig (Just lcs)
+  putMVar lcsEngineConfig =<< makeEngineConfig (Just lcs)
   pure lcs
 
 data LiveCodeState = LiveCodeState

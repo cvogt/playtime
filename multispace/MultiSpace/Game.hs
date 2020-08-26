@@ -71,10 +71,6 @@ stepGameStatePure seed tDim gs@GameState {..} EngineState {..} = \case
             then gsPlayer
             else (gsPlayer + delta)
         newShipPos = if shipCollide then gsShip else newPoss
-        remainingEnemies =
-          let hit e = any (\(shot, _) -> collidesWith (tDim Shot, shot) (tDim Enemy, e)) gsShots
-           in filter (not . hit) $
-                filter (\e -> not $ collidesWith (tDim Player, gsPlayer) (tDim Enemy, e)) gsEnemy
         shotSize = tDim Shot
         newShotPoss =
           filter
@@ -85,6 +81,11 @@ stepGameStatePure seed tDim gs@GameState {..} EngineState {..} = \case
                   && snd pos <= snd esDimensions
             )
             $ fmap (\(p, v) -> (p + v, v)) gsShots
+        remainingEnemies =
+          let hit e = any (\(shot, _) -> collidesWith (tDim Shot, shot) (tDim Enemy, e)) newShotPoss
+           in filter (not . hit) $
+                filter (\e -> not $ collidesWith (tDim Player, gsPlayer) (tDim Enemy, e)) gsEnemy
+
      in gs
           { gsPlayer = newPlayer,
             gsShip = if gsPiloting then newShipPos else gsShip,

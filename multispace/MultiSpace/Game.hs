@@ -7,21 +7,26 @@ module MultiSpace.Game where
 import Data.Aeson (FromJSON, ToJSON)
 import GHC.Err (error)
 import My.Prelude
+import Numeric (sqrt)
 import Playtime
 
-data TextureId = Enemy | Player
+data TextureId = Enemy | Player | Shot
   deriving (Eq, Ord, Show, Data, Bounded, Enum, Generic, NFData, ToJSON, FromJSON)
+
+type Velocity = Dim
 
 textures :: TextureId -> (Scale, FilePath)
 textures = \case
   Player -> (3, "main_character.png")
   Enemy -> (0.1, "enemy_red.png")
+  Shot -> (0.05, "enemy_red.png")
 
 data GameState = GameState
   { gsPlayer :: Pos,
     gsShip :: [Pos],
     gsPiloting :: Bool,
-    gsEnemy :: [Pos]
+    gsEnemy :: [Pos],
+    gsShots :: [(Pos, Velocity)]
   }
   deriving (Show, Generic, NFData, ToJSON, FromJSON)
 
@@ -33,12 +38,23 @@ makeInitialGameState dimensions tDim seed =
         { gsPlayer = dimensions / 2,
           gsShip = [x * pixelsize + offset | x <- layout myFirstShipLayout],
           gsPiloting = False,
-          gsEnemy = poss
+          gsEnemy = poss,
+          gsShots = []
         }
 
 stepGameStatePure :: Int -> (TextureId -> Dim) -> GameState -> EngineState -> Event -> GameState
 stepGameStatePure seed tDim gs@GameState {..} EngineState {..} = \case
   KeyEvent Key'E KeyState'Pressed -> gs {gsPiloting = not gsPiloting}
+  MouseEvent MouseButton'1 MouseButtonState'Pressed ->
+    gs
+      { gsShots =
+          let gunPos = case gsShip of
+                [] -> error "empty gsShip"
+                p : _ -> p
+              d = esCursorPos - gunPos
+              dotproduct (x1, y1) (x2, y2) = x1 * x2 + y1 * y2
+           in gsShots <> [(gunPos, d / (dupe $ sqrt $ dotproduct d d))]
+      }
   RenderEvent _ ->
     let rng = mkStdGen seed
         speed = 200
@@ -55,11 +71,25 @@ stepGameStatePure seed tDim gs@GameState {..} EngineState {..} = \case
             then gsPlayer
             else (gsPlayer + delta)
         newShipPos = if shipCollide then gsShip else newPoss
-        remainingEnemies = filter (\e -> not $ collidesWith (tDim Player, gsPlayer) (tDim Enemy, e)) gsEnemy
+        remainingEnemies =
+          let hit e = any (\(shot, _) -> collidesWith (tDim Shot, shot) (tDim Enemy, e)) gsShots
+           in filter (not . hit) $
+                filter (\e -> not $ collidesWith (tDim Player, gsPlayer) (tDim Enemy, e)) gsEnemy
+        shotSize = tDim Shot
+        newShotPoss =
+          filter
+            ( \(pos, _) ->
+                - fst shotSize <= fst pos
+                  && fst pos <= fst esDimensions
+                  && - snd shotSize <= snd pos
+                  && snd pos <= snd esDimensions
+            )
+            $ fmap (\(p, v) -> (p + v, v)) gsShots
      in gs
           { gsPlayer = newPlayer,
             gsShip = if gsPiloting then newShipPos else gsShip,
-            gsEnemy = remainingEnemies
+            gsEnemy = remainingEnemies,
+            gsShots = newShotPoss
           }
   _ -> gs
 
@@ -69,6 +99,7 @@ visualize sprite EngineState {..} GameState {..} =
    in [sprite Player gsPlayer]
         <> fmap (sprite Enemy) gsEnemy
         <> [rectangle Solid shipColor pixelsize x | x <- gsShip]
+        <> fmap (sprite Shot . fst) gsShots
 
 minPairWise :: (Double, Double) -> (Double, Double) -> (Double, Double)
 minPairWise = pairWise min min

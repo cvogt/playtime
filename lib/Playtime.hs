@@ -48,7 +48,8 @@ import System.Console.ANSI (clearFromCursorToScreenEnd)
 -- dim = Dimension
 
 playtime :: Either LiveCodeState (MVar EngineConfig) -> IO ()
-playtime lcsOrEcMVar = flip finally clearFromCursorToScreenEnd $ do -- finally fixes cursor position on program exit
+playtime lcsOrEcMVar = flip finally clearFromCursorToScreenEnd $ do
+  -- finally fixes cursor position on program exit
   let (lcsMay, ecMVar) = either (\lcs -> (Just lcs, lcsEngineConfig lcs)) (Nothing,) lcsOrEcMVar
   EngineConfig {ecScale, ecDim, ecCheckIfContinue, ecInitialize} <- readMVar ecMVar
   -- initialization

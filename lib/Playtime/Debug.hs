@@ -83,4 +83,4 @@ debugPrint a = case toJSON a of
   Object hms -> fmap (\(k, v) -> T.unpack k <> ": " <> v) $ sortOn fst $ HMS.keys hms `zip` (enc <$> HMS.elems hms)
   other -> [enc other]
   where
-    enc = take 200 . either show T.unpack . decodeUtf8' . BSL.toStrict . (\_ -> "foo") -- encode
+    enc = take 200 . either show T.unpack . decodeUtf8' . BSL.toStrict . encode

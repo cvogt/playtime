@@ -81,16 +81,21 @@ stepGameStatePure seed tDim gs@GameState {..} EngineState {..} = \case
                   && snd pos <= snd esDimensions
             )
             $ fmap (\(p, v) -> (p + v, v)) gsShots
-        remainingEnemies =
+        shotEnemies =
           let hit e = any (\(shot, _) -> collidesWith (tDim Shot, shot) (tDim Enemy, e)) newShotPoss
-           in filter (not . hit) $
-                filter (\e -> not $ collidesWith (tDim Player, gsPlayer) (tDim Enemy, e)) gsEnemy
-
+           in filter hit gsEnemy
+        hittingShots =
+          let hit (s, _) = any (\e -> collidesWith (tDim Shot, s) (tDim Enemy, e)) shotEnemies
+           in filter hit newShotPoss
+        remainingShots = filter (\s -> not $ s `elem` hittingShots) newShotPoss
+        remainingEnemies =
+          filter (\e -> not $ e `elem` shotEnemies) $
+            filter (\e -> not $ collidesWith (tDim Player, gsPlayer) (tDim Enemy, e)) gsEnemy
      in gs
           { gsPlayer = newPlayer,
             gsShip = if gsPiloting then newShipPos else gsShip,
             gsEnemy = remainingEnemies,
-            gsShots = newShotPoss
+            gsShots = remainingShots
           }
   _ -> gs
 

@@ -81,12 +81,10 @@ stepGameStatePure seed tDim gs@GameState {..} EngineState {..} = \case
                   && snd pos <= snd esDimensions
             )
             $ fmap (\(p, v) -> (p + v, v)) gsShots
-        shotEnemies =
-          let hit e = any (\(shot, _) -> collidesWith (tDim Shot, shot) (tDim Enemy, e)) newShotPoss
-           in filter hit gsEnemy
-        hittingShots =
-          let hit (s, _) = any (\e -> collidesWith (tDim Shot, s) (tDim Enemy, e)) shotEnemies
-           in filter hit newShotPoss
+        --FIXME 1 shot can destroy 2 enemies
+        crossProductEnemiesShots = [(e, (s,p)) | e <- gsEnemy, (s,p) <- newShotPoss, collidesWith (tDim Shot, s) (tDim Enemy, e)]
+        shotEnemies = [e | (e,_) <- crossProductEnemiesShots]
+        hittingShots = [s | (_,s) <- crossProductEnemiesShots]
         remainingShots = filter (\s -> not $ s `elem` hittingShots) newShotPoss
         remainingEnemies =
           filter (\e -> not $ e `elem` shotEnemies) $

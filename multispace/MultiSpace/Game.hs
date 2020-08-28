@@ -54,7 +54,8 @@ stepGameStatePure seed tDim gs@GameState {..} EngineState {..} = \case
                 p : _ -> p
               d = esCursorPos - gunPos
               dotproduct (x1, y1) (x2, y2) = x1 * x2 + y1 * y2
-           in gsShots <> [(gunPos, d / (dupe $ sqrt $ dotproduct d d))]
+              v_norm = (dupe $ sqrt $ dotproduct d d)
+           in gsShots <> [(gunPos, shotSpeed * d / v_norm)]
       }
   RenderEvent _ ->
     let rng = mkStdGen seed
@@ -94,9 +95,7 @@ stepGameStatePure seed tDim gs@GameState {..} EngineState {..} = \case
         shotEnemies = [e | (e, _) <- collidingEnemiesShots]
         hittingShots = [s | (_, s) <- collidingEnemiesShots]
         remainingShots = filter (\s -> not $ s `elem` hittingShots) newShotPoss
-        remainingEnemies =
-          filter (\e -> not $ e `elem` shotEnemies) $
-            filter (\(e, _) -> not $ collidesWith (tDim Player, gsPlayer) (tDim Enemy, e)) newEnemyPoss
+        remainingEnemies = filter (\e -> not $ e `elem` shotEnemies) newEnemyPoss
      in gs
           { gsPlayer = newPlayer,
             gsShip = if gsPiloting then newShipPos else gsShip,
@@ -133,6 +132,9 @@ offset = 150
 
 pixelsize :: Dim
 pixelsize = 36
+
+shotSpeed :: Num a => a
+shotSpeed = 5
 
 myFirstShipLayout :: String
 myFirstShipLayout =

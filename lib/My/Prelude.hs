@@ -72,7 +72,7 @@ import Data.Foldable (Foldable, all, any, elem, find, fold, foldl, foldlM, foldr
 import Data.Function (($), (&), (.), flip, id)
 import Data.Functor (($>), (<$), (<$>), (<&>), Functor, fmap)
 import Data.Int (Int)
-import Data.List ((\\), concat, drop, dropWhile, filter, iterate, nub, repeat, replicate, reverse, sort, sortBy, sortOn, take, takeWhile, unzip)
+import Data.List ((\\), concat, drop, dropWhile, filter, iterate, nub, repeat, replicate, reverse, sort, sortBy, sortOn, take, takeWhile, unzip, zip)
 import qualified Data.List
 import qualified Data.List.NonEmpty
 import Data.List.NonEmpty (NonEmpty ((:|)), groupAllWith, groupBy, groupWith, head, last, unfoldr)

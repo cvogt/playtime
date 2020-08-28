@@ -4,7 +4,7 @@ import Control.DeepSeq (rnf)
 import Data.Aeson
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.HashMap.Strict as HMS
-import Data.List (lines, zip)
+import Data.List (lines)
 import qualified Data.Text as T
 import My.IO
 import My.Prelude

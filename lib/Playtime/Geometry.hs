@@ -3,7 +3,6 @@
 module Playtime.Geometry where
 
 import Data.Aeson (FromJSON, ToJSON)
-import Data.List (zip)
 import GHC.Float
 import GHC.Num
 import GHC.Real

@@ -1,6 +1,5 @@
 module Playtime.Random where
 
-import Data.List (zip)
 import GHC.Float (double2Int, int2Double)
 import My.Prelude
 import Playtime.Geometry

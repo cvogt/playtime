@@ -25,7 +25,7 @@ data GameState = GameState
   { gsPlayer :: Pos,
     gsShip :: [Pos],
     gsPiloting :: Bool,
-    gsEnemy :: [Pos],
+    gsEnemy :: [(Pos, Velocity)],
     gsShots :: [(Pos, Velocity)]
   }
   deriving (Show, Generic, NFData, ToJSON, FromJSON)
@@ -33,12 +33,13 @@ data GameState = GameState
 makeInitialGameState :: Dim -> (TextureId -> Dim) -> Int -> GameState
 makeInitialGameState dimensions tDim seed =
   let rng = mkStdGen seed
-      (poss, _) = randomPoss rng 99 dimensions
+      (poss, _) = randomPoss rng 50 dimensions
+      velos = replicate 50 (1, 1)
    in GameState
         { gsPlayer = dimensions / 2,
           gsShip = [x * pixelsize + offset | x <- layout myFirstShipLayout],
           gsPiloting = False,
-          gsEnemy = poss,
+          gsEnemy = zip poss velos,
           gsShots = []
         }
 
@@ -81,14 +82,21 @@ stepGameStatePure seed tDim gs@GameState {..} EngineState {..} = \case
                   && snd pos <= snd esDimensions
             )
             $ fmap (\(p, v) -> (p + v, v)) gsShots
+        newEnemyPoss =
+          let enemySize = tDim Enemy
+              moveEnemy ((x, y), (vx, vy))
+                | x + vx < 0 || x + vx + (fst enemySize) > fst esDimensions = ((x - vx, y + vy), (- vx, vy))
+                | y + vy < 0 || y + vy + (snd enemySize) > snd esDimensions = ((x + vx, y - vy), (vx, - vy))
+                | otherwise = ((x + vx, y + vy), (vx, vy))
+           in fmap moveEnemy gsEnemy
         --FIXME 1 shot can destroy 2 enemies
-        crossProductEnemiesShots = [(e, (s,p)) | e <- gsEnemy, (s,p) <- newShotPoss, collidesWith (tDim Shot, s) (tDim Enemy, e)]
-        shotEnemies = [e | (e,_) <- crossProductEnemiesShots]
-        hittingShots = [s | (_,s) <- crossProductEnemiesShots]
+        collidingEnemiesShots = [((e, v), (s, p)) | (e, v) <- newEnemyPoss, (s, p) <- newShotPoss, collidesWith (tDim Shot, s) (tDim Enemy, e)]
+        shotEnemies = [e | (e, _) <- collidingEnemiesShots]
+        hittingShots = [s | (_, s) <- collidingEnemiesShots]
         remainingShots = filter (\s -> not $ s `elem` hittingShots) newShotPoss
         remainingEnemies =
           filter (\e -> not $ e `elem` shotEnemies) $
-            filter (\e -> not $ collidesWith (tDim Player, gsPlayer) (tDim Enemy, e)) gsEnemy
+            filter (\(e, _) -> not $ collidesWith (tDim Player, gsPlayer) (tDim Enemy, e)) newEnemyPoss
      in gs
           { gsPlayer = newPlayer,
             gsShip = if gsPiloting then newShipPos else gsShip,
@@ -101,7 +109,7 @@ visualize :: (TextureId -> Pos -> Sprite) -> EngineState -> GameState -> [Sprite
 visualize sprite EngineState {..} GameState {..} =
   let shipColor = if gsPiloting then (RGBA 0 255 0 255) else (RGBA 255 0 0 255)
    in [sprite Player gsPlayer]
-        <> fmap (sprite Enemy) gsEnemy
+        <> fmap (sprite Enemy . fst) gsEnemy
         <> [rectangle Solid shipColor pixelsize x | x <- gsShip]
         <> fmap (sprite Shot . fst) gsShots
 

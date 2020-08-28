@@ -33,7 +33,7 @@ data GameState = GameState
 makeInitialGameState :: Dim -> (TextureId -> Dim) -> Int -> GameState
 makeInitialGameState dimensions tDim seed =
   let rng = mkStdGen seed
-      (poss, _) = randomPoss rng 50 dimensions
+      (poss, _) = randomPoss rng 50 (dimensions - tDim Enemy)
       velos = replicate 50 (1, 1)
    in GameState
         { gsPlayer = dimensions / 2,

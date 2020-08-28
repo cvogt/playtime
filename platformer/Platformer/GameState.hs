@@ -1,7 +1,6 @@
 module Platformer.GameState where
 
 import Data.Aeson (FromJSON (parseJSON), ToJSON (toJSON))
-import Data.List (zip)
 import "GLFW-b" Graphics.UI.GLFW
 import My.Prelude
 import Playtime

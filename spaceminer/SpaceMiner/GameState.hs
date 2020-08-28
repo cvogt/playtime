@@ -1,7 +1,6 @@
 module SpaceMiner.GameState where
 
 import Data.Aeson (FromJSON (parseJSON), ToJSON (toJSON))
-import Data.List (zip)
 import GHC.Float (int2Double)
 import GHC.Real (floor)
 import "GLFW-b" Graphics.UI.GLFW

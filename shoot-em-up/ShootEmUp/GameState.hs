@@ -1,7 +1,6 @@
 module ShootEmUp.GameState where
 
 import Data.Aeson (FromJSON, ToJSON)
-import Data.List (zip)
 import GHC.Float (double2Int, int2Double)
 import GHC.Real (mod)
 import "GLFW-b" Graphics.UI.GLFW

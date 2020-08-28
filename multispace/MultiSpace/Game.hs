@@ -19,7 +19,7 @@ textures :: TextureId -> (Scale, FilePath)
 textures = \case
   Player -> (3, "main_character.png")
   Enemy -> (0.1, "enemy_red.png")
-  Shot -> (0.05, "enemy_red.png")
+  Shot -> (0.05, "lambda_red.png")
 
 data GameState = GameState
   { gsPlayer :: Pos,

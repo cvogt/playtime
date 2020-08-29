@@ -12,6 +12,8 @@ type Pos = (Double, Double)
 
 type Dim = (Double, Double)
 
+type Velo = Dim
+
 type Scale = (Double, Double)
 
 type Area = (Dim, Pos)

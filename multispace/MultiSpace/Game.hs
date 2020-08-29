@@ -13,8 +13,6 @@ import Playtime
 data TextureId = Enemy | Player | Shot
   deriving (Eq, Ord, Show, Data, Bounded, Enum, Generic, NFData, ToJSON, FromJSON)
 
-type Velocity = Dim
-
 textures :: TextureId -> (Scale, FilePath)
 textures = \case
   Player -> (3, "main_character.png")
@@ -25,16 +23,16 @@ data GameState = GameState
   { gsPlayer :: Pos,
     gsShip :: [Pos],
     gsPiloting :: Bool,
-    gsEnemy :: [(Pos, Velocity)],
-    gsShots :: [(Pos, Velocity)]
+    gsEnemy :: [(Pos, Velo)],
+    gsShots :: [(Pos, Velo)]
   }
   deriving (Show, Generic, NFData, ToJSON, FromJSON)
 
 makeInitialGameState :: Dim -> (TextureId -> Dim) -> Int -> GameState
 makeInitialGameState dimensions tDim seed =
   let rng = mkStdGen seed
-      (poss, _) = randomPoss rng 50 (dimensions - tDim Enemy)
-      velos = replicate 50 (1, 1)
+      (poss, rng') = randomPoss rng 50 (dimensions - tDim Enemy)
+      (velos, _) = randomVelos rng' 50 (3, 3)
    in GameState
         { gsPlayer = dimensions / 2,
           gsShip = [x * pixelsize + offset | x <- layout myFirstShipLayout],

@@ -1,6 +1,5 @@
 module Playtime.Random where
 
-import GHC.Float (double2Int, int2Double)
 import My.Prelude
 import Playtime.Geometry
 import System.Random
@@ -12,11 +11,17 @@ randomsR = randomsR' . ([],)
     randomsR' res n _ | n <= 0 = res
     randomsR' (acc, g') n r = randomsR' (first (: acc) $ randomR r g') (n -1) r
 
-randomPoss :: StdGen -> Int -> Dim -> ([Pos], StdGen)
-randomPoss g n (maxX, maxY) =
-  let (xs, g') = randomsNatDouble g n maxX
-      (ys, g'') = randomsNatDouble g' n maxY
+randomsNatDouble :: StdGen -> Int -> Double -> Double -> ([Double], StdGen)
+randomsNatDouble g num minV maxV = randomsR g num (minV, maxV)
+
+randomTuples :: StdGen -> Int -> Double -> Double -> Double -> Double -> ([(Double, Double)], StdGen)
+randomTuples g n minX maxX minY maxY =
+  let (xs, g') = randomsNatDouble g n minX maxX
+      (ys, g'') = randomsNatDouble g' n minY maxY
    in (xs `zip` ys, g'')
 
-randomsNatDouble :: StdGen -> Int -> Double -> ([Double], StdGen)
-randomsNatDouble g num maxV = first (fmap int2Double) $ randomsR g num (0, double2Int maxV)
+randomPoss :: StdGen -> Int -> Dim -> ([Pos], StdGen)
+randomPoss g n (maxX, maxY) = randomTuples g n 0 maxX 0 maxY
+
+randomVelos :: StdGen -> Int -> Dim -> ([Velo], StdGen)
+randomVelos g n (maxX, maxY) = randomTuples g n (- maxX) maxX (- maxY) maxY

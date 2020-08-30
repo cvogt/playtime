@@ -28,41 +28,60 @@ wireEngineConfig ::
   [a] ->
   IO EngineConfig
 wireEngineConfig makeInitialGameState stepGameState visualize ecDim ecScale liveCodeState loadTx allTextures = do
-  recoveredGameState <- for liveCodeState startLiveCode
-  texturesMVar <- newMVar mempty
   gameStateMVar <- newEmptyMVar
+  texturesMVar <- newMVar mempty
+  wireEngineConfig' gameStateMVar texturesMVar makeInitialGameState stepGameState visualize ecDim ecScale liveCodeState loadTx allTextures
+
+wireEngineConfig' ::
+  forall a gs.
+  (Ord a, Show a, ToJSON gs, FromJSON gs) =>
+  MVar gs ->
+  MVar (Map a Texture) ->
+  ((a -> Texture) -> IO gs) ->
+  ((a -> Texture) -> EngineState -> gs -> Event -> IO gs) ->
+  ((a -> Texture) -> EngineState -> gs -> [Sprite]) ->
+  Dim ->
+  Double ->
+  Maybe LiveCodeState ->
+  (a -> IO DynamicImage) ->
+  [a] ->
+  IO EngineConfig
+wireEngineConfig' gameStateMVar texturesMVar makeInitialGameState stepGameState visualize ecDim ecScale liveCodeState loadTx allTextures = do
+  recoveredGameState <- for liveCodeState startLiveCode
   pure $
     EngineConfig
       { ecInitialize = putMVar gameStateMVar =<< case join recoveredGameState of
           Just gs -> pure gs
-          Nothing -> makeInitialGameState =<< readTextures texturesMVar,
+          Nothing -> makeInitialGameState =<< readTextures allTextures loadTx texturesMVar,
         ecStepGameState = \es event -> do
           modifyMVar_ gameStateMVar $ \old_gs -> do
-            textures <- readTextures texturesMVar
+            textures <- readTextures allTextures loadTx texturesMVar
             new_gs <- stepGameState textures es old_gs event
             for_ liveCodeState $ flip liveCodeSwitch new_gs
             pure new_gs,
         ecVisualize = \es -> do
-          textures <- readTextures texturesMVar
+          textures <- readTextures allTextures loadTx texturesMVar
           visualize textures es <$> readMVar gameStateMVar,
         ecDim = ecDim,
         ecScale = ecScale,
         ecCheckIfContinue = pure . not . gameExitRequested,
         ecGameDebugInfo = \EngineState {..} -> debugPrint <$> readMVar gameStateMVar
       }
+
+readTextures :: (Ord a, Show a) => [a] -> (a -> IO DynamicImage) -> MVar (Map a Texture) -> IO (a -> Texture)
+readTextures allTextures loadTx texturesMVar = do
+  textures' <- readMVar texturesMVar
+  textures <-
+    if null textures'
+      then do
+        textures'' <- loadTextures
+        void $ swapMVar texturesMVar textures''
+        pure textures''
+      else pure textures'
+  pure $ \t ->
+    fromMaybe (error $ "error loading texture " <> show t <> ", did you forget putting it into all_textures?") $
+      mapLookup t textures
   where
-    readTextures texturesMVar = do
-      textures' <- readMVar texturesMVar
-      textures <-
-        if null textures'
-          then do
-            textures'' <- loadTextures
-            void $ swapMVar texturesMVar textures''
-            pure textures''
-          else pure textures'
-      pure $ \t ->
-        fromMaybe (error $ "error loading texture " <> show t <> ", did you forget putting it into all_textures?") $
-          mapLookup t textures
     loadTextures = do
       lt' <- for allTextures $ \i -> (i,) <$> (either fail pure =<< runExceptT . loadTexture =<< loadTx i)
       pure $ foldl (\m (k, v) -> mapInsert k v m) mempty lt'

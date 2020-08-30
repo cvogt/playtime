@@ -26,6 +26,8 @@ dependencies:
 - filepath
 - integer-gmp
 - mtl
+- network
+- network-run
 - protolude
 - random
 - safe

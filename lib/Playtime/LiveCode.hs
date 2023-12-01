@@ -1,3 +1,7 @@
+{-# OPTIONS_GHC -fno-warn-unused-imports #-}
+{-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
+{-# OPTIONS_GHC -fno-warn-unused-matches #-}
+
 module Playtime.LiveCode where
 
 -- This module provides helpers to dynamically compile and load
@@ -16,17 +20,17 @@ module Playtime.LiveCode where
 -- - https://github.com/lukexi/halive
 -- - https://hackage.haskell.org/package/rapid
 
-import Bag (bagToList)
+--import Bag (bagToList)
 import Control.Concurrent.MVar (newEmptyMVar, putMVar)
 import Data.Aeson (FromJSON, Result (..), ToJSON, Value (Null), fromJSON, toJSON)
 import Data.Dynamic
 import Data.Typeable
-import DynFlags
-import qualified EnumSet
+--import DynFlags
+--import qualified EnumSet
 import GHC hiding (loadModule)
 import GHC.LanguageExtensions.Type
 import GHC.Paths (libdir)
-import HscTypes (SourceError, srcErrorMessages)
+--import HscTypes (SourceError, srcErrorMessages)
 import My.IO
 import My.Prelude
 import Playtime.EngineConfig
@@ -38,29 +42,30 @@ import System.IO.Silently (hCapture)
 type String = [Char]
 
 startLiveCode :: FromJSON a => LiveCodeState -> IO (Maybe a)
-startLiveCode lcs = do
-  watch lcs
-  recoverLiveCodeGameState lcs
+startLiveCode lcs = pure Nothing
+-- do
+--   watch lcs
+--   recoverLiveCodeGameState lcs
 
 liveCodeSwitch :: ToJSON gameState => LiveCodeState -> gameState -> IO ()
-liveCodeSwitch lcs@LiveCodeState {..} gameState = do
-  readMVar lcsChangeDetected >>= \case
-    False -> pure ()
-    True -> do
-      srcFiles <- fmap (lcsWatchDir </>) <$> filter (listIsSuffixOf ".hs") <$> getDirectoryContentsRecursive lcsWatchDir
-      void $
-        swapMVar lcsCompileError =<< do
-          void $ swapMVar lcsChangeDetected False
-          void $ swapMVar lcsCompiling True
-          Playtime.LiveCode.compileAndEval srcFiles lcsModule lcsExpression >>= \case
-            Left compileErrors -> pure $ Just compileErrors
-            Right makeEngineConfig -> do
-              void $ swapMVar lcsGameState $ toJSON gameState
-              ec <- makeEngineConfig (Just lcs)
-              ecInitialize ec
-              void $ swapMVar lcsEngineConfig ec
-              pure Nothing -- doesn't clear compile errors because EngineConfig has already been replaced
-      void $ swapMVar lcsCompiling False
+liveCodeSwitch lcs@LiveCodeState {..} gameState = pure () -- do
+  -- readMVar lcsChangeDetected >>= \case
+  --   False -> pure ()
+  --   True -> do
+  --     srcFiles <- fmap (lcsWatchDir </>) <$> filter (listIsSuffixOf ".hs") <$> getDirectoryContentsRecursive lcsWatchDir
+  --     void $
+  --       swapMVar lcsCompileError =<< do
+  --         void $ swapMVar lcsChangeDetected False
+  --         void $ swapMVar lcsCompiling True
+  --         Playtime.LiveCode.compileAndEval srcFiles lcsModule lcsExpression >>= \case
+  --           Left compileErrors -> pure $ Just compileErrors
+  --           Right makeEngineConfig -> do
+  --             void $ swapMVar lcsGameState $ toJSON gameState
+  --             ec <- makeEngineConfig (Just lcs)
+  --             ecInitialize ec
+  --             void $ swapMVar lcsEngineConfig ec
+  --             pure Nothing -- doesn't clear compile errors because EngineConfig has already been replaced
+  --     void $ swapMVar lcsCompiling False
 
 makeLiveCodeState :: (Maybe LiveCodeState -> IO EngineConfig) -> [Char] -> [Char] -> FilePath -> IO LiveCodeState
 makeLiveCodeState makeEngineConfig lcsModule lcsExpression lcsWatchDir = do
@@ -84,92 +89,92 @@ data LiveCodeState = LiveCodeState
     lcsGameState :: MVar Value
   }
 
-recoverLiveCodeGameState :: FromJSON a => LiveCodeState -> IO (Maybe a)
-recoverLiveCodeGameState LiveCodeState {lcsGameState} =
-  (fromJSON <$> readMVar lcsGameState) <&> \case
-    Error _ -> Nothing
-    Success gs -> Just gs
+-- recoverLiveCodeGameState :: FromJSON a => LiveCodeState -> IO (Maybe a)
+-- recoverLiveCodeGameState LiveCodeState {lcsGameState} =
+--   (fromJSON <$> readMVar lcsGameState) <&> \case
+--     Error _ -> Nothing
+--     Success gs -> Just gs
 
-watch :: LiveCodeState -> IO ()
-watch LiveCodeState {..} = do
-  void $ forkIO $ do
-    mgr <- startManagerConf $ WatchConfig DebounceDefault (100 * 1000) True
-    -- start a watching job (in the background)
-    void $ watchTree mgr lcsWatchDir (\_ -> True) $
-      \_ -> void $ swapMVar lcsChangeDetected True
-    forever $ threadDelay $ 1000 * 1000
+-- watch :: LiveCodeState -> IO ()
+-- watch LiveCodeState {..} = do
+--   void $ forkIO $ do
+--     mgr <- startManagerConf $ WatchConfig DebounceDefault (100 * 1000) True
+--     -- start a watching job (in the background)
+--     void $ watchTree mgr lcsWatchDir (\_ -> True) $
+--       \_ -> void $ swapMVar lcsChangeDetected True
+--     forever $ threadDelay $ 1000 * 1000
 
-compileAndEval :: Typeable a => [FilePath] -> String -> String -> IO (Either String a)
-compileAndEval srcFiles modname expr = do
-  clearFromCursorToScreenBeginning
-  restoreCursor
-  saveCursor
-  setSGR [SetColor Foreground Vivid Blue]
-  putStrLn $ "EVALING " <> modname <> "." <> expr <> " in:"
-  putStrLn ""
-  for_ srcFiles putStrLn
-  setSGR [ANSI.Reset]
-  (compileErrors, res) <- hCapture [stdout, stderr] $ runGhc (Just libdir) $ runExceptT $ do
-    loadSourceGhc srcFiles
-    evalExpression modname expr
-  pure $ first (<> compileErrors) res
+-- compileAndEval :: Typeable a => [FilePath] -> String -> String -> IO (Either String a)
+-- compileAndEval srcFiles modname expr = do
+--   clearFromCursorToScreenBeginning
+--   restoreCursor
+--   saveCursor
+--   setSGR [SetColor Foreground Vivid Blue]
+--   putStrLn $ "EVALING " <> modname <> "." <> expr <> " in:"
+--   putStrLn ""
+--   for_ srcFiles putStrLn
+--   setSGR [ANSI.Reset]
+--   (compileErrors, res) <- hCapture [stdout, stderr] $ runGhc (Just libdir) $ runExceptT $ do
+--     loadSourceGhc srcFiles
+--     evalExpression modname expr
+--   pure $ first (<> compileErrors) res
 
-evalExpression :: forall a. Typeable a => String -> String -> ExceptT String Ghc a
-evalExpression modname expr = ExceptT $ do
-  mod <- findModule (mkModuleName modname) Nothing
-  setContext [IIModule $ moduleName mod]
-  maybe (Left $ "could coerce return value of dynamically loaded code to expected type: " <> show (typeOf $ Proxy @a)) Right
-    . fromDynamic
-    <$> dynCompileExpr (modname <> "." <> expr)
+-- evalExpression :: forall a. Typeable a => String -> String -> ExceptT String Ghc a
+-- evalExpression modname expr = ExceptT $ do
+--   mod <- findModule (mkModuleName modname) Nothing
+--   setContext [IIModule $ moduleName mod]
+--   maybe (Left $ "could coerce return value of dynamically loaded code to expected type: " <> show (typeOf $ Proxy @a)) Right
+--     . fromDynamic
+--     <$> dynCompileExpr (modname <> "." <> expr)
 
-loadSourceGhc :: [FilePath] -> ExceptT String Ghc ()
-loadSourceGhc paths = ExceptT $
-  do
-    dflags <- getSessionDynFlags
-    void $ setSessionDynFlags $
-      dflags
-        { ghcLink = LinkInMemory,
-          hscTarget = HscInterpreted,
-          -- attempts to improve performance, untested
-          optLevel = 0,
-          simplPhases = 0,
-          debugLevel = 0,
-          parMakeCount = Nothing,
-          --log_action :: DynFlags -> WarnReason -> Severity -> SrcSpan -> PprStyle -> MsgDoc -> IO (),
-          --log_action = \_ _ _ _ _ _ -> putStrLn "ERROR",
-          -- we can't see the package.yaml, so we need to specify used extensions here
-          extensionFlags =
-            foldl
-              (flip EnumSet.insert)
-              EnumSet.empty
-              [ TraditionalRecordSyntax, -- FIXME: probably need to make extensions configurable at some point
-                DeriveAnyClass,
-                DeriveDataTypeable,
-                DeriveFunctor,
-                DeriveGeneric,
-                DerivingStrategies,
-                FlexibleContexts,
-                FlexibleInstances,
-                GeneralizedNewtypeDeriving,
-                LambdaCase,
-                MultiParamTypeClasses,
-                MultiWayIf,
-                RecordPuns, -- this is NamedFieldPuns
-                -- ImplicitPrelude,
-                OverloadedStrings,
-                PackageImports,
-                RecordWildCards,
-                ScopedTypeVariables,
-                StandaloneDeriving,
-                TupleSections,
-                TypeApplications,
-                TypeOperators,
-                ViewPatterns
-              ],
-          packageFlags = [ExposePackage "ghc" (PackageArg "ghc") $ ModRenaming True []]
-        }
-    for_ paths $ \path -> addTarget =<< guessTarget path Nothing
-    load LoadAllTargets >>= \case
-      Failed -> pure $ Left $ "COMPILE ERROR:\n"
-      Succeeded -> pure $ Right ()
-    `gcatch` \(e :: SourceError) -> pure $ Left $ concat $ fmap show $ bagToList $ srcErrorMessages e
+-- loadSourceGhc :: [FilePath] -> ExceptT String Ghc ()
+-- loadSourceGhc paths = ExceptT $
+--   do
+--     dflags <- getSessionDynFlags
+--     void $ setSessionDynFlags $
+--       dflags
+--         { ghcLink = LinkInMemory,
+--           hscTarget = HscInterpreted,
+--           -- attempts to improve performance, untested
+--           optLevel = 0,
+--           simplPhases = 0,
+--           debugLevel = 0,
+--           parMakeCount = Nothing,
+--           --log_action :: DynFlags -> WarnReason -> Severity -> SrcSpan -> PprStyle -> MsgDoc -> IO (),
+--           --log_action = \_ _ _ _ _ _ -> putStrLn "ERROR",
+--           -- we can't see the package.yaml, so we need to specify used extensions here
+--           extensionFlags =
+--             foldl
+--               (flip EnumSet.insert)
+--               EnumSet.empty
+--               [ TraditionalRecordSyntax, -- FIXME: probably need to make extensions configurable at some point
+--                 DeriveAnyClass,
+--                 DeriveDataTypeable,
+--                 DeriveFunctor,
+--                 DeriveGeneric,
+--                 DerivingStrategies,
+--                 FlexibleContexts,
+--                 FlexibleInstances,
+--                 GeneralizedNewtypeDeriving,
+--                 LambdaCase,
+--                 MultiParamTypeClasses,
+--                 MultiWayIf,
+--                 RecordPuns, -- this is NamedFieldPuns
+--                 -- ImplicitPrelude,
+--                 OverloadedStrings,
+--                 PackageImports,
+--                 RecordWildCards,
+--                 ScopedTypeVariables,
+--                 StandaloneDeriving,
+--                 TupleSections,
+--                 TypeApplications,
+--                 TypeOperators,
+--                 ViewPatterns
+--               ],
+--           packageFlags = [ExposePackage "ghc" (PackageArg "ghc") $ ModRenaming True []]
+--         }
+--     for_ paths $ \path -> addTarget =<< guessTarget path Nothing
+--     load LoadAllTargets >>= \case
+--       Failed -> pure $ Left $ "COMPILE ERROR:\n"
+--       Succeeded -> pure $ Right ()
+--     `gcatch` \(e :: SourceError) -> pure $ Left $ concat $ fmap show $ bagToList $ srcErrorMessages e

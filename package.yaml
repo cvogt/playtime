@@ -15,10 +15,9 @@ copyright:           "2020 Chris Vogt"
 description:         Please see the README on GitHub at ...
 
 dependencies:
-# - ansi-terminal
 - aeson
 - base
-- bmp
+#- bmp
 - bytestring
 - containers
 - deepseq
@@ -28,7 +27,6 @@ dependencies:
 - mtl
 - network
 - network-run
-- protolude
 - random
 - safe
 - sdl2-mixer
@@ -57,7 +55,7 @@ dependencies:
 - universum
 
 # formatting
-- ormolu
+#- ormolu
 
 # opengl and friends
 - OpenGL
@@ -65,7 +63,7 @@ dependencies:
 - GLFW-b
 
 # maybe game dev relevant
-- pathfinding
+#- pathfinding
 
 # music generation
 - Euterpea
@@ -107,6 +105,11 @@ ghc-options:
   -Wno-unsafe
   -Wno-missing-deriving-strategies
   -Wno-monomorphism-restriction
+  -Wno-missing-safe-haskell-mode
+  -Wno-prepositive-qualified-module
+  -Wno-unused-record-wildcards
+  -Wno-unused-packages
+  # REMOVE THESE PROBABLY
   # -optP-Wno-nonportable-include-path
 
 executables:

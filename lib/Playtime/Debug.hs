@@ -2,8 +2,8 @@ module Playtime.Debug where
 
 import Control.DeepSeq (rnf)
 import Data.Aeson
+import qualified Data.Aeson.KeyMap as KeyMap
 import qualified Data.ByteString.Lazy as BSL
-import qualified Data.HashMap.Strict as HMS
 import Data.List (lines)
 import qualified Data.Text as T
 import My.IO
@@ -80,7 +80,7 @@ forkDebugTerminal ConcurrentState {..} engineConfigMVar lcsMay = do
 
 debugPrint :: ToJSON a => a -> [[Char]]
 debugPrint a = case toJSON a of
-  Object hms -> fmap (\(k, v) -> T.unpack k <> ": " <> v) $ sortOn fst $ HMS.keys hms `zip` (enc <$> HMS.elems hms)
+  Object hms -> fmap (\(k, v) -> show k <> ": " <> v) $ sortOn fst $ KeyMap.keys hms `zip` (enc <$> KeyMap.elems hms)
   other -> [enc other]
   where
     enc = take 200 . either show T.unpack . decodeUtf8' . BSL.toStrict . encode

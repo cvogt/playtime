@@ -1,3 +1,6 @@
+linux dependencies:
+sudo apt install haskell-stack git libc6-dev libportmidi-dev libasound2-dev libglfw3-dev libsdl2-dev
+
 SVG support
 -- https://svg-clipart.com/svg/symbol/mKBXkcQ-flame-vector.svg
 -- https://hackage.haskell.org/package/rasterific-svg-0.3.3.2/docs/Graphics-Rasterific-Svg.html

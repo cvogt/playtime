@@ -40,7 +40,6 @@ module My.Prelude
     module GHC.Num,
     module GHC.Real,
     module GHC.Show,
-    module Protolude,
     module My.Prelude,
     module Safe,
     module Safe.Foldable,
@@ -92,6 +91,7 @@ import Data.Traversable (for, forM, sequence, traverse)
 import Data.Tuple (fst, snd, swap, uncurry)
 import Data.Tuple.Extra (dupe)
 import Foreign (ForeignPtr)
+import GHC.Base (liftA2)
 import GHC.Enum (Bounded, Enum, enumFrom, maxBound, minBound)
 import GHC.Float ((**), Double, Float, divideDouble)
 import GHC.Generics (Generic)
@@ -99,12 +99,17 @@ import GHC.Integer (Integer)
 import GHC.Num ((*), (+), (-), Num, abs, fromInteger, subtract)
 import GHC.Real ((/), Fractional, Integral, fromIntegral)
 import GHC.Show (Show (show))
-import Protolude ((<<$>>), (<<*>>))
 import Safe (headMay, lastMay)
 import Safe.Foldable (foldl1Safe, foldr1Safe)
 import System.IO (FilePath)
 import System.Random (StdGen, mkStdGen, random, randomR)
 import Universum (foldl1, foldr1)
+
+(<<$>>) :: (Functor f, Functor g) => (a -> b) -> f (g a) -> f (g b)
+(<<$>>) = fmap . fmap
+
+(<<*>>) :: (Applicative f, Applicative g) => f (g (a -> b)) -> f (g a) -> f (g b)
+(<<*>>) = liftA2 (<*>)
 
 mapDelete :: Ord k => k -> Map k a -> Map k a
 mapDelete = Data.Map.delete

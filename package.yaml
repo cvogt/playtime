@@ -87,6 +87,7 @@ default-extensions:
 - RecordWildCards
 - ScopedTypeVariables
 - StandaloneDeriving
+- StandaloneKindSignatures
 - TupleSections
 - TypeApplications
 - TypeOperators
@@ -104,6 +105,7 @@ ghc-options:
   -Wno-safe
   -Wno-unsafe
   -Wno-missing-deriving-strategies
+  -Wno-missing-kind-signatures
   -Wno-monomorphism-restriction
   -Wno-missing-safe-haskell-mode
   -Wno-prepositive-qualified-module

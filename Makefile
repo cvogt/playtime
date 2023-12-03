@@ -32,3 +32,6 @@ watch:
 	stack test --file-watch --no-run-tests
 watch-test:
 	stack test --file-watch
+format:
+	find -L . -type f -name "*.hs" ! -path '*/.stack-work*/*' -print0 | \
+		\ xargs -0 -n 1 -P 8 (stack build --exec "which ormolu") -o -XTypeApplications -o -XBangPatterns -o -XPatternSynonyms -m check

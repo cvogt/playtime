@@ -56,7 +56,7 @@ dependencies:
 - universum
 
 # formatting
-#- ormolu
+- ormolu
 
 # opengl and friends
 - OpenGL

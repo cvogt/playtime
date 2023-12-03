@@ -6,7 +6,7 @@ import Platformer.GameState
 import Playtime
 
 visualize :: (TextureId -> Pos -> Sprite) -> EngineState -> GameState -> [Sprite]
-visualize sprite EngineState {..} GameState {..} =
+visualize sprite EngineState {} GameState {..} =
   [sprite MainCharacter gsMainCharacter] <> room
   where
     room = (Map.toList $ unBoard gsRoom) <&> \(pos, t) -> sprite t pos

@@ -65,7 +65,7 @@ wireEngineConfig' gameStateMVar texturesMVar makeInitialGameState stepGameState 
         ecDim = ecDim,
         ecScale = ecScale,
         ecCheckIfContinue = pure . not . gameExitRequested,
-        ecGameDebugInfo = \EngineState {..} -> debugPrint <$> readMVar gameStateMVar
+        ecGameDebugInfo = \EngineState {} -> debugPrint <$> readMVar gameStateMVar
       }
 
 readTextures :: (Ord a, Show a) => [a] -> (a -> IO DynamicImage) -> MVar (Map a Texture) -> IO (a -> Texture)

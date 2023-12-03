@@ -103,7 +103,7 @@ stepGameStatePure seed tDim gs@GameState {..} EngineState {..} = \case
   _ -> gs
 
 visualize :: (TextureId -> Pos -> Sprite) -> EngineState -> GameState -> [Sprite]
-visualize sprite EngineState {..} GameState {..} =
+visualize sprite EngineState {} GameState {..} =
   let shipColor = if gsPiloting then (RGBA 0 255 0 255) else (RGBA 255 0 0 255)
    in [sprite Player gsPlayer]
         <> fmap (sprite Enemy . fst) gsEnemy

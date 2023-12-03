@@ -28,7 +28,7 @@ makeEngineConfig liveCodeState = do
     (snd . textures <$> allEnumValues)
   where
     dimensions = (320, 240)
-    stepGameState area es@EngineState {..} old_gs event = do
+    stepGameState area es@EngineState {} old_gs event = do
       let new_gs = stepGameStatePure area old_gs es event
       saveMay es new_gs
       fromMaybe new_gs <$> loadMay es

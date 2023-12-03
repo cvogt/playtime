@@ -110,7 +110,6 @@ ghc-options:
   -Wno-monomorphism-restriction
   -Wno-missing-safe-haskell-mode
   -Wno-prepositive-qualified-module
-  -Wno-unused-record-wildcards
   -Wno-unused-packages
   # REMOVE THESE PROBABLY
   # -optP-Wno-nonportable-include-path

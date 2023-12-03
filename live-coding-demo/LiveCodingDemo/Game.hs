@@ -70,7 +70,7 @@ stepGameStatePure seed tDim gs@GameState {..} EngineState {..} = \case
   _ -> gs
 
 visualize :: (TextureId -> Pos -> Sprite) -> EngineState -> GameState -> [Sprite]
-visualize sprite EngineState {..} GameState {..} =
+visualize sprite EngineState {} GameState {..} =
   let
    in [sprite Spaceship gsPlayer]
         <> (sprite Heart <$> gsHearts)

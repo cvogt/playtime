@@ -5,7 +5,7 @@ import Playtime
 import ShootEmUp.GameState
 
 visualize :: (TextureId -> Pos -> Sprite) -> EngineState -> GameState -> [Sprite]
-visualize sprite EngineState {..} GameState {..} =
+visualize sprite EngineState {} GameState {..} =
   [sprite Spaceship gsMainCharacter]
     <> (sprite Heart <$> gsHearts)
     <> (sprite Enemy <$> gsEnemies)

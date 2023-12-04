@@ -24,18 +24,17 @@ dependencies:
 - exceptions
 - file-embed
 - filepath
-- integer-gmp
+#- integer-gmp
 - mtl
 - network
 - network-run
 - random
 - safe
-- sdl2-mixer
 - tar
 - text
 - time
 - unix
-- unordered-containers
+#- unordered-containers
 - vector
 
 # for debug
@@ -131,7 +130,9 @@ executables:
     main: Main.hs
     source-dirs: shoot-em-up
     ghc-options: -threaded -rtsopts -with-rtsopts=-N
-    dependencies: playtime
+    dependencies:
+      - playtime
+      - sdl2-mixer
   live-coding-demo:
     main: Main.hs
     source-dirs: live-coding-demo

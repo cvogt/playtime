@@ -1,6 +1,6 @@
-This is an amateur project exploring how convenient game development in Haskell can be.
+TLDR: make shoot-em-up-run
 
-A lot of the code is work in progress.
+This is a side project exploring game development in Haskell.
 
 Presented at Haskell.Love 2020 https://haskell.love/jan-christopher-vogt/
 
